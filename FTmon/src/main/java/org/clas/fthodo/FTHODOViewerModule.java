@@ -143,8 +143,12 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
 
     public void initPanel() {
-        // TODO Auto-generated method stub
-        
+
+        JSplitPane splitPane = new JSplitPane();
+        splitPane.setLeftComponent(this.view);
+        splitPane.setRightComponent(this.canvas);
+
+        this.detectorPanel.add(splitPane, BorderLayout.CENTER);
     }
 
 

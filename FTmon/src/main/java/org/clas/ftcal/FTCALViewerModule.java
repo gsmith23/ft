@@ -376,7 +376,6 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
     public void initPanel() {
         JSplitPane splitPane = new JSplitPane();
-        splitPane.setLeftComponent(this.view);
 
         JPanel canvasPane = new JPanel();
 
@@ -413,11 +412,10 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
         canvasPane.add(this.canvas, BorderLayout.CENTER);
         canvasPane.add(buttonPane, BorderLayout.PAGE_END);
+    
+        splitPane.setLeftComponent(this.view);
         splitPane.setRightComponent(canvasPane);
-
-        TStyle.setAxisFont("Helevetica", 16);
-        TStyle.setStatBoxFont("Courier", 12);
-
+ 
         this.detectorPanel.add(splitPane, BorderLayout.CENTER);
 
     }

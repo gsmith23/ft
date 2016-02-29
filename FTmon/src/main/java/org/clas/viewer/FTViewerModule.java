@@ -56,9 +56,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     FTHODOViewerModule moduleFTHODO=new FTHODOViewerModule();
     FTCALViewerModule moduleFTCAL=new FTCALViewerModule();
     
-    
-   
-            
+        
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
    
    
@@ -70,10 +68,10 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     // ColorPalette class defines colors 
     ColorPalette palette = new ColorPalette();
  
-    DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
     JPanel detectorPanel = null;
     JPanel FTCALPanel = null;
     JPanel FTHODOPanel = null;
+    DetectorShapeTabView FTview = new DetectorShapeTabView();
     JTabbedPane tabbedPane = null;
    
   
@@ -94,15 +92,16 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
         this.detectorPanel = new JPanel();
         this.detectorPanel.setLayout(new BorderLayout());
         
-        this.FTHODOPanel = new JPanel();
-        this.FTCALPanel = new JPanel();
+        this.FTHODOPanel = new JPanel(new BorderLayout());
+        this.FTCALPanel = new JPanel(new BorderLayout());
         
         this.tabbedPane = new JTabbedPane();
         tabbedPane.add("FT-CAL",this.FTCALPanel);
         tabbedPane.add("FT-HODO",this.FTHODOPanel);
+        tabbedPane.add("FT",this.FTview);
         
   
-      
+        // filling main panel with tabs for different FT subdetectors and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
         
@@ -118,6 +117,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
         moduleFTCAL.initDetector();
         moduleFTHODO.initDetector();
         
+        // TODO define general view for FT
         
     }
 
@@ -158,7 +158,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
 
   
     public String getName() {
-        return "FTCALEventViewerModule";
+        return "FTViewerModule";
     }
 
     public String getAuthor() {
@@ -170,7 +170,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     }
 
     public String getDescription() {
-        return "FTCAL Display";
+        return "FT Display";
     }
 
     public JPanel getDetectorPanel() {

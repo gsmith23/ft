@@ -10,17 +10,14 @@ import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 
-import org.clas.viewer.FTViewerModule;
 import org.jlab.clas.detector.DetectorCollection;
 import org.jlab.clas.detector.DetectorDescriptor;
 import org.jlab.clas.detector.DetectorType;
-import org.jlab.clas12.basic.IDetectorModule;
-import org.jlab.clas12.basic.IDetectorProcessor;
 import org.jlab.clas12.calib.DetectorShape2D;
 import org.jlab.clas12.calib.DetectorShapeTabView;
 import org.jlab.clas12.calib.DetectorShapeView2D;
@@ -30,15 +27,11 @@ import org.jlab.clas12.detector.DetectorCounter;
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clas12.detector.FADCBasicFitter;
 import org.jlab.clas12.detector.IFADCFitter;
-import org.jlab.clasrec.main.DetectorEventProcessorPane;
-import org.jlab.data.io.DataEvent;
-import org.jlab.evio.clas12.EvioDataEvent;
 import org.root.attr.ColorPalette;
-import org.root.attr.TStyle;
 import org.root.func.F1D;
 import org.root.histogram.GraphErrors;
 import org.root.histogram.H1D;
-import org.root.pad.EmbeddedCanvas;
+import org.root.basic.EmbeddedCanvas;
 
 public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
@@ -375,8 +368,11 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
 
     public void initPanel() {
+        // detector panel consists of a split pane with detector view and tabbed canvases
         JSplitPane splitPane = new JSplitPane();
 
+        JTabbedPane tabbedPane = new JTabbedPane();
+        
         JPanel canvasPane = new JPanel();
 
         canvasPane.setLayout(new BorderLayout());

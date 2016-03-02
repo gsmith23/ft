@@ -129,7 +129,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
         nProcessed++;
         
         moduleFTCAL.processDecodedEvent();        
-        moduleFTHODO.processDecodedEvent();
+//        moduleFTHODO.processDecodedEvent();
         
     
     }

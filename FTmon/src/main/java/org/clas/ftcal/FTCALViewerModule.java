@@ -289,10 +289,10 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener,Chang
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
         System.out.println("FTCALViewerModule ACTION = " + e.getActionCommand());
-        if (e.getActionCommand().compareTo("Reset") == 0) {
+        if (e.getActionCommand().compareTo("Clear Histograms") == 0) {
             resetHistograms();
         }
-        if (e.getActionCommand().compareTo("Fit") == 0) {
+        if (e.getActionCommand().compareTo("Fit Histograms") == 0) {
             fitHistograms();
         }
 
@@ -437,16 +437,17 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener,Chang
 
     public void resetHistograms() { 
         for (int component = 0; component < 22 * 22; component++) {
-            H_fADC.get(0, 0, component).reset();
-            H_NOISE.get(0, 0, component).reset();
+            if(H_fADC.hasEntry(0, 0, component)) {
+                H_fADC.get(0, 0, component).reset();
+                H_NOISE.get(0, 0, component).reset();
+                H_COSMIC_fADC.get(0, 0, component).reset();
+                H_COSMIC_CHARGE.get(0, 0, component).reset();
+                H_COSMIC_VMAX.get(0, 0, component).reset();
+            }
             H_fADC_N.reset();
-            H_COSMIC_fADC.get(0, 0, component).reset();
-            H_COSMIC_CHARGE.get(0, 0, component).reset();
-            H_COSMIC_VMAX.get(0, 0, component).reset();
             H_COSMIC_N.reset();
         }
         // TODO Auto-generated method stub
-
     }
     
     public void initDecoder() {

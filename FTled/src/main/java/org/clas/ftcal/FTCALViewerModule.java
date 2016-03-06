@@ -92,11 +92,11 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
 
     // analysis parameters
-    int threshold = 12; // 10 fADC value <-> ~ 5mV
-    int ped_i1 = 4;
-    int ped_i2 = 24;
-    int pul_i1 = 30;
-    int pul_i2 = 70;
+    int threshold = 100; // 10 fADC value <-> ~ 5mV
+    int ped_i1 = 1;
+    int ped_i2 = 20;
+    int pul_i1 = 21;
+    int pul_i2 = 60;
     double nsPerSample=4;
     double LSB = 0.4884;
     int[] cry_event = new int[484];
@@ -298,14 +298,16 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     }
     
     private void initTable() {
-        summaryTable = new HashTable(3,"Pedestal:d","Noise:i","Energy Mean:d","Energy Sigma:d","Energy Chi2:d","Time Mean:d","Time Sigma:d");
-        double[] summaryInitialValues = {-1, -1, -1, -1, -1, -1, -1};
+        summaryTable = new HashTable(3,"Pedestal (ch):d","Noise (mV):i","LED Mean (pC):d","LED Sigma(%):d","Time Mean (nS):d","Time Sigma (nS):d");
+        double[] summaryInitialValues = {-1, -1, -1, -1, -1, -1};
         for (int component = 0; component < 22*22; component++) {
             if(doesThisCrystalExist(component)) {
                 summaryTable.addRow(summaryInitialValues,0,0,component);
                 summaryTable.addConstrain(3, 160.0, 240.0);
                 summaryTable.addConstrain(4, 1.0, 1.5); 
-                summaryTable.addConstrain(5, 5.0, 25.); 
+                summaryTable.addConstrain(5, 500.0, 1500.); 
+                summaryTable.addConstrain(6, 0.1, 2.);
+                summaryTable.addConstrain(7, 100, 200.);
             }
         }
     }
@@ -331,13 +333,13 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
                 viewFTCAL.addShape(shape);               
             }
         }  
-        for(int ipaddle=0; ipaddle<4; ipaddle++) {
-            DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTCAL, 0, 0, 501+ipaddle);
-            paddle.createBarXY(crystal_size*11, crystal_size/2.);
-            paddle.getShapePath().translateXYZ(crystal_size*11/2.*(((int) ipaddle/2)*2+1),crystal_size*(22+2)*(ipaddle % 2),0.0);
-            paddle.setColor(0, 145, 0);
-            viewFTCAL.addShape(paddle);
-        }
+//        for(int ipaddle=0; ipaddle<4; ipaddle++) {
+//            DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTCAL, 0, 0, 501+ipaddle);
+//            paddle.createBarXY(crystal_size*11, crystal_size/2.);
+//            paddle.getShapePath().translateXYZ(crystal_size*11/2.*(((int) ipaddle/2)*2+1),crystal_size*(22+2)*(ipaddle % 2),0.0);
+//            paddle.setColor(0, 145, 0);
+//            viewFTCAL.addShape(paddle);
+//        }
         return viewFTCAL;
     }
 
@@ -425,19 +427,19 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
                 H_LED_fADC.get(0, 0, component).setFillColor(3);
                 H_LED_fADC.get(0, 0, component).setXTitle("fADC Sample");
                 H_LED_fADC.get(0, 0, component).setYTitle("fADC Counts");
-                H_LED_CHARGE.add(0, 0, component, new H1D("Charge_" + component, title, 80, 0.0, 40.0));
+                H_LED_CHARGE.add(0, 0, component, new H1D("Charge_" + component, title, 300, 0.0, 1500.0));
                 H_LED_CHARGE.get(0, 0, component).setFillColor(2);
                 H_LED_CHARGE.get(0, 0, component).setXTitle("Charge (pC)");
                 H_LED_CHARGE.get(0, 0, component).setYTitle("Counts");
-                H_LED_VMAX.add(0, 0, component, new H1D("VMax_" + component, title, 80, 0.0, 40.0));
+                H_LED_VMAX.add(0, 0, component, new H1D("VMax_" + component, title, 300, 0.0, 1500.0));
                 H_LED_VMAX.get(0, 0, component).setFillColor(2);
                 H_LED_VMAX.get(0, 0, component).setXTitle("Amplitude (mV)");
                 H_LED_VMAX.get(0, 0, component).setYTitle("Counts");
-                H_LED_TCROSS.add(0, 0, component, new H1D("T_TRIG_" + component, title, 80, -20.0, 60.0));
+                H_LED_TCROSS.add(0, 0, component, new H1D("T_TRIG_" + component, title, 200, 60.0, 160.0));
                 H_LED_TCROSS.get(0, 0, component).setFillColor(5);
                 H_LED_TCROSS.get(0, 0, component).setXTitle("Time (ns)");
                 H_LED_TCROSS.get(0, 0, component).setYTitle("Counts");
-                H_LED_THALF.add(0, 0, component, new H1D("T_TRIG_" + component, title, 80,-20.0, 60.0));
+                H_LED_THALF.add(0, 0, component, new H1D("T_TRIG_" + component, title, 200, 60.0, 160.0));
                 H_LED_THALF.get(0, 0, component).setFillColor(5);
                 H_LED_THALF.get(0, 0, component).setXTitle("Time (ns)");
                 H_LED_THALF.get(0, 0, component).setYTitle("Counts"); 
@@ -689,27 +691,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
                 //            System.out.println("   Component #" + key + " is above threshold, max=" + fadcFitter.getWave_Max() + " ped=" + fadcFitter.getPedestal());
             H_PED.get(0, 0, key).fill(fadcFitter.getPedestal());
             H_NOISE.get(0, 0, key).fill(fadcFitter.getRMS());
-            if(key==501) {      // top long PMT
-                tPMTCross = fadcFitter.getTime(3);
-                tPMTHalf  = fadcFitter.getTime(7);
-            }
-        }
-        for (DetectorCounter counter : counters) {
-            int key = counter.getDescriptor().getComponent();
-            int iy  = key/22;
-            int ix  = key - iy * 22;
-            int nCrystalInColumn = 0;
-            fadcFitter.fit(counter.getChannels().get(0));
-            int i1=(int) max(0,iy-ncry_cosmic-1);    // allowing for +/- to cope with dead channels
-            int i2=(int) min(22,iy+ncry_cosmic+1);
-            for(int i=i1; i<=i2; i++) {
-                if(i!=iy && doesThisCrystalExist(i*22+ix)) {
-//                    System.out.println(ix + " " + iy + " " + i1 + " " + i2 + " " + i + " " +H_WMAX.getBinContent(i*22+ix));
-                    if(H_WMAX.getBinContent(i*22+ix)>threshold && H_TCROSS.getBinContent(i*22+ix)>0) nCrystalInColumn++;                    
-                }
-            }
-            if(nCrystalInColumn>=ncry_cosmic) {
-                short pulse[] = counter.getChannels().get(0).getPulse();
+            if(fadcFitter.getWave_Max()-fadcFitter.getPedestal()>threshold) {
                 H_LED_N.fill(key);
                 for (int i = 0; i < Math.min(pulse.length, H_LED_fADC.get(0, 0, key).getAxis().getNBins()); i++) {
                     H_LED_fADC.get(0, 0, key).fill(i, pulse[i]-fadcFitter.getPedestal() + 10.0);                
@@ -808,10 +790,10 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         canvasEnergy.cd(3);
         if(H_LED_CHARGE.hasEntry(0, 0, keySelect)) {
             H1D hcosmic = H_LED_CHARGE.get(0,0,keySelect);
-            initLandauFitPar(keySelect,hcosmic);
-            hcosmic.fit(mylandau.get(0, 0, keySelect),"L");
+//            initLandauFitPar(keySelect,hcosmic);
+//            hcosmic.fit(mylandau.get(0, 0, keySelect),"L");
             canvasEnergy.draw(hcosmic,"S");
-            canvasEnergy.draw(mylandau.get(0, 0, keySelect),"sameS");
+//            canvasEnergy.draw(mylandau.get(0, 0, keySelect),"sameS");
         } 
         // Time
         GraphErrors  G_TCROSS = new GraphErrors(crystalID,timeCross);
@@ -841,9 +823,9 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         if(H_LED_THALF.hasEntry(0, 0, keySelect)) {
             H1D htime = H_LED_THALF.get(0, 0, keySelect);
             initTimeGaussFitPar(keySelect,htime);
-            htime.fit(myTimeGauss.get(0, 0, keySelect),"L");
+//            htime.fit(myTimeGauss.get(0, 0, keySelect),"L");
             canvasTime.draw(htime,"S");
-            canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
+//            canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
         }
         this.updateTable();
     }
@@ -926,21 +908,21 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
             if(doesThisCrystalExist(key)) {
                 String pedestal = String.format ("%.1f", H_PED.get(0, 0, key).getMean());
                 String noise    = String.format ("%.2f", H_NOISE.get(0, 0, key).getMean());
-                String mips     = String.format ("%.2f", mylandau.get(0, 0, key).getParameter(1));
-                String emips    = String.format ("%.2f", mylandau.get(0, 0, key).parameter(1).error());
-                String chi2     = String.format ("%.1f", mylandau.get(0, 0, key).getChiSquare(H_LED_CHARGE.get(0,0,key).getDataSet())
-                                 /mylandau.get(0, 0, key).getNDF(H_LED_CHARGE.get(0,0,key).getDataSet()));
-                String time     = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(1));
-                String stime    = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(2));
+                String led      = String.format ("%.2f", H_LED_CHARGE.get(0, 0, key).getMean());
+                String eled     = String.format ("%.2f", 100.);
+                if(H_LED_CHARGE.get(0, 0, key).getMean()>0) {
+                    eled     = String.format ("%.2f", 100*H_LED_CHARGE.get(0, 0, key).getRMS()/H_LED_CHARGE.get(0, 0, key).getMean());
+                }
+                String time     = String.format ("%.2f", H_LED_THALF.get(0 , 0, key).getMean());
+                String stime    = String.format ("%.2f", H_LED_THALF.get(0 , 0, key).getRMS());
                 
                 
                 summaryTable.setValueAtAsDouble(0, Double.parseDouble(pedestal), 0, 0, key);
                 summaryTable.setValueAtAsDouble(1, Double.parseDouble(noise)   , 0, 0, key);
-                summaryTable.setValueAtAsDouble(2, Double.parseDouble(mips)    , 0, 0, key);
-                summaryTable.setValueAtAsDouble(3, Double.parseDouble(emips)   , 0, 0, key);
-                summaryTable.setValueAtAsDouble(4, Double.parseDouble(chi2)    , 0, 0, key);
-                summaryTable.setValueAtAsDouble(5, Double.parseDouble(time)    , 0, 0, key);
-                summaryTable.setValueAtAsDouble(6, Double.parseDouble(stime)   , 0, 0, key);                
+                summaryTable.setValueAtAsDouble(2, Double.parseDouble(led)     , 0, 0, key);
+                summaryTable.setValueAtAsDouble(3, Double.parseDouble(eled)    , 0, 0, key);
+                summaryTable.setValueAtAsDouble(4, Double.parseDouble(time)    , 0, 0, key);
+                summaryTable.setValueAtAsDouble(5, Double.parseDouble(stime)   , 0, 0, key);                
             }            
         }
         summaryTable.show();

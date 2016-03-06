@@ -2,10 +2,14 @@ package org.clas.fthodo;
 
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 import org.jlab.clas.detector.DetectorCollection;
 import org.jlab.clas.detector.DetectorDescriptor;
@@ -235,15 +239,15 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
         if (e.getActionCommand().compareTo("Waveforms") == 0) {
             plotSelect = 0;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Calibrated") == 0) {
             plotSelect = 1;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("NPE Wave") == 0) {
             plotSelect = 2;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Max") == 0) {
             plotSelect = 10;
@@ -357,7 +361,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	//System.out.println("Sector=" + secSelect + " Layer=" +layerSelect + " Component=" + componentSelect);
 	
         if      ( plotSelect == 0 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
 	    canvas.cd(layerSelect-1);
             
 	    if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect))
@@ -373,7 +377,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if ( plotSelect == 1 ){
-	    this.canvas.divide(1, 2);
+//	    this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
@@ -390,24 +394,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					     componentSelect));
 	}
 	else if ( plotSelect == 2 ){
-	    this.canvas.divide(1, 2);
+//	    this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_NPE.hasEntry(secSelect,
 			      layerSelect,
 			      componentSelect))
                 this.canvas.draw(H_NPE.get(secSelect,
 					   layerSelect,
-					   componentSelect));
+					   componentSelect),"S");
             canvas.cd(layerSelect%2);
             if(H_NPE.hasEntry(secSelect,
 			      (layerSelect%2)+1,
 			      componentSelect))
                 this.canvas.draw(H_NPE.get(secSelect,
 					   (layerSelect%2)+1,
-					   componentSelect));
+					   componentSelect),"S");
 	}
 	else if ( plotSelect == 10 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_MAXV.hasEntry(secSelect,
 			       layerSelect,
@@ -424,7 +428,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if ( plotSelect == 11 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
             
 	    canvas.cd(layerSelect-1);
             if(H_COSMIC_CHARGE.hasEntry(secSelect,
@@ -434,7 +438,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		
 		this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
 						     layerSelect,
-						     componentSelect));
+						     componentSelect),"S");
 		
 	    }
             // noise of same layer component in other division
@@ -446,7 +450,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		this.canvas.setLogY(true);
 		this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
 						    (layerSelect), 
-						    componentSelect));
+						    componentSelect),"S");
 		
 		
 	    }
@@ -836,7 +840,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
 	// User chooses which histogram/s to display
         if      (plotSelect == 0 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_WAVE.hasEntry(secSelect,
 			       layerSelect,
@@ -853,7 +856,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if (plotSelect == 1 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
@@ -870,7 +872,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					     componentSelect));
         }
 	else if (plotSelect == 2 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_NPE.hasEntry(secSelect,
 			      layerSelect,
@@ -887,7 +888,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					   componentSelect));
         }
 	else if (plotSelect == 10 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_MAXV.hasEntry(secSelect,
 			       layerSelect,
@@ -955,7 +955,110 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
         JSplitPane splitPane = new JSplitPane();
         splitPane.setLeftComponent(this.view);
-        splitPane.setRightComponent(this.canvas);
+  
+        
+        JPanel canvasPane = new JPanel();
+        canvasPane.setLayout(new BorderLayout());
+
+        JPanel buttonPane = new JPanel();
+        buttonPane.setLayout(new FlowLayout());
+        
+        JButton resetBtn = new JButton("Reset");
+        resetBtn.addActionListener(this);
+        
+	buttonPane.add(resetBtn);
+        
+	//=================================
+	//      PLOTTING OPTIONS
+	//=================================
+
+	ButtonGroup group = new ButtonGroup();
+	
+	//
+	// Non-accumulated
+        //
+	// 0 - waveforms
+	// 1 - waveforms calibrated in time and voltage
+	// 2 - voltage / npe voltage peak (40 mV for now)
+
+	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
+	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
+	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
+	
+        group.add(wavesRb);
+        buttonPane.add(wavesRb);
+        wavesRb.setSelected(true);
+        wavesRb.addActionListener(this);
+        
+        group.add(cWavesRb);
+        buttonPane.add(cWavesRb);
+//        cWavesRb.setSelected(true);
+        cWavesRb.addActionListener(this);
+        
+	group.add(npeWavesRb);
+        buttonPane.add(npeWavesRb);
+        //npeWavesRb.setSelected(true);
+        npeWavesRb.addActionListener(this);
+        
+	//
+	// Accumulated
+	//
+	// 10 - Max Pulse Voltage
+	// 11 - Charge
+	// ...
+	
+	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
+        JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
+	
+	group.add(maxVoltRb);
+	buttonPane.add(maxVoltRb);
+        //maxVoltRb.setSelected(true);
+        maxVoltRb.addActionListener(this);
+	
+	group.add(chargeRb);
+	buttonPane.add(chargeRb);
+        //chargeRb.setSelected(true);
+        chargeRb.addActionListener(this);
+	
+	//=======================================================
+	//=======================================================
+	// IN PROGRESS
+
+	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
+//         JRadioButton fitRb  = new JRadioButton("Fit Timing");
+//         group.add(fitRb);
+//         buttonPane.add(fitRb);
+//         //fitRb.setSelected(true);
+//         fitRb.addActionListener(this);
+        
+//         group.add(fadcsampleRb);
+//         buttonPane.add(fadcsampleRb);
+//         //fadcsampleRb.setSelected(true);
+//         fadcsampleRb.addActionListener(this);
+	
+        //=======================================================
+	//=======================================================
+        this.canvas.divide(1, 2);
+        this.canvas.cd(0);
+        this.canvas.setGridX(false);
+        this.canvas.setGridY(false);
+        this.canvas.setAxisFontSize(10);
+        this.canvas.setTitleFontSize(16);
+        this.canvas.setAxisTitleFontSize(14);
+        this.canvas.setStatBoxFontSize(8);
+        this.canvas.cd(1);
+        this.canvas.setGridX(false);
+        this.canvas.setGridY(false);
+        this.canvas.setAxisFontSize(10);
+        this.canvas.setTitleFontSize(16);
+        this.canvas.setAxisTitleFontSize(14);
+        this.canvas.setStatBoxFontSize(8);
+    
+	canvasPane.add(this.canvas, BorderLayout.CENTER);
+	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
+	
+	// Histograms on RHS
+	splitPane.setRightComponent(canvasPane);
 
         this.detectorPanel.add(splitPane, BorderLayout.CENTER);
     }

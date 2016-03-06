@@ -54,7 +54,9 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     JPanel detectorPanel = null;
     JPanel FTCALPanel = null;
     JPanel FTHODOPanel = null;
-    DetectorShapeTabView FTview = new DetectorShapeTabView();
+    JSplitPane FTview = new JSplitPane();
+    DetectorShapeTabView FTview1 = new DetectorShapeTabView();
+    DetectorShapeTabView FTview2 = new DetectorShapeTabView();
     JTabbedPane tabbedPane = null;
     
   
@@ -77,13 +79,15 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         
         this.FTHODOPanel = new JPanel(new BorderLayout());
         this.FTCALPanel = new JPanel(new BorderLayout());
-        
+               
         this.tabbedPane = new JTabbedPane();
         tabbedPane.add("FT-CAL",this.FTCALPanel);
         tabbedPane.add("FT-HODO",this.FTHODOPanel);
         tabbedPane.add("FT",this.FTview);
         
-  
+        this.FTview.setLeftComponent(this.FTview1);
+        this.FTview.setRightComponent(this.FTview2);
+                
         // filling main panel with tabs for different FT subdetectors and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
@@ -100,9 +104,10 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         
         moduleFTCAL.initDetector();
         moduleFTHODO.initDetector();
-        this.FTview.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
-        this.FTview.addDetectorLayer(this.drawDetector(+10.,0.));
-        this.FTview.addDetectorListener(this);
+        this.FTview1.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
+        this.FTview2.addDetectorLayer(this.drawDetector(+10.,0.));
+        this.FTview1.addDetectorListener(this);
+        this.FTview2.addDetectorListener(this);
     }
 
     private void initRawDataDecoder() {
@@ -135,7 +140,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         nProcessed++;
         
         moduleFTCAL.processDecodedEvent();        
-//        moduleFTHODO.processDecodedEvent();
+        moduleFTHODO.processDecodedEvent();
         
         this.FTview.repaint();
     }

@@ -63,7 +63,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
 
     public FTViewerModule() {
         
-        moduleFTCAL.setDecoder(decoder);
+        moduleFTCAL.setDecoder(decoder); 
         moduleFTHODO.setDecoder(decoder);
         
         this.initRawDataDecoder();

@@ -7,7 +7,10 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -40,7 +43,10 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     EventDecoder decoder;
     
     ColorPalette palette = new ColorPalette();
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
     //=================================
     //           HISTOGRAMS
     //=================================
@@ -131,7 +137,12 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     }
     
     public void initDetector(){
-        
+        DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
+        this.view.addDetectorLayer(viewFTHODO);
+        view.addDetectorListener(this);
+    }
+    
+    public DetectorShapeView2D drawDetector(double x0, double y0) {    
         DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("FTHODO");
         
 	// sectors 1-8 for each layer. 
@@ -152,29 +163,33 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 			   30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0}; 
 	
 	// distance from center of each element in symmetry sector 0-28
-        double[] p_R	= {16.2331,15.6642,16.2331,15.0076,
-			   13.0933,15.6642,13.0933,10.8102,
-			   7.5590,15.9022,15.3132,15.3132,
-			   15.9022,13.0258,12.2998,12.2998,
-			   13.0258,10.2395,9.2984,9.2984,
-			   10.2395,8.7322,7.8847,7.2650,
-			   6.9344,6.9344,7.2650,7.8847,
-			   8.7322}; 
-        
-	// theta angle in rad of each element in  symmetry sector 0-28 
-	// measure from vertical axis pointing up 
-	// -- Positive y points down and positive x to the left
-        double[] p_theta = {-0.65294,-0.50511,-0.91786,-0.78540,
-			    -0.61741,-1.06568,-0.95339,-0.78540,
-			    -0.78540,-0.29005,-0.09916,0.09916,
-			    0.29005,-0.35667,-0.12357,0.12357,
-			    0.35667,-0.46024,-0.16377,0.16377,
-			    0.46024,-0.66118,-0.50722,-0.32184,
-			    -0.11069,0.11069,0.32184,0.50722,
-			    0.66118}; 
-	
-	double xcenter;
-	double ycenter;
+//        double[] p_R	= {16.2331,15.6642,16.2331,15.0076,
+//			   13.0933,15.6642,13.0933,10.8102,
+//			   7.5590,15.9022,15.3132,15.3132,
+//			   15.9022,13.0258,12.2998,12.2998,
+//			   13.0258,10.2395,9.2984,9.2984,
+//			   10.2395,8.7322,7.8847,7.2650,
+//			   6.9344,6.9344,7.2650,7.8847,
+//			   8.7322}; 
+//        
+//	// theta angle in rad of each element in  symmetry sector 0-28 
+//	// measure from vertical axis pointing up 
+//	// -- Positive y points down and positive x to the left
+//        double[] p_theta = {-0.65294,-0.50511,-0.91786,-0.78540,
+//			    -0.61741,-1.06568,-0.95339,-0.78540,
+//			    -0.78540,-0.29005,-0.09916,0.09916,
+//			    0.29005,-0.35667,-0.12357,0.12357,
+//			    0.35667,-0.46024,-0.16377,0.16377,
+//			    0.46024,-0.66118,-0.50722,-0.32184,
+//			    -0.11069,0.11069,0.32184,0.50722,
+//			    0.66118};
+
+        double[] xx = {-97.5, -75, -127.5, 105, -75, -135, -105, -75, -52.5, -45, -15, 15, 45, -45, -15, 15, 45, -45,
+                       -15, 15, 45, -52.5,-37.5,-22.5, -7.5, 7.5, 22.5, 37.5, 52.5};
+        double[] yy = { -127.5,-135, -97.5, -105, -105, -75, -75, -75, -52.5, -150, -150, -150, -150, -120, -120, -120,
+                        -120, -90, -90, -90, -90, -67.5, -67.5, -67.5, -67.5, -67.5, -67.5, -67.5, -67.5};
+	double xcenter = 0;
+	double ycenter = 0;
 	
 	// two layers: c==0 for thin and c==1 for thick
         for (int layer_c=0; layer_c<2; layer_c++){ 
@@ -195,14 +210,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                         crys_a = component + 1 -9; 
                     }
 		    //calculate the x-component of the center of each crystal;
-                    xcenter = p_R[component] ;
-		    xcenter = xcenter * Math.sin(p_theta[component]+Math.PI /2 *sec_c);
-		    xcenter = xcenter * 10.;  
-		    
+//                    xcenter = p_R[component] ;
+//		    xcenter = xcenter * Math.sin(p_theta[component]+Math.PI /2 *sec_c);
+//		    xcenter = xcenter * 10.;  
+		    if(sec_c==0)      xcenter = xx[component];
+                    else if(sec_c==1) xcenter =-yy[component];
+                    else if(sec_c==2) xcenter =-xx[component];
+                    else if(sec_c==3) xcenter = yy[component];
+                    
 		    //calculate the y-component of the center of each crystal
-		    ycenter = -p_R[component] ;
-		    ycenter = ycenter * Math.cos(p_theta[component]+Math.PI /2 *sec_c);
-		    ycenter = ycenter * 10 + p_layer[layer_c];
+//		    ycenter = -p_R[component] ;
+//		    ycenter = ycenter * Math.cos(p_theta[component]+Math.PI /2 *sec_c);
+//                    if(layer_c==0 && sec_c==1) System.out.println(xcenter + " " + ycenter*10);
+//		    ycenter = ycenter * 10 + p_layer[layer_c];
+                    if(sec_c==0)      ycenter = yy[component] + p_layer[layer_c];
+                    else if(sec_c==1) ycenter = xx[component] + p_layer[layer_c];
+                    else if(sec_c==2) ycenter =-yy[component] + p_layer[layer_c];
+                    else if(sec_c==3) ycenter =-xx[component] + p_layer[layer_c];
+                        
 		    
 		    // Sectors 1-8 
 		    // (sect=1: upper left - clockwise); 
@@ -223,9 +248,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 }
             }
         }
-        this.view.addDetectorLayer(viewFTHODO);
-        view.addDetectorListener(this);
-    
+        return viewFTHODO;
     }
         
     public void actionPerformed(ActionEvent e) {
@@ -236,15 +259,15 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
         if (e.getActionCommand().compareTo("Waveforms") == 0) {
             plotSelect = 0;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Calibrated") == 0) {
             plotSelect = 1;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("NPE Wave") == 0) {
             plotSelect = 2;
-            resetCanvas();
+//            resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Max") == 0) {
             plotSelect = 10;
@@ -358,7 +381,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	//System.out.println("Sector=" + secSelect + " Layer=" +layerSelect + " Component=" + componentSelect);
 	
         if      ( plotSelect == 0 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
 	    canvas.cd(layerSelect-1);
             
 	    if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect))
@@ -374,7 +397,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if ( plotSelect == 1 ){
-	    this.canvas.divide(1, 2);
+//	    this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
@@ -391,24 +414,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					     componentSelect));
 	}
 	else if ( plotSelect == 2 ){
-	    this.canvas.divide(1, 2);
+//	    this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_NPE.hasEntry(secSelect,
 			      layerSelect,
 			      componentSelect))
                 this.canvas.draw(H_NPE.get(secSelect,
 					   layerSelect,
-					   componentSelect));
+					   componentSelect),"S");
             canvas.cd(layerSelect%2);
             if(H_NPE.hasEntry(secSelect,
 			      (layerSelect%2)+1,
 			      componentSelect))
                 this.canvas.draw(H_NPE.get(secSelect,
 					   (layerSelect%2)+1,
-					   componentSelect));
+					   componentSelect),"S");
 	}
 	else if ( plotSelect == 10 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_MAXV.hasEntry(secSelect,
 			       layerSelect,
@@ -425,7 +448,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if ( plotSelect == 11 ) {
-            this.canvas.divide(1, 2);
+//            this.canvas.divide(1, 2);
             
 	    canvas.cd(layerSelect-1);
             if(H_COSMIC_CHARGE.hasEntry(secSelect,
@@ -436,7 +459,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		
 		this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
 						     layerSelect,
-						     componentSelect));
+						     componentSelect),"S");
 		
 	    }
             // noise of same layer component in other division
@@ -448,7 +471,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		this.canvas.setLogY(true);
 		this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
 						    (layerSelect), 
-						    componentSelect));
+						    componentSelect),"S");
 		
 		
 	    }
@@ -480,7 +503,16 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
     }
 
-
+    public Color getComponentStatus(int sector, int layer, int component) {
+        int sector_count[] = {0,9,29,38,58,67,87,96};
+        int index = (layer -1 ) *116+sector_count[sector-1]+component;
+        Color col = new Color(100,100,100);
+        if(H_WMAX.getBinContent(index)>fADCThreshold) {
+            col = palette.getColor3D(H_WMAX.getBinContent(index), 4000, true);           
+//            col = new Color(200, 0, 200);
+        }
+        return col;
+    }
 
     public void update(DetectorShape2D shape) {
         int sector    = shape.getDescriptor().getSector();
@@ -838,7 +870,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
 	// User chooses which histogram/s to display
         if      (plotSelect == 0 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_WAVE.hasEntry(secSelect,
 			       layerSelect,
@@ -855,7 +886,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					    componentSelect));
         }
 	else if (plotSelect == 1 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
@@ -872,7 +902,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					     componentSelect));
         }
 	else if (plotSelect == 2 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_NPE.hasEntry(secSelect,
 			      layerSelect,
@@ -889,7 +918,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					   componentSelect));
         }
 	else if (plotSelect == 10 ) {
-            this.canvas.divide(1, 2);
             canvas.cd(layerSelect-1);
             if(H_MAXV.hasEntry(secSelect,
 			       layerSelect,
@@ -956,6 +984,114 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void initPanel() {
 
         JSplitPane splitPane = new JSplitPane();
+<<<<<<< HEAD
+=======
+        splitPane.setLeftComponent(this.view);
+  
+        
+        JPanel canvasPane = new JPanel();
+        canvasPane.setLayout(new BorderLayout());
+
+        JPanel buttonPane = new JPanel();
+        buttonPane.setLayout(new FlowLayout());
+        
+        JButton resetBtn = new JButton("Reset");
+        resetBtn.addActionListener(this);
+        
+	buttonPane.add(resetBtn);
+        
+	//=================================
+	//      PLOTTING OPTIONS
+	//=================================
+
+	ButtonGroup group = new ButtonGroup();
+	
+	//
+	// Non-accumulated
+        //
+	// 0 - waveforms
+	// 1 - waveforms calibrated in time and voltage
+	// 2 - voltage / npe voltage peak (40 mV for now)
+
+	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
+	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
+	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
+	
+        group.add(wavesRb);
+        buttonPane.add(wavesRb);
+        wavesRb.setSelected(true);
+        wavesRb.addActionListener(this);
+        
+        group.add(cWavesRb);
+        buttonPane.add(cWavesRb);
+//        cWavesRb.setSelected(true);
+        cWavesRb.addActionListener(this);
+        
+	group.add(npeWavesRb);
+        buttonPane.add(npeWavesRb);
+        //npeWavesRb.setSelected(true);
+        npeWavesRb.addActionListener(this);
+        
+	//
+	// Accumulated
+	//
+	// 10 - Max Pulse Voltage
+	// 11 - Charge
+	// ...
+	
+	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
+        JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
+	
+	group.add(maxVoltRb);
+	buttonPane.add(maxVoltRb);
+        //maxVoltRb.setSelected(true);
+        maxVoltRb.addActionListener(this);
+	
+	group.add(chargeRb);
+	buttonPane.add(chargeRb);
+        //chargeRb.setSelected(true);
+        chargeRb.addActionListener(this);
+	
+	//=======================================================
+	//=======================================================
+	// IN PROGRESS
+
+	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
+//         JRadioButton fitRb  = new JRadioButton("Fit Timing");
+//         group.add(fitRb);
+//         buttonPane.add(fitRb);
+//         //fitRb.setSelected(true);
+//         fitRb.addActionListener(this);
+        
+//         group.add(fadcsampleRb);
+//         buttonPane.add(fadcsampleRb);
+//         //fadcsampleRb.setSelected(true);
+//         fadcsampleRb.addActionListener(this);
+	
+        //=======================================================
+	//=======================================================
+        this.canvas.divide(1, 2);
+        this.canvas.cd(0);
+        this.canvas.setGridX(false);
+        this.canvas.setGridY(false);
+        this.canvas.setAxisFontSize(10);
+        this.canvas.setTitleFontSize(16);
+        this.canvas.setAxisTitleFontSize(14);
+        this.canvas.setStatBoxFontSize(8);
+        this.canvas.cd(1);
+        this.canvas.setGridX(false);
+        this.canvas.setGridY(false);
+        this.canvas.setAxisFontSize(10);
+        this.canvas.setTitleFontSize(16);
+        this.canvas.setAxisTitleFontSize(14);
+        this.canvas.setStatBoxFontSize(8);
+    
+	canvasPane.add(this.canvas, BorderLayout.CENTER);
+	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
+	
+	// Histograms on RHS
+	splitPane.setRightComponent(canvasPane);
+>>>>>>> upstream/master
 
 	JTabbedPane tabbedPane = new JTabbedPane();
 	

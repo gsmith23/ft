@@ -18,30 +18,32 @@ import org.jlab.clas.detector.DetectorType;
 import org.jlab.clas12.basic.IDetectorModule;
 import org.jlab.clas12.basic.IDetectorProcessor;
 import org.jlab.clas12.calib.DetectorShapeTabView;
+
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clasrec.main.DetectorEventProcessorPane;
+//import org.jlab.clasrec.main.DetectorEventProcessorPane;
+
 import org.jlab.data.io.DataEvent;
 import org.jlab.evio.clas12.EvioDataEvent;
 import org.root.attr.ColorPalette;
+//
+
 
 /**
  *
  * @author gavalian
  */
 public class FTViewerModule implements IDetectorProcessor, IDetectorModule, ActionListener {
-
     
     FTHODOViewerModule moduleFTHODO=new FTHODOViewerModule();
     FTCALViewerModule moduleFTCAL=new FTCALViewerModule();
     
-        
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
    
-   
+    //this.threadDelay = 0;
+    
     EventDecoder decoder = new EventDecoder();
     int nProcessed = 0;
- 
-    
     
     // ColorPalette class defines colors 
     ColorPalette palette = new ColorPalette();
@@ -51,8 +53,6 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     JPanel FTHODOPanel = null;
     DetectorShapeTabView FTview = new DetectorShapeTabView();
     JTabbedPane tabbedPane = null;
-   
-  
 
     public FTViewerModule() {
         
@@ -70,16 +70,16 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
         this.detectorPanel = new JPanel();
         this.detectorPanel.setLayout(new BorderLayout());
         
-        this.FTHODOPanel = new JPanel(new BorderLayout());
         this.FTCALPanel = new JPanel(new BorderLayout());
-        
+        this.FTHODOPanel = new JPanel(new BorderLayout());
+
         this.tabbedPane = new JTabbedPane();
-        tabbedPane.add("FT-CAL",this.FTCALPanel);
         tabbedPane.add("FT-HODO",this.FTHODOPanel);
+        tabbedPane.add("FT-CAL",this.FTCALPanel);
         tabbedPane.add("FT",this.FTview);
-        
   
-        // filling main panel with tabs for different FT subdetectors and event handling panel
+        // filling main panel with tabs for different 
+	// FT subdetectors and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
         
@@ -105,7 +105,6 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     }
 
     private void initHistograms() {
-
       
         moduleFTCAL.initHistograms();
         moduleFTHODO.initHistograms();
@@ -118,19 +117,14 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     }
 
     
-    
-    
-    
     public void processEvent(DataEvent de) {
         EvioDataEvent event = (EvioDataEvent) de;
-
         
         decoder.decode(event);
         nProcessed++;
         
         moduleFTCAL.processDecodedEvent();        
         moduleFTHODO.processDecodedEvent();
-        
     
     }
 

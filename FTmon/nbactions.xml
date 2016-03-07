@@ -10,7 +10,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-DCLAS12DIR=/sw/coatjava-2.0.new/ -classpath %classpath org.clas.viewer.FTViewerModule</exec.args>
+                <exec.args>-DCLAS12DIR=/Users/gsmith23/NetBeansProjects/Hodoscope/coatjava -classpath %classpath org.clas.viewer.FTViewerModule</exec.args>
                 <exec.executable>java</exec.executable>
             </properties>
         </action>
@@ -39,7 +39,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-DCLAS12DIR=/sw/coatjava-2.0.new/ -classpath %classpath org.clas.viewer.FTViewerModule</exec.args>
+                <exec.args>-DCLAS12DIR=/Users/gsmith23/NetBeansProjects/Hodoscope/coatjava -classpath %classpath org.clas.viewer.FTViewerModule</exec.args>
                 <exec.executable>java</exec.executable>
             </properties>
         </action>

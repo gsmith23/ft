@@ -1,6 +1,5 @@
 package org.clas.ftcal;
 
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -38,11 +37,8 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
     JPanel detectorPanel;
     ColorPalette palette = new ColorPalette();
-    
     EventDecoder decoder;
     int nProcessed = 0;
-    
-
 
     public EventDecoder getDecoder() {
         return decoder;
@@ -51,8 +47,6 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
     public void setDecoder(EventDecoder decoder) {
         this.decoder = decoder;
     }
-
-
 
     DetectorCollection<H1D> H_fADC = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_WAVE = new DetectorCollection<H1D>();
@@ -167,7 +161,7 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
     public void detectorSelected(DetectorDescriptor desc) {
         // TODO Auto-generated method stub
-
+	
 
         keySelect = desc.getComponent();
 
@@ -376,6 +370,7 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
         JPanel canvasPane = new JPanel();
 
         canvasPane.setLayout(new BorderLayout());
+
         JPanel buttonPane = new JPanel();
         buttonPane.setLayout(new FlowLayout());
 

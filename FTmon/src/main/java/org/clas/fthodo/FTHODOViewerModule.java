@@ -2,11 +2,19 @@ package org.clas.fthodo;
 
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+
 import org.jlab.clas.detector.DetectorCollection;
 import org.jlab.clas.detector.DetectorDescriptor;
 import org.jlab.clas.detector.DetectorType;
@@ -19,7 +27,9 @@ import org.jlab.clas12.detector.DetectorCounter;
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clas12.detector.FADCBasicFitter;
 import org.jlab.clas12.detector.IFADCFitter;
+import org.root.attr.ColorPalette;
 import org.root.func.F1D;
+import org.root.histogram.GraphErrors;
 import org.root.histogram.H1D;
 import org.root.basic.EmbeddedCanvas;
 
@@ -29,6 +39,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     JPanel detectorPanel;
     EventDecoder decoder;
     
+    ColorPalette palette = new ColorPalette();
+
     //=================================
     //           HISTOGRAMS
     //=================================
@@ -56,8 +68,11 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     H1D H_fADC_N   = null;
     H1D H_WMAX     = null;
     H1D H_COSMIC_N = null;
+
+    EmbeddedCanvas canvas = new EmbeddedCanvas();
+    DetectorShapeTabView view = new DetectorShapeTabView();    
     
-        //=================================
+    //=================================
     //           CONSTANTS
     //=================================
     
@@ -92,39 +107,28 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     private int componentSelect = 0;
     private int secSelect       = 0;
     private int layerSelect     = 0;
+
     
+    public FTHODOViewerModule(){
+        this.detectorPanel=null;
+        this.decoder=null;
+    }
+
     public EventDecoder getDecoder() {
         return decoder;
     }
-
-
 
     public void setDecoder(EventDecoder decoder) {
         this.decoder = decoder;
     }
 
-
-
     public JPanel getDetectorPanel() {
         return detectorPanel;
     }
 
-
-
     public void setDetectorPanel(JPanel detectorPanel) {
         this.detectorPanel = detectorPanel;
     }
-
-    DetectorShapeTabView view = new DetectorShapeTabView();
-    EmbeddedCanvas canvas = new EmbeddedCanvas();
-   
-    
-    
-    public FTHODOViewerModule(){
-        this.detectorPanel=null;
-    }
-  
-    
     
     public void initDetector(){
         
@@ -146,7 +150,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	double[] p_size = {15.0,30.0,15.0,30.0,30.0,30.0,30.0,30.0,15.0,
 			   30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
 			   30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0}; 
-        
+	
 	// distance from center of each element in symmetry sector 0-28
         double[] p_R	= {16.2331,15.6642,16.2331,15.0076,
 			   13.0933,15.6642,13.0933,10.8102,
@@ -213,7 +217,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		    // defines the placements of the 2D bar according to the 
 		    // xcenter and ycenter calculated above
                     shape.getShapePath().translateXYZ(xcenter, ycenter, 0.0); 
-                    shape.setColor(0, 145, 0);   
+                    //shape.setColor(0, 145, 0);   
+		    shape.setColor(0, 0, 125);   
                     viewFTHODO.addShape(shape);  
                 }
             }
@@ -222,17 +227,13 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         view.addDetectorListener(this);
     
     }
-    
-    
-    
-    
-    
+        
     public void actionPerformed(ActionEvent e) {
 	//System.out.println("ACTION = " + e.getActionCommand());
         if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
-
+	
         if (e.getActionCommand().compareTo("Waveforms") == 0) {
             plotSelect = 0;
             resetCanvas();
@@ -350,7 +351,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     }
 
     public void detectorSelected(DetectorDescriptor desc) {
-                //System.out.println("SELECTED = " + desc);
+	//System.out.println("SELECTED = " + desc);
         componentSelect = desc.getComponent();
         secSelect = desc.getSector();
         layerSelect = desc.getLayer();
@@ -430,7 +431,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             if(H_COSMIC_CHARGE.hasEntry(secSelect,
 					layerSelect,
 					componentSelect)){
-                this.canvas.setLogY(true);
+                
+		this.canvas.setLogY(true);
 		
 		this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
 						     layerSelect,
@@ -495,7 +497,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 shape.setColor(200, 0, 200);
             }
             else {
-                shape.setColor(100, 100, 100);
+                shape.setColor(255, 255, 255);
             }
         }
         if(plotSelect==4) {
@@ -509,7 +511,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 // 		// 		shape.setColor(value, 0, 0);
 //             }
             else {
-                shape.setColor(100, 100, 100);
+                shape.setColor(255, 255, 255);
             }
         }
     }
@@ -543,7 +545,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 			       HistPara.getTitle(), 100, 0.0, 100.0));
             H_WAVE.get(sLC[0],
 		       sLC[1],
-		       sLC[2]).setFillColor(5);
+		       sLC[2]).setFillColor(4);
             H_WAVE.get(sLC[0],
 		       sLC[1],
 		       sLC[2]).setXTitle("fADC Sample");
@@ -561,7 +563,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                                 HistPara.getTitle(), 100, 0.0, 400.0));
             H_CWAVE.get(sLC[0],
 			sLC[1],
-			sLC[2]).setFillColor(5);
+			sLC[2]).setFillColor(4);
             H_CWAVE.get(sLC[0],
 			sLC[1],
 			sLC[2]).setXTitle("Time (ns)");
@@ -576,7 +578,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 							 sLC[2]), 
 			      HistPara.getTitle(), 100, 0.0, 400.0));
             H_NPE.get(sLC[0],sLC[1],
-		      sLC[2]).setFillColor(5);
+		      sLC[2]).setFillColor(4);
             H_NPE.get(sLC[0],
 		      sLC[1], 
 		      sLC[2]).setXTitle("Time (ns)");
@@ -619,7 +621,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 								  sLC[0],
 								  sLC[1],
 								  sLC[2]), 
-				       HistPara.getTitle(), 100, 0.0, 500.0));
+				       HistPara.getTitle(), 100, 10.0, 510.0));
             H_NOISE_CHARGE.get(sLC[0],
 			       sLC[1], 
 			       sLC[2]).setFillColor(0);
@@ -650,18 +652,18 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 							  sLC[1],
 							  sLC[2]), 
 			       HistPara.getTitle(), 150, 0.0, 150));
-            H_MAXV.get(sLC[0],sLC[1], sLC[2]).setFillColor(5);
+            H_MAXV.get(sLC[0],sLC[1], sLC[2]).setFillColor(4);
             H_MAXV.get(sLC[0],sLC[1], sLC[2]).setXTitle("Waveform Max (mV)");
             H_MAXV.get(sLC[0],sLC[1], sLC[2]).setYTitle("Counts");
 
             H_FADCSAMPLE.add(sLC[0],sLC[1], sLC[2], new H1D(DetectorDescriptor.getName("FADCSAMPLE", sLC[0],sLC[1],sLC[2]), HistPara.getTitle(), 100, 0.0, 400));
-            H_FADCSAMPLE.get(sLC[0],sLC[1], sLC[2]).setFillColor(5);
+            H_FADCSAMPLE.get(sLC[0],sLC[1], sLC[2]).setFillColor(4);
             H_FADCSAMPLE.get(sLC[0],sLC[1], sLC[2]).setXTitle("time (ns) ");
             H_FADCSAMPLE.get(sLC[0],sLC[1], sLC[2]).setYTitle("Counts");
 
             if (sLC[1]==1){
                 H_FADCSAMPLEdiff.add(sLC[0],sLC[1], sLC[2], new H1D(DetectorDescriptor.getName("FADCSAMPLEdiff", sLC[0],sLC[1],sLC[2]), HistPara.getTitle(), 14, -28, 28));
-                H_FADCSAMPLEdiff.get(sLC[0],sLC[1], sLC[2]).setFillColor(5);
+                H_FADCSAMPLEdiff.get(sLC[0],sLC[1], sLC[2]).setFillColor(4);
                 H_FADCSAMPLEdiff.get(sLC[0],sLC[1], sLC[2]).setXTitle("#Delta time (ns) ");
                 H_FADCSAMPLEdiff.get(sLC[0],sLC[1], sLC[2]).setYTitle("Counts");
             }
@@ -954,11 +956,103 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void initPanel() {
 
         JSplitPane splitPane = new JSplitPane();
+
+	JTabbedPane tabbedPane = new JTabbedPane();
+	
+	JPanel canvasPane = new JPanel();
+	canvasPane.setLayout(new BorderLayout());
+	
+	JPanel buttonPane = new JPanel();
+        buttonPane.setLayout(new FlowLayout());
+
+	JButton resetBtn = new JButton("Reset");
+        resetBtn.addActionListener(this);
+        buttonPane.add(resetBtn);
+
+	JButton fitBtn = new JButton("Fit");
+        fitBtn.addActionListener(this);
+        buttonPane.add(fitBtn);
+
+	//=================================
+	//      PLOTTING OPTIONS
+	//=================================
+
+	ButtonGroup group = new ButtonGroup();
+	
+	//
+	// Non-accumulated
+        //
+	// 0 - waveforms
+	// 1 - waveforms calibrated in time and voltage
+	// 2 - voltage / npe voltage peak (40 mV for now)
+
+	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
+	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
+	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
+	
+        group.add(wavesRb);
+        buttonPane.add(wavesRb);
+        //wavesRb.setSelected(true);
+        wavesRb.addActionListener(this);
+        
+        group.add(cWavesRb);
+        buttonPane.add(cWavesRb);
+        cWavesRb.setSelected(true);
+        cWavesRb.addActionListener(this);
+        
+	group.add(npeWavesRb);
+        buttonPane.add(npeWavesRb);
+        //npeWavesRb.setSelected(true);
+        npeWavesRb.addActionListener(this);
+        
+	//
+	// Accumulated
+	//
+	// 10 - Max Pulse Voltage
+	// 11 - Charge
+	// ...
+	
+	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
+        JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
+	
+	group.add(maxVoltRb);
+	buttonPane.add(maxVoltRb);
+        //maxVoltRb.setSelected(true);
+        maxVoltRb.addActionListener(this);
+	
+	group.add(chargeRb);
+	buttonPane.add(chargeRb);
+        //chargeRb.setSelected(true);
+        chargeRb.addActionListener(this);
+	
+	//=======================================================
+	//=======================================================
+	// IN PROGRESS
+
+	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
+	// JRadioButton fitRb  = new JRadioButton("Fit Timing");
+	// group.add(fitRb);
+	// buttonPane.add(fitRb);
+	// fitRb.setSelected(true);
+	// fitRb.addActionListener(this);
+        
+	// group.add(fadcsampleRb);
+	// buttonPane.add(fadcsampleRb);
+	// fadcsampleRb.setSelected(true);
+	// fadcsampleRb.addActionListener(this);
+	
+        //=======================================================
+	//=======================================================
+
+	canvasPane.add(this.canvas, BorderLayout.CENTER);
+	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
+	
         splitPane.setLeftComponent(this.view);
-        splitPane.setRightComponent(this.canvas);
+        splitPane.setRightComponent(canvasPane);
 
         this.detectorPanel.add(splitPane, BorderLayout.CENTER);
-    }
+	
+    } // end of: public void initPanel() {
 
 
 

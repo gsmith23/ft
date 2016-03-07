@@ -40,10 +40,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     EventDecoder decoder;
     
     ColorPalette palette = new ColorPalette();
-
-
-
-
     //=================================
     //           HISTOGRAMS
     //=================================
@@ -111,12 +107,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     private int secSelect       = 0;
     private int layerSelect     = 0;
 
-    
-    public FTHODOViewerModule(){
-        this.detectorPanel=null;
-        this.decoder=null;
-    }
-
     public EventDecoder getDecoder() {
         return decoder;
     }
@@ -132,6 +122,18 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void setDetectorPanel(JPanel detectorPanel) {
         this.detectorPanel = detectorPanel;
     }
+    
+    //!!!!!!
+//     DetectorShapeTabView view = new DetectorShapeTabView();
+//     EmbeddedCanvas canvas = new EmbeddedCanvas();
+   
+    
+    
+    public FTHODOViewerModule(){
+        this.detectorPanel=null;
+    }
+  
+    
     
     public void initDetector(){
         DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
@@ -996,12 +998,13 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         
 	buttonPane.add(resetBtn);
         
+
+	ButtonGroup group = new ButtonGroup();
+
 	//=================================
 	//      PLOTTING OPTIONS
 	//=================================
 
-	ButtonGroup group = new ButtonGroup();
-	
 	//
 	// Non-accumulated
         //
@@ -1047,6 +1050,9 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	buttonPane.add(chargeRb);
         //chargeRb.setSelected(true);
         chargeRb.addActionListener(this);
+
+
+
 	
 	//=======================================================
 	//=======================================================
@@ -1063,6 +1069,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 //         buttonPane.add(fadcsampleRb);
 //         //fadcsampleRb.setSelected(true);
 //         fadcsampleRb.addActionListener(this);
+
 	
         //=======================================================
 	//=======================================================
@@ -1084,100 +1091,27 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     
 	canvasPane.add(this.canvas, BorderLayout.CENTER);
 	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
-	
-	// Histograms on RHS
-	splitPane.setRightComponent(canvasPane);
-
 
 	JTabbedPane tabbedPane = new JTabbedPane();
 	
-	JPanel canvasPane = new JPanel();
-	canvasPane.setLayout(new BorderLayout());
+// 	JPanel canvasPane = new JPanel();
+// 	canvasPane.setLayout(new BorderLayout());
 	
-	JPanel buttonPane = new JPanel();
-        buttonPane.setLayout(new FlowLayout());
+// 	JPanel buttonPane = new JPanel();
+//         buttonPane.setLayout(new FlowLayout());
 
-	JButton resetBtn = new JButton("Reset");
-        resetBtn.addActionListener(this);
-        buttonPane.add(resetBtn);
+// 	JButton resetBtn = new JButton("Reset");
+//         resetBtn.addActionListener(this);
+//         buttonPane.add(resetBtn);
 
 	JButton fitBtn = new JButton("Fit");
         fitBtn.addActionListener(this);
         buttonPane.add(fitBtn);
-
-	//=================================
-	//      PLOTTING OPTIONS
-	//=================================
-
-	ButtonGroup group = new ButtonGroup();
 	
-	//
-	// Non-accumulated
-        //
-	// 0 - waveforms
-	// 1 - waveforms calibrated in time and voltage
-	// 2 - voltage / npe voltage peak (40 mV for now)
-
-	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
-	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
-	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
-	
-        group.add(wavesRb);
-        buttonPane.add(wavesRb);
-        //wavesRb.setSelected(true);
-        wavesRb.addActionListener(this);
-        
-        group.add(cWavesRb);
-        buttonPane.add(cWavesRb);
-        cWavesRb.setSelected(true);
-        cWavesRb.addActionListener(this);
-        
-	group.add(npeWavesRb);
-        buttonPane.add(npeWavesRb);
-        //npeWavesRb.setSelected(true);
-        npeWavesRb.addActionListener(this);
-        
-	//
-	// Accumulated
-	//
-	// 10 - Max Pulse Voltage
-	// 11 - Charge
-	// ...
-	
-	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
-        JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
-	
-	group.add(maxVoltRb);
-	buttonPane.add(maxVoltRb);
-        //maxVoltRb.setSelected(true);
-        maxVoltRb.addActionListener(this);
-	
-	group.add(chargeRb);
-	buttonPane.add(chargeRb);
-        //chargeRb.setSelected(true);
-        chargeRb.addActionListener(this);
-	
-	//=======================================================
-	//=======================================================
-	// IN PROGRESS
-
-	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
-	// JRadioButton fitRb  = new JRadioButton("Fit Timing");
-	// group.add(fitRb);
-	// buttonPane.add(fitRb);
-	// fitRb.setSelected(true);
-	// fitRb.addActionListener(this);
-        
-	// group.add(fadcsampleRb);
-	// buttonPane.add(fadcsampleRb);
-	// fadcsampleRb.setSelected(true);
-	// fadcsampleRb.addActionListener(this);
-	
+		
         //=======================================================
 	//=======================================================
 
-	canvasPane.add(this.canvas, BorderLayout.CENTER);
-	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
 	
         splitPane.setLeftComponent(this.view);
         splitPane.setRightComponent(canvasPane);

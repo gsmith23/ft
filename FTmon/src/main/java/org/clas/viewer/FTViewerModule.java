@@ -22,42 +22,32 @@ import org.jlab.clas12.basic.IDetectorModule;
 import org.jlab.clas12.basic.IDetectorProcessor;
 import org.jlab.clas12.calib.DetectorShape2D;
 import org.jlab.clas12.calib.DetectorShapeTabView;
-<<<<<<< HEAD
-
-=======
 import org.jlab.clas12.calib.DetectorShapeView2D;
 import org.jlab.clas12.calib.IDetectorListener;
->>>>>>> upstream/master
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clasrec.main.DetectorEventProcessorPane;
-//import org.jlab.clasrec.main.DetectorEventProcessorPane;
-
 import org.jlab.data.io.DataEvent;
 import org.jlab.evio.clas12.EvioDataEvent;
 import org.root.attr.ColorPalette;
-//
-
 
 /**
  *
  * @author gavalian
  */
-<<<<<<< HEAD
-public class FTViewerModule implements IDetectorProcessor, IDetectorModule, ActionListener {
-=======
 public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDetectorListener, ActionListener {
 
->>>>>>> upstream/master
     
     FTHODOViewerModule moduleFTHODO=new FTHODOViewerModule();
     FTCALViewerModule moduleFTCAL=new FTCALViewerModule();
     
+        
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
    
-    //this.threadDelay = 0;
     
     EventDecoder decoder = new EventDecoder();
     int nProcessed = 0;
+    
+    
     
     // ColorPalette class defines colors 
     ColorPalette palette = new ColorPalette();
@@ -69,11 +59,8 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     DetectorShapeTabView FTview1 = new DetectorShapeTabView();
     DetectorShapeTabView FTview2 = new DetectorShapeTabView();
     JTabbedPane tabbedPane = null;
-<<<<<<< HEAD
-=======
     
   
->>>>>>> upstream/master
 
     public FTViewerModule() {
         
@@ -91,28 +78,18 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         this.detectorPanel = new JPanel();
         this.detectorPanel.setLayout(new BorderLayout());
         
-        this.FTCALPanel = new JPanel(new BorderLayout());
-<<<<<<< HEAD
         this.FTHODOPanel = new JPanel(new BorderLayout());
+        this.FTCALPanel = new JPanel(new BorderLayout());
 
-=======
-               
->>>>>>> upstream/master
         this.tabbedPane = new JTabbedPane();
-        tabbedPane.add("FT-HODO",this.FTHODOPanel);
         tabbedPane.add("FT-CAL",this.FTCALPanel);
+        tabbedPane.add("FT-HODO",this.FTHODOPanel);
         tabbedPane.add("FT",this.FTview);
-<<<<<<< HEAD
   
-        // filling main panel with tabs for different 
-	// FT subdetectors and event handling panel
-=======
-        
         this.FTview.setLeftComponent(this.FTview1);
         this.FTview.setRightComponent(this.FTview2);
                 
         // filling main panel with tabs for different FT subdetectors and event handling panel
->>>>>>> upstream/master
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
         
@@ -152,20 +129,20 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     }
 
     
+    
+    
+    
     public void processEvent(DataEvent de) {
         EvioDataEvent event = (EvioDataEvent) de;
+        
         
         decoder.decode(event);
         nProcessed++;
         
         moduleFTCAL.processDecodedEvent();        
         moduleFTHODO.processDecodedEvent();
-<<<<<<< HEAD
     
-=======
-        
         this.FTview.repaint();
->>>>>>> upstream/master
     }
 
 //    public DetectorShapeView2D drawDetector(double x0, double y0) {
@@ -254,7 +231,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     }
 
     public void actionPerformed(ActionEvent e) {
-        //System.out.println("FTViewer ACTION = " + e.getActionCommand());
+        System.out.println("FTViewer ACTION = " + e.getActionCommand());
        
     }
 

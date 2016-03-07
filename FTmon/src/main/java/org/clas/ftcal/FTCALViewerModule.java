@@ -103,7 +103,7 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
 
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
-        System.out.println("FTCALViewerModule ACTION = " + e.getActionCommand());
+        //System.out.println("FTCALViewerModule ACTION = " + e.getActionCommand());
         if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
@@ -146,7 +146,7 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
                     System.out.println("Component\t amp\t mean\t sigma\t p0\t p1\t Chi2");
                     flag_parnames=false;
                 }
-                System.out.print(key + "\t\t ");
+                //System.out.print(key + "\t\t ");
                 for(int i=0; i<mylandau.get(0, 0, key).getNParams(); i++) System.out.format("%.2f\t ",mylandau.get(0, 0, key).getParameter(i));
                 if(mylandau.get(0, 0, key).getNParams()==3) System.out.print("0.0\t 0.0\t");
                 if(mylandau.get(0, 0, key).getParameter(0)>0)
@@ -466,7 +466,7 @@ public class FTCALViewerModule implements IDetectorListener,ActionListener{
         H_WMAX.reset();
         for (DetectorCounter counter : counters) {
             int key = counter.getDescriptor().getComponent();
-                            System.out.println(counters.size() + " " + key + " " + counter.getDescriptor().getComponent());
+	    //System.out.println(counters.size() + " " + key + " " + counter.getDescriptor().getComponent());
             //                 System.out.println(counter);
             fadcFitter.fit(counter.getChannels().get(0));
             short pulse[] = counter.getChannels().get(0).getPulse();

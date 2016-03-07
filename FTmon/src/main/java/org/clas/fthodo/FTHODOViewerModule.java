@@ -1049,9 +1049,11 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
         splitPane.setLeftComponent(this.view);
         splitPane.setRightComponent(canvasPane);
-
+	splitPane.setDividerLocation(400);
+	
         this.detectorPanel.add(splitPane, BorderLayout.CENTER);
 	
+
     } // end of: public void initPanel() {
 
 

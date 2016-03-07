@@ -158,7 +158,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, Acti
     }
 
     public void actionPerformed(ActionEvent e) {
-        System.out.println("FTViewer ACTION = " + e.getActionCommand());
+        //System.out.println("FTViewer ACTION = " + e.getActionCommand());
        
     }
 

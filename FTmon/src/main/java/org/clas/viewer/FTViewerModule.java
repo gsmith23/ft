@@ -88,7 +88,8 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
   
         this.FTview.setLeftComponent(this.FTview1);
         this.FTview.setRightComponent(this.FTview2);
-                
+        FTview.setDividerLocation(750);
+	
         // filling main panel with tabs for different FT subdetectors and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);

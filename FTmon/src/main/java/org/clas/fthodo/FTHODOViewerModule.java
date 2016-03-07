@@ -7,10 +7,7 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -43,10 +40,10 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     EventDecoder decoder;
     
     ColorPalette palette = new ColorPalette();
-<<<<<<< HEAD
 
-=======
->>>>>>> upstream/master
+
+
+
     //=================================
     //           HISTOGRAMS
     //=================================
@@ -984,8 +981,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void initPanel() {
 
         JSplitPane splitPane = new JSplitPane();
-<<<<<<< HEAD
-=======
+
         splitPane.setLeftComponent(this.view);
   
         
@@ -1091,7 +1087,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
 	// Histograms on RHS
 	splitPane.setRightComponent(canvasPane);
->>>>>>> upstream/master
+
 
 	JTabbedPane tabbedPane = new JTabbedPane();
 	

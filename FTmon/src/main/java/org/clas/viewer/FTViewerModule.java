@@ -6,6 +6,7 @@
 package org.clas.viewer;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JFrame;
@@ -105,7 +106,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         moduleFTCAL.initDetector();
         moduleFTHODO.initDetector();
         this.FTview1.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
-        this.FTview2.addDetectorLayer(this.drawDetector(+10.,0.));
+        this.FTview2.addDetectorLayer(moduleFTHODO.drawDetector(+10.,0.));
         this.FTview1.addDetectorListener(this);
         this.FTview2.addDetectorListener(this);
     }
@@ -145,45 +146,46 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         this.FTview.repaint();
     }
 
-    public DetectorShapeView2D drawDetector(double x0, double y0) {
-        double p15_WW=15;
-        double p30_WW=30.;
-        int    p15_N = 11;
-        double[] p15_X = {7.5,  22.5,  37.5,  52.5,  52.5,  67.5,  67.5,  67.5,  67.5,  97.5, 127.5};
-        double[] p15_Y = {67.5,  67.5,  67.5,  52.5,  67.5,   7.5,  22.5,  37.5,  52.5, 127.5,  97.5};
-        int    p30_N = 18;
-        double[] p30_X = {15.,  15.,  15.,  45.,  45.,  45.,  75.,  75.,  75.,  90.,  90., 105., 105., 120., 120., 135., 150., 150.};
-        double[] p30_Y = {90., 120., 150.,  90., 120., 150.,  75., 105., 135.,  15.,  45.,  75., 105.,  15.,  45.,  75.,  15.,  45.};
-        double[] q_X = {1., -1., -1.,  1.};
-        double[] q_Y = {1.,  1., -1., -1.};
-
-        DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("FTHODO");
-        
-        for(int q = 0; q < 4; q++ ) {
-            for(int i = 0; i < p15_N; i++ ) {
-                double p_X = p15_X[i]*q_X[q];
-                double p_Y = p15_Y[i]*q_Y[q];
-                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, q*p15_N+i);
-                shape.createBarXY(p15_WW, p15_WW);
-                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
-                shape.setColor(0, 145, 0);
-                viewFTHODO.addShape(shape);
-            }
-        }
-        for(int q = 0; q < 4; q++ ) {
-            for(int i = 0; i < p30_N; i++ ) {
-                double p_X = p30_X[i]*q_X[q];
-                double p_Y = p30_Y[i]*q_Y[q];
-                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, 4*p15_N+q*p30_N+i);
-                shape.createBarXY(p30_WW, p30_WW);
-                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
-                shape.setColor(0, 145, 0);
-                viewFTHODO.addShape(shape);
-            }
-        }
-                        
-        return viewFTHODO;
-    }
+//    public DetectorShapeView2D drawDetector(double x0, double y0) {
+//        double p15_WW=15;
+//        double p30_WW=30.;
+//        int    p15_N = 11;
+//        double[] p15_X = {7.5,  22.5,  37.5,  52.5,  52.5,  67.5,  67.5,  67.5,  67.5,  97.5, 127.5};
+//        double[] p15_Y = {67.5,  67.5,  67.5,  52.5,  67.5,   7.5,  22.5,  37.5,  52.5, 127.5,  97.5};
+//
+//        int    p30_N = 18;
+//        double[] p30_X = {15.,  15.,  15.,  45.,  45.,  45.,  75.,  75.,  75.,  90.,  90., 105., 105., 120., 120., 135., 150., 150.};
+//        double[] p30_Y = {90., 120., 150.,  90., 120., 150.,  75., 105., 135.,  15.,  45.,  75., 105.,  15.,  45.,  75.,  15.,  45.};
+//        double[] q_X = {1., -1., -1.,  1.};
+//        double[] q_Y = {1.,  1., -1., -1.};
+//
+//        DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("FTHODO");
+//        
+//        for(int q = 0; q < 4; q++ ) {
+//            for(int i = 0; i < p15_N; i++ ) {
+//                double p_X = p15_X[i]*q_X[q];
+//                double p_Y = p15_Y[i]*q_Y[q];
+//                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, q*p15_N+i);
+//                shape.createBarXY(p15_WW, p15_WW);
+//                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
+//                shape.setColor(0, 145, 0);
+//                viewFTHODO.addShape(shape);
+//            }
+//        }
+//        for(int q = 0; q < 4; q++ ) {
+//            for(int i = 0; i < p30_N; i++ ) {
+//                double p_X = p30_X[i]*q_X[q];
+//                double p_Y = p30_Y[i]*q_Y[q];
+//                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, 4*p15_N+q*p30_N+i);
+//                shape.createBarXY(p30_WW, p30_WW);
+//                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
+//                shape.setColor(0, 145, 0);
+//                viewFTHODO.addShape(shape);
+//            }
+//        }
+//                        
+//        return viewFTHODO;
+//    }
 
   
     public void update(DetectorShape2D shape) {
@@ -191,11 +193,13 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         int sector = shape.getDescriptor().getSector();
         int layer = shape.getDescriptor().getLayer();
         int paddle = shape.getDescriptor().getComponent();
-        if(this.moduleFTCAL.getComponentStatus(paddle)) {
-            shape.setColor(200, 0, 200);
-            }
+        if(shape.getDescriptor().getType() == DetectorType.FTCAL) {
+            Color col = moduleFTCAL.getComponentStatus(paddle);
+            shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
+        }
         else {
-            shape.setColor(100, 100, 100);
+            Color col = moduleFTHODO.getComponentStatus(sector,layer,paddle);
+            shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
         }
     }
         

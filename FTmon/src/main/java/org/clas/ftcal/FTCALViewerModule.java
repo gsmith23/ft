@@ -730,12 +730,17 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     }
     
-    public boolean getComponentStatus(int key) {
-        boolean componentStatus = false;
+    public Color getComponentStatus(int key) {
+        Color col = new Color(100,100,100);
         if(H_WMAX.getBinContent(key)>threshold) {
-            componentStatus= true;
+            if(H_TCROSS.getBinContent(key)>0) {
+                col = palette.getColor3D(H_WMAX.getBinContent(key), 4000, true); 
+            }
+//            else {
+//                col = new Color(200, 0, 200);
+//            }
         }
-        return componentStatus;
+        return col;
     }
     
     public void detectorSelected(DetectorDescriptor desc) {

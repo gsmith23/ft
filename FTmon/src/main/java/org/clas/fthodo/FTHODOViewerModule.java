@@ -1,6 +1,5 @@
 package org.clas.fthodo;
 
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -8,12 +7,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.Math.abs;
+
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+
 
 import org.jlab.clas.detector.DetectorCollection;
 import org.jlab.clas.detector.DetectorDescriptor;
@@ -33,13 +37,13 @@ import org.root.histogram.GraphErrors;
 import org.root.histogram.H1D;
 import org.root.basic.EmbeddedCanvas;
 
-
 public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
     JPanel detectorPanel;
     EventDecoder decoder;
     
     ColorPalette palette = new ColorPalette();
+    
     //=================================
     //           HISTOGRAMS
     //=================================
@@ -77,11 +81,18 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     
     int    fADCBins      = 4096;
     double voltageMax    = 2000; // for run < 230 max = 1000 mV
-    double LSB           = voltageMax/fADCBins; // cast?
-    double npeThrsh      = 10.;
-    double voltsPerSPE   = 40.; // approximate for now
-    double voltageThrsh  = npeThrsh*voltsPerSPE;
-    double fADCThreshold = voltageThrsh/LSB;
+    double LSB           = voltageMax/fADCBins;
+    
+    double thrshNPE      = 4.;
+    double thrshNoiseNPE = 0.5;
+    
+    double voltsPerSPE   = 38.; // approximate for now
+    
+    double thrshVolts    = thrshNPE*voltsPerSPE;
+    double noiseThrshV   = thrshNoiseNPE*voltsPerSPE;
+    
+    double cosmicsThrsh  = thrshVolts/LSB;
+    double noiseThrsh    = noiseThrshV/LSB;    
     
     int ped_i1 = 4;
     int ped_i2 = 24;
@@ -102,11 +113,11 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     double   crystal_size = 15;
     int      nProcessed = 0;
     
-    private int plotSelect      = 0;  
+    private int plotSelect      = 999;  
     private int componentSelect = 0;
     private int secSelect       = 0;
     private int layerSelect     = 0;
-
+    
     public EventDecoder getDecoder() {
         return decoder;
     }
@@ -127,9 +138,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public FTHODOViewerModule(){
         this.detectorPanel=null;
     }
-  
-    
-    
+      
     public void initDetector(){
         DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
         this.view.addDetectorLayer(viewFTHODO);
@@ -144,18 +153,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	// with elements 0-28 for each quarter.
 	int sector;  
 	
-	// Tile component 
+	// tile component 
 	// 1-9 for odd sectors 
 	// 1-20 for even
         int component; 
 	
+	// thick and thin
+	int layer;
+	
 	// y-offset to place thin and thick layer on same pane
-	double[] layerOffsetY = {-180.0,180.0}; 
+	//double[] layerOffsetY = {-180.0,180.0}; 
+	double[] layerOffsetY = {-200.0,200.0}; 
 	// size of elements of symmetry sector 0-28
 	double[] tileSize = {15.0,30.0,15.0,30.0,30.0,30.0,30.0,30.0,15.0,
-			   30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
-			   30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0}; 
+			     30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
+			     30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0}; 
 	
+	double[] tileThickness = {7., 15.}; 
+
 	//============================================================
 	double[] xx = {-97.5 ,  -75.0, -127.5, -105.0, -75.0,
 		       -135.0, -105.0,  -75.0,  -52.5,
@@ -174,75 +189,99 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
 	double xcenter = 0;
 	double ycenter = 0;
-	
-	// two layers: c==0 for thin and c==1 for thick
-        for (int layer_c=0; layer_c<2; layer_c++){ 
+	double zcenter = 0;
+		
+	// two layers: I==0 for thin and I==1 for thick
+        for (int layerI = 0; layerI < 2; layerI++){ 
+	    layer = layerI+1;
+
 	    // 4 symmetry sectors per layer (named quadrant) from 0-3
-            for (int quadrant=0; quadrant<4; quadrant++) {  
+            for (int quadrant=0; quadrant < 4; quadrant++) {  
+		
 		// 29 elements per symmetry sector
                 for (int element = 0; element < 29; element++) { 
-                    // sector is odd for first 9 elements 
+                
+		    // sector is odd for first 9 elements 
 		    // and even for the rest
-		    if (element<9) {    
-			sector = quadrant*2 +1;
+		    if (element < 9) {    
+			sector = quadrant*2 + 1;
 			// component number for odd sector is 1-9
 			component = element + 1; 
                     }
                     else  {
-			sector = quadrant*2 +2;
+			sector = quadrant*2 + 2;
 			// component number for even sector is 1-20
                         component = element + 1 - 9; 
                     }
 		    
-		    // // calculate the x-element of the center of each crystal;
-// 		    xcenter = p_R[element] ;
-// 		    xcenter = xcenter * Math.sin(p_theta[element]+Math.PI /2 *quadrant);
-// 		    xcenter = xcenter * 10.;  
-		    
-		    // //============================================================
-		    if(quadrant==0)      xcenter = xx[element];
+		    // calculate the x-element of the center of each crystal;
+		    if     (quadrant==0) xcenter = xx[element];
 		    else if(quadrant==1) xcenter =-yy[element];
 		    else if(quadrant==2) xcenter =-xx[element];
 		    else if(quadrant==3) xcenter = yy[element];
-		    //============================================================
-                    
 		    
-		    // // calculate the y-element of the center of each crystal
-// 		    ycenter = -p_R[element] ;
-// 		    ycenter = ycenter * Math.cos(p_theta[element]+Math.PI /2 *quadrant);
-// 		    if(layer_c==0 && quadrant==1) System.out.println(xcenter + " " + ycenter*10);
-// 		    ycenter = ycenter * 10 + layerOffsetY[layer_c];
+		    // calculate the y-element of the center of each crystal
+		    if     (quadrant==0) ycenter = yy[element] + layerOffsetY[layerI];
+		    else if(quadrant==1) ycenter = xx[element] + layerOffsetY[layerI];
+		    else if(quadrant==2) ycenter =-yy[element] + layerOffsetY[layerI];
+		    else if(quadrant==3) ycenter =-xx[element] + layerOffsetY[layerI];
 		    
-		    
-		    // //============================================================
-		    if(quadrant==0)       ycenter = yy[element] + layerOffsetY[layer_c];
-                     else if(quadrant==1) ycenter = xx[element] + layerOffsetY[layer_c];
-                     else if(quadrant==2) ycenter =-yy[element] + layerOffsetY[layer_c];
-                     else if(quadrant==3) ycenter =-xx[element] + layerOffsetY[layer_c];
- 		    //============================================================
+		    if(layerI==0){
+			zcenter = -tileThickness[layerI]/2.0;
+		    }
+		    else
+			zcenter =  tileThickness[layerI]/2.0;
 		    
 		    // Sectors 1-8 
 		    // (sect=1: upper left - clockwise); 
 		    // layers 1-2 (thin==1, thick==2); 
 		    // crystals (1-9 for odd and 1-20 for even sectors)
-                    DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO,
-								sector, 
-								layer_c+1,component);
+                    DetectorShape2D shape  = new DetectorShape2D(DetectorType.FTHODO,
+								 sector, 
+								 layer,
+								 component);
+		    
+		    DetectorShape2D shape2 = new DetectorShape2D(DetectorType.FTHODO,
+								 sector, 
+								 layer,
+								 component);
+		    
 		    // defines the 2D bars dimensions using the element size
                     shape.createBarXY(tileSize[element], tileSize[element]);  
 		    
+		    shape2.createBarXY(tileSize[element],tileThickness[layerI]);  
+		    
 		    // defines the placements of the 2D bar according to the 
 		    // xcenter and ycenter calculated above
-                    shape.getShapePath().translateXYZ(xcenter, ycenter, 0.0); 
-                    //shape.setColor(0, 145, 0);   
-		    shape.setColor(0, 0, 125);   
-                    viewFTHODO.addShape(shape);  
+                    shape.getShapePath().translateXYZ(xcenter,ycenter,zcenter); 
+                    
+		    // 
+		    shape.setColor(0, 0, 0, 0);   
+		                        
+		    viewFTHODO.addShape(shape);  
+		    
+		    //===========================================================
+		    	
+		    // calculate the y-element of the center of each crystal
+		    if(quadrant==0)       ycenter = yy[element];
+                     else if(quadrant==1) ycenter = xx[element];
+                     else if(quadrant==2) ycenter =-yy[element];
+                     else if(quadrant==3) ycenter =-xx[element];
+		    
+		    shape2.setColor(0, 0, 0, 0);   
+		    
+		    shape2.getShapePath().translateXYZ(xcenter, zcenter, 0); 
+		    
+		    viewFTHODO.addShape(shape2);  
+		    
                 }
             }
-        }
-        return viewFTHODO;
-    }
-        
+        }    
+    
+    return viewFTHODO;
+    }	    
+		    
+		    
     public void actionPerformed(ActionEvent e) {
 	//System.out.println("ACTION = " + e.getActionCommand());
         if (e.getActionCommand().compareTo("Reset") == 0) {
@@ -251,21 +290,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	
         if (e.getActionCommand().compareTo("Waveforms") == 0) {
             plotSelect = 0;
-//            resetCanvas();
+	    // resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Calibrated") == 0) {
             plotSelect = 1;
-//            resetCanvas();
+	    // resetCanvas();
         }
         else if (e.getActionCommand().compareTo("NPE Wave") == 0) {
             plotSelect = 2;
-//            resetCanvas();
+	    // resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Max") == 0) {
             plotSelect = 10;
 	}
         else if (e.getActionCommand().compareTo("Charge") == 0) {
             plotSelect = 11;
+	}
+        else if (e.getActionCommand().compareTo("Noise") == 0) {
+            plotSelect = 12;
 	}
 	
 	// IN PROGRESS
@@ -331,9 +373,9 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
     private void fitTimingdiff() {
         for (int comp = 0; comp < 116; comp++) {
-            int layer_c = 1;
-            int iQuad_c = (comp-(layer_c-1)*116) / 29;
-            int iElem_c = comp - iQuad_c * 29 -(layer_c-1)*116;
+            int layerI = 1;
+            int iQuad_c = (comp-(layerI-1)*116) / 29;
+            int iElem_c = comp - iQuad_c * 29 -(layerI-1)*116;
             int sec_c;
             int crys_c;
             if (iElem_c<9) {
@@ -468,6 +510,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		
 	    }
 	}
+	else if ( plotSelect == 12 ){
+	    //	    this.canvas.divide(1, 2);
+            canvas.cd(layerSelect-1);
+            if(H_NOISE_CHARGE.hasEntry(secSelect,
+				       layerSelect,
+				       componentSelect))
+                this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
+						    layerSelect,
+						    componentSelect));
+            canvas.cd(layerSelect%2);
+            if(H_NOISE_CHARGE.hasEntry(secSelect,
+				       (layerSelect%2)+1,
+				       componentSelect))
+                this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
+						    (layerSelect%2)+1,
+						    componentSelect));
+	}
+	
 	
 	
     // IN PROGRESS
@@ -499,33 +559,48 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         int sector_count[] = {0,9,29,38,58,67,87,96};
         int index = (layer -1 ) *116+sector_count[sector-1]+component;
         Color col = new Color(100,100,100);
-        if(H_WMAX.getBinContent(index)>fADCThreshold) {
+        if(H_WMAX.getBinContent(index)>cosmicsThrsh) {
             col = palette.getColor3D(H_WMAX.getBinContent(index), 4000, true);           
 //            col = new Color(200, 0, 200);
         }
         return col;
     }
 
+    // for all shapes made this is executed 
+    // for every event and every action
     public void update(DetectorShape2D shape) {
         int sector    = shape.getDescriptor().getSector();
         int layer     = shape.getDescriptor().getLayer();
         int component = shape.getDescriptor().getComponent();
         int sector_count[] = {0,9,29,38,58,67,87,96};
-        int index = (layer -1 ) *116+sector_count[sector-1]+component;
+        int index = (layer-1)*116+sector_count[sector-1]+component;
 	
-	//shape.setColor(200, 200, 200);
-	//     System.out.println("Bin Content n" +index + "="+ H_WMAX.getBinContent(index));
+	// System.out.println("update: layer =" + layer + ", sector = " + sector + ", component = " + component );
+	
+	// shape.setColor(200, 200, 200);
+	// System.out.println("Bin Content n" +index + "="+ H_WMAX.getBinContent(index));
         
-	if(plotSelect==0 || plotSelect==1 ||plotSelect==2) {
-            if(H_WMAX.getBinContent(index)>fADCThreshold) {
-                shape.setColor(200, 0, 200);
+	double waveMax = H_WMAX.getBinContent(index);
+	
+	if(plotSelect==0 || plotSelect==1 || plotSelect==2) {
+            if      ( waveMax > cosmicsThrsh) {
+                shape.setColor(0, 255, 0, 255);
             }
+	    else if ( waveMax  > noiseThrsh) {
+		shape.setColor(255, 255, 0, (256/4)-1);
+	    }
             else {
-                shape.setColor(255, 255, 255);
+		shape.setColor(255, 255, 255, 0);
             }
         }
+        if(plotSelect==12 && (waveMax  > noiseThrsh) ) {
+		shape.setColor(255, 255, 0, (256/4)-1);
+	}
+        if(plotSelect==11 && (waveMax  > cosmicsThrsh) ) {
+		shape.setColor(0, 255, 0, (256/2)-1);
+	}
         if(plotSelect==4) {
-            if(H_WMAX.getBinContent(index)*LSB > fADCThreshold) {
+            if(H_WMAX.getBinContent(index)*LSB > cosmicsThrsh) {
                 shape.setColor(200, 0, 200);
             }
 	    //             else if((H_WMAX.getBinContent(index)-pedestal)*LSB  > speThresh) {
@@ -645,7 +720,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 								  sLC[0],
 								  sLC[1],
 								  sLC[2]), 
-				       HistPara.getTitle(), 100, 10.0, 510.0));
+				       HistPara.getTitle(), 100, 10.0, 310.0));
             H_NOISE_CHARGE.get(sLC[0],
 			       sLC[1], 
 			       sLC[2]).setFillColor(0);
@@ -760,11 +835,13 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void processDecodedEvent() {
         nProcessed++;
         
-    	List<DetectorCounter> counters = decoder.getDetectorCounters(DetectorType.FTHODO);
+    	List<DetectorCounter> counters;
+	counters = decoder.getDetectorCounters(DetectorType.FTHODO);
         
         //System.out.println("event #: " + nProcessed);
 	
-	FTHODOViewerModule.MyADCFitter fadcFitter = new FTHODOViewerModule.MyADCFitter();
+	FTHODOViewerModule.MyADCFitter fadcFitter;
+	fadcFitter = new FTHODOViewerModule.MyADCFitter();
         
 	H_WMAX.reset();
         
@@ -774,10 +851,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	int nNegADC;
 	
         for (DetectorCounter counter : counters) {
-	    
-	    // int[] sLC = {counter.getDescriptor().getSector(),
-// 			 counter.getDescriptor().getLayer(),
-// 			 counter.getDescriptor().getComponent()}
 	    	    
             int sector = counter.getDescriptor().getSector();
             int layer = counter.getDescriptor().getLayer();
@@ -786,6 +859,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	    //System.out.println("sector: " + sector + "  layer:" + layer + "  component:" + component);
         
 	    int sector_count[] = {0,9,29,38,58,67,87,96};
+
             int index = (layer -1 ) *116+sector_count[sector-1]+component;
 	    
 	    // System.out.println(counters.size() + " " + icounter + " " + counter.getDescriptor().getComponent());
@@ -842,7 +916,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             
 	    H_WMAX.fill(index,fadcFitter.getWave_Max()-fadcFitter.getPedestal());
 	    
-	    if(fadcFitter.getWave_Max()-fadcFitter.getPedestal()>fADCThreshold)
+	    if(fadcFitter.getWave_Max()-fadcFitter.getPedestal()>cosmicsThrsh)
 		// System.out.println("   Component #" + component + " is above threshold, max=" + fadcFitter.getWave_Max() + " ped=" + fadcFitter.getPedestal());
                 H_NOISE.get(sector, layer, component).fill(fadcFitter.getRMS());
         
@@ -859,7 +933,10 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                     H_FADCSAMPLEdiff.get(isect+1, 1, icomponent+1).fill(timediff[isect][1][icomponent]-timediff[isect][0][icomponent]);
             }
         }
-	
+
+	//=======================================================
+	//           DRAW HISTOGRAMS PER EVENT
+	//=======================================================
 	// User chooses which histogram/s to display
         if      (plotSelect == 0 ) {
             canvas.cd(layerSelect-1);
@@ -1009,9 +1086,10 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
 	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
 	
+	
         group.add(wavesRb);
         buttonPane.add(wavesRb);
-        wavesRb.setSelected(true);
+        //wavesRb.setSelected(true);
         wavesRb.addActionListener(this);
         
         group.add(cWavesRb);
@@ -1031,8 +1109,15 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	// 11 - Charge
 	// ...
 	
+	JRadioButton noiseRb   = new JRadioButton("Noise"); 
+	
 	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
         JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
+	
+	group.add(noiseRb);
+	buttonPane.add(noiseRb);
+        //noiseRb.setSelected(true);
+        noiseRb.addActionListener(this);
 	
 	group.add(maxVoltRb);
 	buttonPane.add(maxVoltRb);
@@ -1043,8 +1128,6 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	buttonPane.add(chargeRb);
         //chargeRb.setSelected(true);
         chargeRb.addActionListener(this);
-
-
 
 	
 	//=======================================================
@@ -1248,7 +1331,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                     wmax=pulse[bin];
             }
             for (int bin=0; bin<pulse.length; bin++) {
-                if(pulse[bin]-pedestal>100 && wmax-pedestal>fADCThreshold)
+                if(pulse[bin]-pedestal>100 && wmax-pedestal>cosmicsThrsh)
                     if (fadctimethre==0)
                         fadctimethre=bin;            
             }

@@ -84,12 +84,10 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         this.tabbedPane = new JTabbedPane();
         tabbedPane.add("FT-HODO",this.FTHODOPanel);
 	tabbedPane.add("FT-CAL",this.FTCALPanel);
-        
-        tabbedPane.add("FT",this.FTview);
+	tabbedPane.add("FT",this.FTview);
   
         this.FTview.setLeftComponent(this.FTview1);
         this.FTview.setRightComponent(this.FTview2);
-        FTview.setDividerLocation(750);
 	
         // filling main panel with tabs for different FT subdetectors and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
@@ -119,6 +117,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     }
 
     private void initHistograms() {
+      
       
         moduleFTCAL.initHistograms();
         moduleFTHODO.initHistograms();

@@ -142,7 +142,7 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         
         moduleFTCAL.processDecodedEvent();        
         moduleFTHODO.processDecodedEvent();
-    
+	
         this.FTview.repaint();
     }
 

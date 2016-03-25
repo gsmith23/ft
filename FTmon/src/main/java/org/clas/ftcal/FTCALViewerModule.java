@@ -144,7 +144,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         tabbedPane.add("Summary"     ,canvasTable);
         tabbedPane.addChangeListener(this);
         this.initCanvas();
-        
+       
         JPanel canvasPane = new JPanel();
 
         canvasPane.setLayout(new BorderLayout());

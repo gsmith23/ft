@@ -52,6 +52,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     EmbeddedCanvas canvasTime      = new EmbeddedCanvas();
     DetectorShapeTabView view = new DetectorShapeTabView();
     HashTable  summaryTable   = null; 
+
+    public EmbeddedCanvas canvasCALEvent     = new EmbeddedCanvas();
     
     // histograms, functions and graphs
     DetectorCollection<H1D> H_fADC = new DetectorCollection<H1D>();
@@ -193,6 +195,14 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     }
 
     public void initCanvas() {
+        // combined view 
+        this.canvasCALEvent.setGridX(false);
+        this.canvasCALEvent.setGridY(false);
+        this.canvasCALEvent.setAxisFontSize(10);
+        this.canvasCALEvent.setTitleFontSize(16);
+        this.canvasCALEvent.setAxisTitleFontSize(14);
+        this.canvasCALEvent.setStatBoxFontSize(8);
+
         // event canvas
         this.canvasEvent.setGridX(false);
         this.canvasEvent.setGridY(false);
@@ -659,7 +669,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     }
 
-    public void processDecodedEvent() {
+    public void processDecodedEvent(int repaintFrequency) {
         // TODO Auto-generated method stub
 
         nProcessed++;
@@ -723,10 +733,13 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         if (plotSelect == 0 && H_WAVE.hasEntry(0, 0, keySelect)) {
             this.canvas.draw(H_WAVE.get(0, 0, keySelect));            
         }
-        this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect)); 
-        //this.dcHits.show();
-        this.view.repaint();
-
+	
+	if((nProcessed%repaintFrequency)==0){
+	    this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect)); 
+	    //this.dcHits.show();
+	
+	    this.view.repaint();
+	}
 
     }
     
@@ -749,6 +762,10 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
         keySelect = desc.getComponent();
 
+	// combined view
+	if(H_WAVE.hasEntry(0, 0, keySelect))
+	    this.canvasCALEvent.draw(H_WAVE.get(0, 0, keySelect)); 
+	
         // event viewer
         this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect));
         // noise
@@ -846,7 +863,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         if(H_COSMIC_THALF.hasEntry(0, 0, keySelect)) {
             H1D htime = H_COSMIC_THALF.get(0, 0, keySelect);
             initTimeGaussFitPar(keySelect,htime);
-            htime.fit(myTimeGauss.get(0, 0, keySelect),"L");
+	    // there is a bug here!!!
+	    // htime.fit(myTimeGauss.get(0, 0, keySelect),"L");
             canvasTime.draw(htime,"S");
             canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
         }

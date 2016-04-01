@@ -7,12 +7,15 @@ package org.clas.viewer;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 
 import org.clas.fthodo.FTHODOViewerModule;
 import org.clas.ftcal.FTCALViewerModule;
@@ -34,37 +37,50 @@ import org.root.attr.ColorPalette;
  *
  * @author gavalian
  */
-public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDetectorListener, ActionListener {
+public class FTViewerModule implements IDetectorProcessor,
+				       IDetectorModule,
+				       IDetectorListener,
+				       ActionListener {
 
     
-    FTHODOViewerModule moduleFTHODO=new FTHODOViewerModule();
-    FTCALViewerModule moduleFTCAL=new FTCALViewerModule();
+    FTHODOViewerModule moduleFTHODO = new FTHODOViewerModule();
+    FTCALViewerModule  moduleFTCAL  = new FTCALViewerModule();
     
-        
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
-   
     
     EventDecoder decoder = new EventDecoder();
-    int nProcessed = 0;
+    int          nProcessed = 0;
     
-    
-    
-    // ColorPalette class defines colors 
+    // frequency by which panels are repainted
+    // see ActionEvent
+    private int repaintFrequency = 1;
+    private int buttonSelect     = 0;
+	    
     ColorPalette palette = new ColorPalette();
  
     JPanel detectorPanel = null;
     JPanel FTCALPanel = null;
     JPanel FTHODOPanel = null;
-    JSplitPane FTview = new JSplitPane();
-    DetectorShapeTabView FTview1 = new DetectorShapeTabView();
-    DetectorShapeTabView FTview2 = new DetectorShapeTabView();
-    JTabbedPane tabbedPane = null;
     
-  
+    JSplitPane FTviewMaster    = new JSplitPane();
+    JSplitPane FTviewDetectors = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+    
+    JPanel     FTviewEventsContainer   = new JPanel(new BorderLayout());
+    JSplitPane FTviewEvents   = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+    
+    DetectorShapeTabView FTviewCAL  = new DetectorShapeTabView();
+    DetectorShapeTabView FTviewHODO = new DetectorShapeTabView();
+    
+    JTabbedPane tabbedPane = null;
 
+    
+    private int componentSelect = 0;
+    private int secSelect       = 0;
+    private int layerSelect     = 0;
+    
     public FTViewerModule() {
-        
-        moduleFTCAL.setDecoder(decoder); 
+	
+	moduleFTCAL.setDecoder(decoder); 
         moduleFTHODO.setDecoder(decoder);
         
         this.initRawDataDecoder();
@@ -73,59 +89,99 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         this.initHistograms();
         
         this.evPane.addProcessor(this);
-        
-        /*Graphics starts here*/
-        this.detectorPanel = new JPanel();
-        this.detectorPanel.setLayout(new BorderLayout());
-        
-        this.FTHODOPanel = new JPanel(new BorderLayout());
-        this.FTCALPanel = new JPanel(new BorderLayout());
-
-        this.tabbedPane = new JTabbedPane();
-        tabbedPane.add("FT-HODO",this.FTHODOPanel);
-	tabbedPane.add("FT-CAL",this.FTCALPanel);
-	tabbedPane.add("FT",this.FTview);
-  
-        this.FTview.setLeftComponent(this.FTview1);
-        this.FTview.setRightComponent(this.FTview2);
+       
 	
-        // filling main panel with tabs for different FT subdetectors and event handling panel
+        /*Graphics starts here*/
+        // whole panel
+	this.detectorPanel = new JPanel();
+        this.detectorPanel.setLayout(new BorderLayout());
+
+	// create tabbed objects for CAL and HODO modules
+	this.FTHODOPanel = new JPanel(new BorderLayout());
+        this.FTCALPanel  = new JPanel(new BorderLayout());
+	
+        this.tabbedPane = new JTabbedPane();
+        tabbedPane.add("FT",this.FTviewMaster);
+	tabbedPane.add("FT-CAL",this.FTCALPanel);
+	tabbedPane.add("FT-HODO",this.FTHODOPanel);
+	
+	// LHS of FTviewMaster will be the detectors view
+	this.FTviewDetectors.setTopComponent(this.FTviewHODO);
+	this.FTviewDetectors.setBottomComponent(this.FTviewCAL);
+	this.FTviewDetectors.setDividerLocation(350);
+        
+        // filling main panel with tabs for different FT subdetectors 
+	// and event handling panel
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
         
-        moduleFTCAL.setDetectorPanel(this.FTCALPanel);
+	moduleFTCAL.setDetectorPanel(this.FTCALPanel);
         moduleFTHODO.setDetectorPanel(this.FTHODOPanel);
-        
-        moduleFTCAL.initPanel();
+	
+	moduleFTCAL.initPanel();
         moduleFTHODO.initPanel();
-        
-    }
+
+	FTviewEventsContainer.add(FTviewEvents,BorderLayout.CENTER);
+	
+	JPanel      buttonPane = new JPanel();
+	buttonPane.setLayout(new FlowLayout());
+	
+	// NB these buttons are only visible in the combined viewer at 
+	// present but can also take affect in the FT-CAL and FT-HODO viewers
+	JButton     allEventsButton       = new JButton("All");
+	JButton     onceInTenButton       = new JButton("1/10");
+	JButton     onceInAHundredButton  = new JButton("1/100");
+	JButton     onceInAThousandButton = new JButton("1/1000");
+	//JButton     onceInABlueMoon      = new JButton("Blue Moon");
+	
+	allEventsButton.addActionListener(this);
+	onceInTenButton.addActionListener(this);
+	onceInAHundredButton.addActionListener(this);
+	onceInAThousandButton.addActionListener(this);
+	//onceInABlueMoon.addActionListener(this);
+
+	buttonPane.add(allEventsButton);
+	buttonPane.add(onceInTenButton);
+	buttonPane.add(onceInAHundredButton);
+	buttonPane.add(onceInAThousandButton);
+	//buttonPane.add(onceInABlueMoon);
+	FTviewEventsContainer.add(buttonPane, BorderLayout.PAGE_END);
+	
+	// RHS of FTviewMaster will be the histograms view	
+	this.FTviewEvents.setTopComponent(moduleFTHODO.canvasHODOEvent);
+	this.FTviewEvents.setBottomComponent(moduleFTCAL.canvasCALEvent);
+	this.FTviewEvents.setDividerLocation(250);
+	
+	this.FTviewMaster.setLeftComponent(this.FTviewDetectors);
+	this.FTviewMaster.setRightComponent(this.FTviewEventsContainer);
+	this.FTviewMaster.setDividerLocation(250);
+    	
+    } // end of : public FTViewerModule() {
 
     private void initDetector() {
         
-        moduleFTCAL.initDetector();
+	moduleFTCAL.initDetector();
         moduleFTHODO.initDetector();
-        this.FTview1.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
-        this.FTview2.addDetectorLayer(moduleFTHODO.drawDetector(+10.,0.));
-        this.FTview1.addDetectorListener(this);
-        this.FTview2.addDetectorListener(this);
+	this.FTviewCAL.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
+        this.FTviewHODO.addDetectorLayer(moduleFTHODO.drawDetector(+10.,0.));
+        this.FTviewCAL.addDetectorListener(this);
+        this.FTviewHODO.addDetectorListener(this);
     }
 
     private void initRawDataDecoder() {
-        moduleFTCAL.initDecoder();
+	moduleFTCAL.initDecoder();
         moduleFTHODO.initDecoder();
     }
 
     private void initHistograms() {
-      
-      
-        moduleFTCAL.initHistograms();
+            
+	moduleFTCAL.initHistograms();
         moduleFTHODO.initHistograms();
     }
 
     private void resetHistograms() {
        
-        moduleFTCAL.resetHistograms();
+	moduleFTCAL.resetHistograms();
         moduleFTHODO.resetHistograms();
     }
 
@@ -136,65 +192,40 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
     public void processEvent(DataEvent de) {
         EvioDataEvent event = (EvioDataEvent) de;
         
-        
         decoder.decode(event);
         nProcessed++;
-        
-        moduleFTCAL.processDecodedEvent();        
-        moduleFTHODO.processDecodedEvent();
 	
-        this.FTview.repaint();
+	moduleFTCAL.processDecodedEvent(this.repaintFrequency);        
+        moduleFTHODO.processDecodedEvent(this.repaintFrequency);
+	
+	switch(buttonSelect){
+	case 0: repaintFrequency=1;
+	    break;
+	case 1: repaintFrequency=10;
+	    break;
+	case 2: repaintFrequency=100;
+	    break;
+	case 3: repaintFrequency=1000;
+	    break;
+	case 4: repaintFrequency=10000;
+	    break;
+	default:repaintFrequency=1;
+	    break;
+	    
+	}
+	
+        if(nProcessed%repaintFrequency==0)
+	    this.FTviewMaster.repaint();
+	
     }
 
-//    public DetectorShapeView2D drawDetector(double x0, double y0) {
-//        double p15_WW=15;
-//        double p30_WW=30.;
-//        int    p15_N = 11;
-//        double[] p15_X = {7.5,  22.5,  37.5,  52.5,  52.5,  67.5,  67.5,  67.5,  67.5,  97.5, 127.5};
-//        double[] p15_Y = {67.5,  67.5,  67.5,  52.5,  67.5,   7.5,  22.5,  37.5,  52.5, 127.5,  97.5};
-//
-//        int    p30_N = 18;
-//        double[] p30_X = {15.,  15.,  15.,  45.,  45.,  45.,  75.,  75.,  75.,  90.,  90., 105., 105., 120., 120., 135., 150., 150.};
-//        double[] p30_Y = {90., 120., 150.,  90., 120., 150.,  75., 105., 135.,  15.,  45.,  75., 105.,  15.,  45.,  75.,  15.,  45.};
-//        double[] q_X = {1., -1., -1.,  1.};
-//        double[] q_Y = {1.,  1., -1., -1.};
-//
-//        DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("FTHODO");
-//        
-//        for(int q = 0; q < 4; q++ ) {
-//            for(int i = 0; i < p15_N; i++ ) {
-//                double p_X = p15_X[i]*q_X[q];
-//                double p_Y = p15_Y[i]*q_Y[q];
-//                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, q*p15_N+i);
-//                shape.createBarXY(p15_WW, p15_WW);
-//                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
-//                shape.setColor(0, 145, 0);
-//                viewFTHODO.addShape(shape);
-//            }
-//        }
-//        for(int q = 0; q < 4; q++ ) {
-//            for(int i = 0; i < p30_N; i++ ) {
-//                double p_X = p30_X[i]*q_X[q];
-//                double p_Y = p30_Y[i]*q_Y[q];
-//                DetectorShape2D shape = new DetectorShape2D(DetectorType.FTHODO, 0, 0, 4*p15_N+q*p30_N+i);
-//                shape.createBarXY(p30_WW, p30_WW);
-//                shape.getShapePath().translateXYZ(p_X+x0, p_Y+y0, 0.0);
-//                shape.setColor(0, 145, 0);
-//                viewFTHODO.addShape(shape);
-//            }
-//        }
-//                        
-//        return viewFTHODO;
-//    }
-
-  
     public void update(DetectorShape2D shape) {
-    
+	
         int sector = shape.getDescriptor().getSector();
         int layer = shape.getDescriptor().getLayer();
         int paddle = shape.getDescriptor().getComponent();
         if(shape.getDescriptor().getType() == DetectorType.FTCAL) {
-            Color col = moduleFTCAL.getComponentStatus(paddle);
+	    Color col = moduleFTCAL.getComponentStatus(paddle);
             shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
         }
         else {
@@ -202,27 +233,29 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
             shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
         }
     }
-        
+    
+    
+    
     public String getName() {
         return "FTViewerModule";
     }
-
+    
     public String getAuthor() {
         return "De Vita";
     }
-
+    
     public DetectorType getType() {
         return DetectorType.FTCAL;
     }
-
+    
     public String getDescription() {
         return "FT Display";
     }
-
+    
     public JPanel getDetectorPanel() {
         return this.detectorPanel;
     }
-
+    
     public static void main(String[] args) {
         FTViewerModule module = new FTViewerModule();
         JFrame frame = new JFrame();
@@ -230,18 +263,46 @@ public class FTViewerModule implements IDetectorProcessor, IDetectorModule, IDet
         frame.pack();
         frame.setVisible(true);
     }
-
+    
     public void actionPerformed(ActionEvent e) {
         System.out.println("FTViewer ACTION = " + e.getActionCommand());
-       
+	
+	if (e.getActionCommand().compareTo("All") == 0) {
+	    buttonSelect = 0;
+	}
+        else if (e.getActionCommand().compareTo("1/10") == 0) {
+            buttonSelect = 1;
+	    System.out.println("Updating every 10 events ");
+        }
+        else if (e.getActionCommand().compareTo("1/100") == 0) {
+            buttonSelect = 2;
+	    System.out.println("Updating every 100 events ");
+        }
+        else if (e.getActionCommand().compareTo("1/1000") == 0) {
+            buttonSelect = 3;
+	    System.out.println("Updating every 1000 events ");
+        }
+        else if (e.getActionCommand().compareTo("1/1000") == 0) {
+            buttonSelect = 4;
+	    System.out.println("Updating every Blue Moon ");
+        }
     }
-
-    public void detectorSelected(DetectorDescriptor dd) {
-        //To change body of generated methods, choose Tools | Templates.
-    }
-
-  
     
-  
+    public void detectorSelected(DetectorDescriptor dd) {
+	//To change body of generated methods, choose Tools | Templates.
+	// 	componentSelect = dd.getComponent();
+	//         secSelect = dd.getSector();
+	//         layerSelect = dd.getLayer();
+	
+	moduleFTHODO.detectorSelected(dd);
+	moduleFTCAL.detectorSelected(dd);
+	
+	// 	System.out.println("detector selected:" +
+	// 			   " layer = " + layerSelect +
+	// 			   ", sector = " + secSelect + 
+	// 			   ", component = " + componentSelect );
+	
+    }
 
 }
+	

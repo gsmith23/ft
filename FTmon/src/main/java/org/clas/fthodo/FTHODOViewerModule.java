@@ -17,6 +17,8 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 
 import org.jlab.clas.detector.DetectorCollection;
@@ -31,16 +33,44 @@ import org.jlab.clas12.detector.DetectorCounter;
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clas12.detector.FADCBasicFitter;
 import org.jlab.clas12.detector.IFADCFitter;
+
+import org.jlab.containers.HashTable;
+import org.jlab.containers.HashTableViewer;
+import org.jlab.containers.IHashTableListener;
+
 import org.root.attr.ColorPalette;
+
 import org.root.func.F1D;
+
 import org.root.histogram.GraphErrors;
 import org.root.histogram.H1D;
+
 import org.root.basic.EmbeddedCanvas;
 
-public class FTHODOViewerModule implements IDetectorListener,ActionListener{
-
-    JPanel detectorPanel;
+public class FTHODOViewerModule implements IDetectorListener,
+					   IHashTableListener,
+					   ActionListener,
+					   ChangeListener{
     EventDecoder decoder;
+    
+    //=================================
+    //      PANELS AND CANVASES
+    //=================================
+    JPanel         detectorPanel;
+    
+    JPanel canvasPane = new JPanel(new BorderLayout());
+
+    EmbeddedCanvas canvasEvent     = new EmbeddedCanvas();
+    EmbeddedCanvas canvasNoise     = new EmbeddedCanvas();
+    EmbeddedCanvas canvasEnergy    = new EmbeddedCanvas();
+    EmbeddedCanvas canvasTime      = new EmbeddedCanvas();
+    
+    public EmbeddedCanvas canvasHODOEvent  = new EmbeddedCanvas();
+
+    
+    DetectorShapeTabView view = new DetectorShapeTabView();    
+
+    HashTable  summaryTable   = null; 
     
     ColorPalette palette = new ColorPalette();
     
@@ -48,8 +78,13 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     //           HISTOGRAMS
     //=================================
     
+    //---------------
+    // Event Viewing
+    // raw pulse
     DetectorCollection<H1D> H_WAVE = new DetectorCollection<H1D>();
+    // baseline suptracted pulse calibrated to voltage and time
     DetectorCollection<H1D> H_CWAVE = new DetectorCollection<H1D>();
+    // ... calibrated to no. photoelectrons and time
     DetectorCollection<H1D> H_NPE = new DetectorCollection<H1D>();
     
     DetectorCollection<H1D> H_MAXV = new DetectorCollection<H1D>();
@@ -68,13 +103,11 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
     DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
     
-    H1D H_fADC_N   = null;
-    H1D H_WMAX     = null;
-    H1D H_COSMIC_N = null;
+    H1D H_fADC_N     = null;
+    H1D H_WMAX       = null;
+    H1D H_CHARGE_MAX = null;
+    H1D H_COSMIC_N   = null;
 
-    EmbeddedCanvas canvas = new EmbeddedCanvas();
-    DetectorShapeTabView view = new DetectorShapeTabView();    
-    
     //=================================
     //           CONSTANTS
     //=================================
@@ -106,18 +139,20 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     //           VARIABLES
     //=================================
 
-    double[] crystalID;
+    double[] tileID;
     double[] noiseRMS;
     double[] cosmicCharge;
     
-    double   crystal_size = 15;
+    double   tile_size = 15;
     int      nProcessed = 0;
     
-    private int plotSelect      = 999;  
+    private int buttonSelect    = 0;  
+    private int tabSelect       = 0;  
     private int componentSelect = 0;
     private int secSelect       = 0;
     private int layerSelect     = 0;
     
+        
     public EventDecoder getDecoder() {
         return decoder;
     }
@@ -125,20 +160,224 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
     public void setDecoder(EventDecoder decoder) {
         this.decoder = decoder;
     }
-
+    
     public JPanel getDetectorPanel() {
         return detectorPanel;
     }
 
+    // argument sent from FTViewerModule
     public void setDetectorPanel(JPanel detectorPanel) {
         this.detectorPanel = detectorPanel;
     }
     
+    public void initPanel() {
+	
+        JSplitPane splitPane = new JSplitPane();
+	
+	this.initTable();
+	HashTableViewer canvasTable = new HashTableViewer(summaryTable);
+	canvasTable.addListener(this);
+
+	JTabbedPane tabbedPane = new JTabbedPane();
+	tabbedPane.add("Event Viewer",this.canvasEvent);
+	tabbedPane.add("Noise"       ,this.canvasNoise);
+        tabbedPane.add("Energy"      ,this.canvasEnergy);
+	//tabbedPane.add("Time"        ,this.canvasTime);
+        tabbedPane.add("Summary"     ,canvasTable);
+	tabbedPane.addChangeListener(this);
+	this.initCanvas();
+	
+		
+        JPanel buttonPane = new JPanel();
+        buttonPane.setLayout(new FlowLayout());
+        
+        JButton resetBtn = new JButton("Reset");
+        resetBtn.addActionListener(this);
+	buttonPane.add(resetBtn);
+	
+	JButton tableBtn = new JButton("Update Summary");
+        tableBtn.addActionListener(this);
+        buttonPane.add(tableBtn);
+	
+	
+	ButtonGroup group = new ButtonGroup();
+
+	//=================================
+	//      PLOTTING OPTIONS
+	//=================================
+
+	//
+	// Non-accumulated
+        //
+	// 0 - waveforms
+	// 1 - waveforms calibrated in time and voltage
+	// 2 - voltage / npe voltage peak (40 mV for now)
+
+	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
+	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
+	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave");   // voltage / spe voltage
+		
+//         group.add(wavesRb);
+//         buttonPane.add(wavesRb);
+//         wavesRb.setSelected(true);
+//         wavesRb.addActionListener(this);
+        
+//         group.add(cWavesRb);
+//         buttonPane.add(cWavesRb);
+// 	cWavesRb.setSelected(true);
+//         cWavesRb.addActionListener(this);
+        
+// 	group.add(npeWavesRb);
+//         buttonPane.add(npeWavesRb);
+//         //npeWavesRb.setSelected(true);
+//         npeWavesRb.addActionListener(this);
+        
+	//
+	// Accumulated
+	//
+	// 10 - Max Pulse Voltage
+	// 11 - Charge
+	// ...
+	
+// 	JRadioButton noiseRb   = new JRadioButton("Noise"); 
+	
+// 	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
+//         JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
+	
+// 	group.add(noiseRb);
+// 	buttonPane.add(noiseRb);
+//         //noiseRb.setSelected(true);
+//         noiseRb.addActionListener(this);
+	
+// 	group.add(maxVoltRb);
+// 	buttonPane.add(maxVoltRb);
+//         //maxVoltRb.setSelected(true);
+//         maxVoltRb.addActionListener(this);
+	
+// 	group.add(chargeRb);
+// 	buttonPane.add(chargeRb);
+//         //chargeRb.setSelected(true);
+//         chargeRb.addActionListener(this);
+
+	
+	//=======================================================
+	//=======================================================
+	// IN PROGRESS
+
+	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
+//         JRadioButton fitRb  = new JRadioButton("Fit Timing");
+//         group.add(fitRb);
+//         buttonPane.add(fitRb);
+//         //fitRb.setSelected(true);
+//         fitRb.addActionListener(this);
+        
+//         group.add(fadcsampleRb);
+//         buttonPane.add(fadcsampleRb);
+//         //fadcsampleRb.setSelected(true);
+//         fadcsampleRb.addActionListener(this);
+
+// 	JButton fitBtn = new JButton("Fit");
+//         fitBtn.addActionListener(this);
+//         buttonPane.add(fitBtn);
+	
+	
+	
+        //=======================================================
+	//=======================================================
+
+	this.canvasPane.add(tabbedPane, BorderLayout.CENTER);
+	
+	this.canvasPane.add(buttonPane, BorderLayout.PAGE_END);
+ 	
+	splitPane.setLeftComponent(this.view);
+        
+	//JPanel dummyPane = new JPanel();
+	splitPane.setRightComponent(this.canvasPane);
+	splitPane.setDividerLocation(400);
+	
+        this.detectorPanel.add(splitPane, BorderLayout.CENTER);
+		
+    } // end of: public void initPanel() {
+
+    public void initCanvas() {
+	
+	// combined view event canvas
+	this.canvasHODOEvent.setGridX(false);
+	this.canvasHODOEvent.setGridY(false);
+	this.canvasHODOEvent.setAxisFontSize(10);
+	this.canvasHODOEvent.setTitleFontSize(16);
+	this.canvasHODOEvent.setAxisTitleFontSize(14);
+	this.canvasHODOEvent.setStatBoxFontSize(8);
+	this.canvasHODOEvent.divide(2,1);
+	
+	// event canvas
+        this.canvasEvent.setGridX(false);
+        this.canvasEvent.setGridY(false);
+        this.canvasEvent.setAxisFontSize(10);
+        this.canvasEvent.setTitleFontSize(16);
+        this.canvasEvent.setAxisTitleFontSize(14);
+        this.canvasEvent.setStatBoxFontSize(8);
+	
+	// noise canvas
+        this.canvasNoise.setGridX(false);
+        this.canvasNoise.setGridY(false);
+        this.canvasNoise.setAxisFontSize(10);
+        this.canvasNoise.setTitleFontSize(16);
+        this.canvasNoise.setAxisTitleFontSize(14);
+        this.canvasNoise.setStatBoxFontSize(8);
+
+	// energy canvas
+        this.canvasEnergy.setGridX(false);
+        this.canvasEnergy.setGridY(false);
+        this.canvasEnergy.setAxisFontSize(10);
+        this.canvasEnergy.setTitleFontSize(16);
+        this.canvasEnergy.setAxisTitleFontSize(14);
+        this.canvasEnergy.setStatBoxFontSize(2);
+
+	// time canvas
+        this.canvasTime.setGridX(false);
+        this.canvasTime.setGridY(false);
+        this.canvasTime.setAxisFontSize(10);
+        this.canvasTime.setTitleFontSize(16);
+        this.canvasTime.setAxisTitleFontSize(14);
+        this.canvasTime.setStatBoxFontSize(8);
+
+    }
+
+    private void initTable() {
+	summaryTable = new HashTable(3,
+				     "Charge Mean:d");
+	    
+	//double[] summaryInitialValues = {-1, -1, -1, -1, -1};
+	double[] summaryInitialValues = {-1};
+	
+	
+	    for (int layer = 2; layer > 0; layer--) {
+		for (int sector = 1; sector < 9; sector++) {
+		    for ( int component = 1 ; component < 21 ; component++){
+		    
+		    if(sector%2==1 && component > 9 ) continue;
+		    
+		    summaryTable.addRow(summaryInitialValues,
+					sector,
+					layer,
+					component);
+		    
+		    summaryTable.addConstrain(3, 1000.0, 10000.0);
+		    // summaryTable.addConstrain(4, 1.0, 1.5); 
+		    // summaryTable.addConstrain(5, 5.0, 25.); 
+		    //             }
+		}
+	    }
+	}
+	
+    } // end of : private void initTable() {
     
+
     public FTHODOViewerModule(){
         this.detectorPanel=null;
     }
-      
+
     public void initDetector(){
         DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
         this.view.addDetectorLayer(viewFTHODO);
@@ -162,9 +401,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 	int layer;
 	
 	// y-offset to place thin and thick layer on same pane
-	//double[] layerOffsetY = {-180.0,180.0}; 
 	double[] layerOffsetY = {-200.0,200.0}; 
-	// size of elements of symmetry sector 0-28
+	// size of tiles per quadrant
 	double[] tileSize = {15.0,30.0,15.0,30.0,30.0,30.0,30.0,30.0,15.0,
 			     30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
 			     30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0}; 
@@ -200,7 +438,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		
 		// 29 elements per symmetry sector
                 for (int element = 0; element < 29; element++) { 
-                
+		    
 		    // sector is odd for first 9 elements 
 		    // and even for the rest
 		    if (element < 9) {    
@@ -214,13 +452,13 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                         component = element + 1 - 9; 
                     }
 		    
-		    // calculate the x-element of the center of each crystal;
+		    // calculate the x-element of the center of each tile;
 		    if     (quadrant==0) xcenter = xx[element];
 		    else if(quadrant==1) xcenter =-yy[element];
 		    else if(quadrant==2) xcenter =-xx[element];
 		    else if(quadrant==3) xcenter = yy[element];
 		    
-		    // calculate the y-element of the center of each crystal
+		    // calculate the y-element of the center of each tile
 		    if     (quadrant==0) ycenter = yy[element] + layerOffsetY[layerI];
 		    else if(quadrant==1) ycenter = xx[element] + layerOffsetY[layerI];
 		    else if(quadrant==2) ycenter =-yy[element] + layerOffsetY[layerI];
@@ -235,8 +473,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		    // Sectors 1-8 
 		    // (sect=1: upper left - clockwise); 
 		    // layers 1-2 (thin==1, thick==2); 
-		    // crystals (1-9 for odd and 1-20 for even sectors)
-                    DetectorShape2D shape  = new DetectorShape2D(DetectorType.FTHODO,
+		    // tiles (1-9 for odd and 1-20 for even sectors)
+		    DetectorShape2D shape  = new DetectorShape2D(DetectorType.FTHODO,
 								 sector, 
 								 layer,
 								 component);
@@ -254,7 +492,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		    // defines the placements of the 2D bar according to the 
 		    // xcenter and ycenter calculated above
                     shape.getShapePath().translateXYZ(xcenter,ycenter,zcenter); 
-                    
+		    
 		    // 
 		    shape.setColor(0, 0, 0, 0);   
 		                        
@@ -262,7 +500,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 		    
 		    //===========================================================
 		    	
-		    // calculate the y-element of the center of each crystal
+		    // calculate the y-element of the center of each tile
 		    if(quadrant==0)       ycenter = yy[element];
                      else if(quadrant==1) ycenter = xx[element];
                      else if(quadrant==2) ycenter =-yy[element];
@@ -277,56 +515,81 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 }
             }
         }    
+    	
+// 	int nPaddles = 1;
+// 	for(int ipaddle=0; ipaddle<nPaddles; ipaddle++) {
+// //             DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTHODO,
+// // 							 0, 0, 501+ipaddle);
+//             DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTHODO,
+// 							 1, 1, 10);
+	    
+//             paddle.createBarXY(tile_size*11, tile_size/2.);
+// 	    paddle.getShapePath().translateXYZ(tile_size*11/2.*(((int) ipaddle/2)*2+1),
+// 					       tile_size*(22+2)*(ipaddle % 2),
+// 					       0.0);
+// 	    // paddle.getShapePath().translateXYZ(0.0,
+// 	    // 					       0.0,
+// 	    // 					       0.0);
+//             paddle.setColor(0, 145, 0);
+//             viewFTHODO.addShape(paddle);
+//         }
+        
     
-    return viewFTHODO;
-    }	    
-		    
-		    
+	return viewFTHODO;
+    }    
+
+    
+    // Radio Button Listener
     public void actionPerformed(ActionEvent e) {
 	//System.out.println("ACTION = " + e.getActionCommand());
         if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
 	
-        if (e.getActionCommand().compareTo("Waveforms") == 0) {
-            plotSelect = 0;
+	if (e.getActionCommand().compareTo("Update Summary") == 0) {
+            updateTable();
+        }
+	
+        if (e.getActionCommand().compareTo("Raw Waveforms") == 0) {
+            buttonSelect = 0;
 	    // resetCanvas();
         }
-        else if (e.getActionCommand().compareTo("Calibrated") == 0) {
-            plotSelect = 1;
+        else if (e.getActionCommand().compareTo("Calibrated Waveforms") == 0) {
+            buttonSelect = 1;
 	    // resetCanvas();
         }
         else if (e.getActionCommand().compareTo("NPE Wave") == 0) {
-            plotSelect = 2;
+            buttonSelect = 2;
 	    // resetCanvas();
         }
         else if (e.getActionCommand().compareTo("Max") == 0) {
-            plotSelect = 10;
+            buttonSelect = 10;
 	}
         else if (e.getActionCommand().compareTo("Charge") == 0) {
-            plotSelect = 11;
+            buttonSelect = 11;
 	}
         else if (e.getActionCommand().compareTo("Noise") == 0) {
-            plotSelect = 12;
+            buttonSelect = 12;
 	}
 	
 	// IN PROGRESS
     //     if (e.getActionCommand().compareTo("Fit Timing") == 0) {
-	//             plotSelect = 12;
+	//             buttonSelect = 12;
 	//             fitTimingdiff();
 	//         }
           
     }
 
     private void resetCanvas() {
-        this.canvas.divide(1, 2);
-        canvas.cd(0);
+        //this.canvas.divide(1, 2);
+        //canvas.cd(0);
     }
 
     
-        private void fitHistograms() {
-        for(int component=0; component< 22*22; component++) {
-            if(H_COSMIC_CHARGE.hasEntry(0, 0, component)) {
+    private void fitHistograms() {
+	//!!!
+	for(int component=0; component< 22*22; component++) {
+	    if(H_COSMIC_CHARGE.hasEntry(0, 0, component)) {
                 if(H_COSMIC_CHARGE.get(0, 0, component).getEntries()>200) {
                     H1D hcosmic = H_COSMIC_CHARGE.get(0,0,component);
                     initLandauFitPar(component,hcosmic);
@@ -334,7 +597,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 }
             }
         }
-        boolean flag_parnames=true;
+	boolean flag_parnames=true;
         for(int component=0; component< 22*22; component++) {
             if(mylandau.hasEntry(0, 0, component)) {
                 if(flag_parnames) {
@@ -343,17 +606,17 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 }
                 //System.out.print(component + "\t\t ");
                 //for(int i=0; i<mylandau.get(0, 0, component).getNParams(); i++) 
-		    //System.out.format("%.2f\t ",mylandau.get(0, 0, component).getParameter(i));
-		    //if(mylandau.get(0, 0, component).getNParams()==3) System.out.print("0.0\t 0.0\t");
+		//System.out.format("%.2f\t ",mylandau.get(0, 0, component).getParameter(i));
+		//if(mylandau.get(0, 0, component).getNParams()==3) System.out.print("0.0\t 0.0\t");
                 //if(mylandau.get(0, 0, component).getParameter(0)>0)
-                    //System.out.format("%.2f\n",mylandau.get(0, 0, component).getChiSquare(H_COSMIC_CHARGE.get(0,0,component).getDataSet())
-		    ///mylandau.get(0, 0, component).getNDF(H_COSMIC_CHARGE.get(0,0,component).getDataSet()));
-		    //elseSystem.out.format("0.0\n"); 
+		//System.out.format("%.2f\n",mylandau.get(0, 0, component).getChiSquare(H_COSMIC_CHARGE.get(0,0,component).getDataSet())
+		///mylandau.get(0, 0, component).getNDF(H_COSMIC_CHARGE.get(0,0,component).getDataSet()));
+		//elseSystem.out.format("0.0\n"); 
 	    }
 	}
     }
     
-  private void initLandauFitPar(int component, H1D hcosmic) {
+    private void initLandauFitPar(int component, H1D hcosmic) {
         if(hcosmic.getBinContent(0)==0) mylandau.add(0, 0, component, new F1D("landau",     0.0, 80.0));
         else                            mylandau.add(0, 0, component, new F1D("landau+exp", 0.0, 80.0));
         if(hcosmic.getBinContent(0)<10) {
@@ -393,6 +656,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             }
         }
     }
+    
     private void initGausFitPar(int sec_c, int lay_c, int crys_c, H1D htimediff) {
         mygauss.add(sec_c, lay_c , crys_c, new F1D("gaus", -20.0, 20.0));
         double ampldiff;
@@ -412,148 +676,203 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         componentSelect = desc.getComponent();
         secSelect = desc.getSector();
         layerSelect = desc.getLayer();
-	//System.out.println("Sector=" + secSelect + " Layer=" +layerSelect + " Component=" + componentSelect);
 	
-        if      ( plotSelect == 0 ) {
-//            this.canvas.divide(1, 2);
-	    canvas.cd(layerSelect-1);
-            
-	    if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect))
-                this.canvas.draw(H_WAVE.get(secSelect,layerSelect,componentSelect));
-            
-	    canvas.cd(layerSelect%2);
+// 	System.out.println("Sector="     + 
+// 			   secSelect     +
+// 			   " Layer="     +
+// 			   layerSelect   +
+// 			   " Component=" +
+// 			   componentSelect);
+	
+	// map [1,2] to [0,1]
+	int selectedLayerCDIndex = layerSelect-1; 
+	// map [1,2] to [1,0]
+	int otherLayerCDIndex    = layerSelect%2;
+	// map [1,2] to [2,1]
+	int otherLayer           = (layerSelect%2)+1;
+	
+	int selectedLayerCDIndexLeft =  2*selectedLayerCDIndex;
+	int otherLayerCDIndexLeft    =  2*otherLayerCDIndex;
+	
+	int selectedLayerCDIndexRight = selectedLayerCDIndexLeft + 1;
+	int otherLayerCDIndexRight    = otherLayerCDIndexLeft    + 1;
+	
+	
+	//============================================================
+	// Combined View 
+	
+
+	canvasHODOEvent.cd(selectedLayerCDIndex);
+	if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect))
+	    this.canvasHODOEvent.draw(H_WAVE.get(secSelect,
+						 layerSelect,
+						 componentSelect));
+	
+	canvasHODOEvent.cd(otherLayerCDIndex);
+	if(H_WAVE.hasEntry(secSelect,otherLayer,componentSelect))
+	    this.canvasHODOEvent.draw(H_WAVE.get(secSelect,
+						 otherLayer,
+						 componentSelect));
+	
+	
+	
+	//============================================================
+	// Event Tab Selected
+        if      ( tabSelect == 0 ) {
+	    
+            this.canvasEvent.divide(2, 2);
+		    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // raw fADC pulse
+	    canvasEvent.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasEvent.draw(H_WAVE.get(secSelect,
+						 layerSelect,
+						 componentSelect));
+		
+	    }
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // raw fADC pulse
+	    canvasEvent.cd(otherLayerCDIndexLeft);
             
 	    if(H_WAVE.hasEntry(secSelect,
-			       (layerSelect%2)+1,
+			       otherLayer,
 			       componentSelect))
-                this.canvas.draw(H_WAVE.get(secSelect,
-					    (layerSelect%2)+1, 
-					    componentSelect));
-        }
-	else if ( plotSelect == 1 ){
-//	    this.canvas.divide(1, 2);
-            canvas.cd(layerSelect-1);
-            if(H_CWAVE.hasEntry(secSelect,
+                this.canvasEvent.draw(H_WAVE.get(secSelect,
+						 otherLayer,
+						 componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasEvent.cd(selectedLayerCDIndexRight);
+            
+	    if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
 				componentSelect))
-                this.canvas.draw(H_CWAVE.get(secSelect,
-					     layerSelect,
-					     componentSelect));
-            canvas.cd(layerSelect%2);
-            if(H_CWAVE.hasEntry(secSelect,
-				(layerSelect%2)+1,
-				componentSelect))
-                this.canvas.draw(H_CWAVE.get(secSelect,
-					     (layerSelect%2)+1,
-					     componentSelect));
-	}
-	else if ( plotSelect == 2 ){
-//	    this.canvas.divide(1, 2);
-            canvas.cd(layerSelect-1);
-            if(H_NPE.hasEntry(secSelect,
-			      layerSelect,
-			      componentSelect))
-                this.canvas.draw(H_NPE.get(secSelect,
-					   layerSelect,
-					   componentSelect),"S");
-            canvas.cd(layerSelect%2);
-            if(H_NPE.hasEntry(secSelect,
-			      (layerSelect%2)+1,
-			      componentSelect))
-                this.canvas.draw(H_NPE.get(secSelect,
-					   (layerSelect%2)+1,
-					   componentSelect),"S");
-	}
-	else if ( plotSelect == 10 ) {
-//            this.canvas.divide(1, 2);
-            canvas.cd(layerSelect-1);
-            if(H_MAXV.hasEntry(secSelect,
-			       layerSelect,
-			       componentSelect))
-                this.canvas.draw(H_MAXV.get(secSelect,
-					    layerSelect,
-					    componentSelect));
-            canvas.cd(layerSelect%2);
-            if(H_MAXV.hasEntry(secSelect,
-			       (layerSelect%2)+1, 
-			       componentSelect))
-                this.canvas.draw(H_MAXV.get(secSelect,
-					    (layerSelect%2)+1, 
-					    componentSelect));
-        }
-	else if ( plotSelect == 11 ) {
-//            this.canvas.divide(1, 2);
+                this.canvasEvent.draw(H_CWAVE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
             
-	    canvas.cd(layerSelect-1);
-            if(H_COSMIC_CHARGE.hasEntry(secSelect,
-					layerSelect,
-					componentSelect)){
-                
-		this.canvas.setLogY(true);
-		
-		this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
-						     layerSelect,
-						     componentSelect),"S");
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasEvent.cd(otherLayerCDIndexRight);
+            if(H_CWAVE.hasEntry(secSelect,
+				otherLayer,
+				componentSelect))
+                this.canvasEvent.draw(H_CWAVE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
+	
+	} // end of: if ( tabSelect == 0 ) {....
+	//============================================================
+	// Noise Tab Selected
+        if      ( tabSelect == 1 ) {
+	    
+            this.canvasNoise.divide(2, 2);
+		    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasNoise.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_CWAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasNoise.draw(H_CWAVE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
 		
 	    }
-            // noise of same layer component in other division
-	    canvas.cd(layerSelect%2);
-            if(H_NOISE_CHARGE.hasEntry(secSelect,
-				       (layerSelect), 
-				       componentSelect)){
-                
-		this.canvas.setLogY(true);
-		this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
-						    (layerSelect), 
-						    componentSelect),"S");
-		
-		
-	    }
-	}
-	else if ( plotSelect == 12 ){
-	    //	    this.canvas.divide(1, 2);
-            canvas.cd(layerSelect-1);
-            if(H_NOISE_CHARGE.hasEntry(secSelect,
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasNoise.cd(otherLayerCDIndexLeft);
+            
+	    if(H_CWAVE.hasEntry(secSelect,
+				otherLayer,
+				componentSelect))
+                this.canvasNoise.draw(H_CWAVE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // accumulated noise charge
+	    canvasNoise.cd(selectedLayerCDIndexRight);
+            
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,
 				       layerSelect,
 				       componentSelect))
-                this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
-						    layerSelect,
-						    componentSelect));
-            canvas.cd(layerSelect%2);
+                this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
+							 layerSelect,
+							 componentSelect));
+            
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasNoise.cd(otherLayerCDIndexRight);
             if(H_NOISE_CHARGE.hasEntry(secSelect,
-				       (layerSelect%2)+1,
+				       otherLayer,
 				       componentSelect))
-                this.canvas.draw(H_NOISE_CHARGE.get(secSelect,
-						    (layerSelect%2)+1,
-						    componentSelect));
-	}
-	
-	
-	
-    // IN PROGRESS
-    //     else if (plotSelect == 2 ) {
-//             this.canvas.divide(1, 3);
-//             canvas.cd(layerSelect-1);
-//             if(H_FADCSAMPLE.hasEntry(secSelect,layerSelect,componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLE.get(secSelect,layerSelect,componentSelect));
-//             canvas.cd(layerSelect%2);
-//             if(H_FADCSAMPLE.hasEntry(secSelect,(layerSelect%2)+1, componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLE.get(secSelect,(layerSelect%2)+1, componentSelect));
-//             canvas.cd(2);
-//             if(H_FADCSAMPLEdiff.hasEntry(secSelect,1, componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLEdiff.get(secSelect,1, componentSelect));
-//         }
-//         else if (plotSelect == 3 ) {
-//             this.canvas.divide(1, 1);
-//             canvas.cd(0);
-//             if(H_FADCSAMPLEdiff.hasEntry(secSelect,1, componentSelect)){
-//                 this.canvas.draw(H_FADCSAMPLEdiff.get(secSelect,1, componentSelect));
-//                 this.canvas.draw(mygauss.get(secSelect,1, componentSelect), "same");
-//             }
-//         }
-//         else if (plotSelect == 4 ) {
+                this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
+							 otherLayer,
+							 componentSelect));
+	    
+	} // end of: if ( tabSelect == 1 ) {....
+	//======================================================================
+	// Energy Tab Selected
+        if      ( tabSelect == 2 ) {
+	    
+            this.canvasEnergy.divide(2, 2);
+	    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
+		
+	    }
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(otherLayerCDIndexLeft);
+            
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,
+				otherLayer,
+				componentSelect))
+                this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(selectedLayerCDIndexRight);
+            
+	    if(H_COSMIC_CHARGE.hasEntry(secSelect,
+				       layerSelect,
+				       componentSelect))
+                this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
+							 layerSelect,
+							 componentSelect));
+            
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(otherLayerCDIndexRight);
+            if(H_COSMIC_CHARGE.hasEntry(secSelect,
+				       otherLayer,
+				       componentSelect))
+                this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
+							 otherLayer,
+							 componentSelect));
 
-    }
+	} // end of: if ( tabSelect == 2 ) {....
+	
+    } // end of: public void detectorSelected(DetectorD....
 
     public Color getComponentStatus(int sector, int layer, int component) {
         int sector_count[] = {0,9,29,38,58,67,87,96};
@@ -572,51 +891,112 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         int sector    = shape.getDescriptor().getSector();
         int layer     = shape.getDescriptor().getLayer();
         int component = shape.getDescriptor().getComponent();
-        int sector_count[] = {0,9,29,38,58,67,87,96};
+	int sector_count[] = {0,9,29,38,58,67,87,96};
         int index = (layer-1)*116+sector_count[sector-1]+component;
 	
-	// System.out.println("update: layer =" + layer + ", sector = " + sector + ", component = " + component );
+	// 	System.out.println("update: layer = " + layer +
+	// 			   ", sector = " + sector + 
+	// 			   ", component = " + component );
 	
 	// shape.setColor(200, 200, 200);
 	// System.out.println("Bin Content n" +index + "="+ H_WMAX.getBinContent(index));
         
-	double waveMax = H_WMAX.getBinContent(index);
+	double waveMax     = H_WMAX.getBinContent(index);
+	int    signalAlpha = (int)(waveMax-1)*128/4096 + 128;  
 	
-	if(plotSelect==0 || plotSelect==1 || plotSelect==2) {
+	int    noiseAlpha  = 255;
+	if( (signalAlpha-128) < 25)
+	    noiseAlpha = (signalAlpha-128)*10;
+	
+	// Event Viewer 
+	if( tabSelect==0 ) {
             if      ( waveMax > cosmicsThrsh) {
-                shape.setColor(0, 255, 0, 255);
+                shape.setColor(0, 255, 0, signalAlpha);
             }
 	    else if ( waveMax  > noiseThrsh) {
-		shape.setColor(255, 255, 0, (256/4)-1);
+		shape.setColor(255, 255, 0, noiseAlpha);
 	    }
             else {
 		shape.setColor(255, 255, 255, 0);
             }
         }
-        if(plotSelect==12 && (waveMax  > noiseThrsh) ) {
-		shape.setColor(255, 255, 0, (256/4)-1);
-	}
-        if(plotSelect==11 && (waveMax  > cosmicsThrsh) ) {
-		shape.setColor(0, 255, 0, (256/2)-1);
-	}
-        if(plotSelect==4) {
-            if(H_WMAX.getBinContent(index)*LSB > cosmicsThrsh) {
-                shape.setColor(200, 0, 200);
-            }
-	    //             else if((H_WMAX.getBinContent(index)-pedestal)*LSB  > speThresh) {
-// 		//shape.setColor(100, 0, 0);
-//                 shape.setColor(100, 0, 0);
-// 		// 		int value = (int)H_WMAX.getBinContent(index);
-// 		// 		shape.setColor(value, 0, 0);
-//             }
-            else {
-                shape.setColor(255, 255, 255);
+        // Noise 
+	else if( tabSelect==1 ) {
+            if      ( waveMax > noiseThrsh) {
+                shape.setColor(255, 255, 0, (256/4)-1);
             }
         }
+	// Energy 
+	else if(tabSelect==2 && (waveMax  > cosmicsThrsh) ) {
+	    shape.setColor(0, 255, 0, (256/2)-1);
+	}
+	
+    } // end of : public void update(Detec
+
+    private void updateTable() {
+ 
+	for (int sector = 1; sector < 9; sector++) {
+	    for (int layer = 1; layer < 3; layer++) {
+		for ( int component = 1 ; component < 21 ; component++){
+		    
+		    if(sector%2==1 && component > 9 ) continue;
+	
+		    
+
+// 		    String pedestal = String.format ("%.1f",
+// 						     H_PED.get(0, 0, key).getMean());
+// 		    String noise    = String.format ("%.2f",
+// 						     H_NOISE.get(0, 0, key).getMean());
+// 		    String mips     = String.format ("%.2f",
+// 						     mylandau.get(0, 0, key).getParameter(1));
+// 		    String emips    = String.format ("%.2f",
+// 						     mylandau.get(0, 0, key).parameter(1).error());
+// 		    String chi2     = String.format ("%.1f",
+// 						     mylandau.get(0, 0, key).getChiSquare(H_COSMIC_CHARGE.get(0,0,key).getDataSet())
+// 						     /mylandau.get(0, 0, key).getNDF(H_COSMIC_CHARGE.get(0,0,key).getDataSet()));
+//		    
+		    // String time     = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(1));
+		    // String stime    = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(2));
+		    
+		    summaryTable.setValueAtAsDouble(0,
+						    H_COSMIC_CHARGE.get(sector,
+									layer,
+									component).getMean(),
+						    sector,
+						    layer,
+						    component);
+// 		    summaryTable.setValueAtAsDouble(0,
+// 						    Double.parseDouble(pedestal),
+// 						    0, 0, key);
+// 		    summaryTable.setValueAtAsDouble(1,
+// 						    Double.parseDouble(noise)   ,
+// 						    0, 0, key);
+// 		    summaryTable.setValueAtAsDouble(2,
+// 						    Double.parseDouble(mips)    ,
+// 						    0, 0, key);
+// 		    summaryTable.setValueAtAsDouble(3, Double.parseDouble(emips),
+// 						    0, 0, key);
+// 		    summaryTable.setValueAtAsDouble(4, Double.parseDouble(chi2) ,
+// 						    0, 0, key);
+		    
+		    // summaryTable.setValueAtAsDouble(5, Double.parseDouble(time), 0, 0, key);
+		    // summaryTable.setValueAtAsDouble(6, Double.parseDouble(stime)   , 0, 0, key);                
+		}            
+	    }
+	}
+        summaryTable.show();
+	this.view.repaint();
+    } // end of: private void updateTable() {
+    
+    public void stateChanged(ChangeEvent e) {
+        JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
+        int index = sourceTabbedPane.getSelectedIndex();
+        System.out.println("Tab changed to: " + sourceTabbedPane.getTitleAt(index) + " with index " + index);
+        tabSelect = index;
+        //if(index==4) this.updateTable();
+	this.view.repaint();
     }
-
-
-
+    
     public void initHistograms() {
        	HistogramParam HistPara = new HistogramParam();
 	
@@ -662,7 +1042,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                                 HistPara.getTitle(), 100, 0.0, 400.0));
             H_CWAVE.get(sLC[0],
 			sLC[1],
-			sLC[2]).setFillColor(4);
+			sLC[2]).setFillColor(3);
             H_CWAVE.get(sLC[0],
 			sLC[1],
 			sLC[2]).setXTitle("Time (ns)");
@@ -704,7 +1084,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					HistPara.getTitle(), 100, 500.0, 4500.0));
             H_COSMIC_CHARGE.get(sLC[0],
 				sLC[1], 
-				sLC[2]).setFillColor(0);
+				sLC[2]).setFillColor(3);
             H_COSMIC_CHARGE.get(sLC[0],
 				sLC[1], 
 				sLC[2]).setXTitle("Charge (pC)");
@@ -723,7 +1103,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 				       HistPara.getTitle(), 100, 10.0, 310.0));
             H_NOISE_CHARGE.get(sLC[0],
 			       sLC[1], 
-			       sLC[2]).setFillColor(0);
+			       sLC[2]).setFillColor(5);
             H_NOISE_CHARGE.get(sLC[0],
 			       sLC[1], 
 			       sLC[2]).setXTitle("Charge (pC)");
@@ -782,7 +1162,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
         H_WMAX     = new H1D("WMAX", 232, 0, 232);
         H_COSMIC_N = new H1D("EVENT", 232, 0, 232);
         
-        crystalID       = new double[332];
+        tileID       = new double[332];
         noiseRMS        = new double[332];
         int ipointer=0;
 
@@ -832,12 +1212,12 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 
 
 
-    public void processDecodedEvent() {
+    public void processDecodedEvent(int repaintFrequency) {
         nProcessed++;
         
-    	List<DetectorCounter> counters;
-	counters = decoder.getDetectorCounters(DetectorType.FTHODO);
-        
+    	List<DetectorCounter> counters = decoder.getDetectorCounters(DetectorType.FTHODO);
+	//counters = decoder.getDetectorCounters(DetectorType.FTCAL);
+		
         //System.out.println("event #: " + nProcessed);
 	
 	FTHODOViewerModule.MyADCFitter fadcFitter;
@@ -877,6 +1257,10 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             H_CWAVE.get(sector, layer, component).reset();
 	    H_NPE.get(sector, layer, component).reset();
 	    
+	    double calibratedWave = 0.;
+	    double npeWave        = 0.;
+	    double baselineSubRaw = 0.;
+	    
 	    // Loop through fADC bins filling histograms
             for (int i = 0; 
 		 i < Math.min(pulse.length, 
@@ -884,14 +1268,24 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
 					 layer, 
 					 component).getAxis().getNBins());
 		 i++) {
-		H_WAVE.get(sector, layer, component).fill(i, pulse[i]);
-                H_CWAVE.get(sector, layer, component).fill(i*4, (pulse[i] - fadcFitter.getPedestal())*LSB );
 		
-		//H_NPE.get(sector, layer, component).fill(i*4, (pulse[i] - fadcFitter.getPedestal())*LSB/voltsPerSPE );
-		H_NPE.get(sector, layer, component).fill(i*4, pulse[i]*LSB/voltsPerSPE );
-
-                H_fADC.get(sector, layer, component).fill(i, pulse[i] - fadcFitter.getPedestal() + 10.0);
-	    }
+		H_WAVE.get(sector, layer, component).fill(i, pulse[i]);
+                
+		baselineSubRaw = pulse[i] - fadcFitter.getPedestal() + 10.0;
+		
+		H_fADC.get(sector, layer, component).fill(i,baselineSubRaw);
+		
+		calibratedWave = (pulse[i]-fadcFitter.getPedestal())*LSB + 5.0;
+				
+		H_CWAVE.get(sector, 
+			    layer, 
+			    component).fill(i*4,calibratedWave);
+		
+		//npeWave = pulse[i]*LSB/voltsPerSPE;
+		npeWave = (pulse[i] - fadcFitter.getPedestal())*LSB/voltsPerSPE + 1;
+		
+		H_NPE.get(sector, layer, component).fill(i*4, npeWave);
+	    } // end of: Loop through fADC bins filling histograms
 	    
 	    // Fill histograms with single value per event
 	    
@@ -933,286 +1327,213 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                     H_FADCSAMPLEdiff.get(isect+1, 1, icomponent+1).fill(timediff[isect][1][icomponent]-timediff[isect][0][icomponent]);
             }
         }
+	
+	//=======================================================
+	//             DRAW HISTOGRAMS PER EVENT
+	//=======================================================
+	//   User chooses which histogram/s to display
+		
+	// map [1,2] to [0,1]
+	int selectedLayerCDIndex = layerSelect-1; 
+	// map [1,2] to [1,0]
+	int otherLayerCDIndex    = layerSelect%2;
+	// map [1,2] to [2,1]
+	int otherLayer           = (layerSelect%2)+1;
 
-	//=======================================================
-	//           DRAW HISTOGRAMS PER EVENT
-	//=======================================================
-	// User chooses which histogram/s to display
-        if      (plotSelect == 0 ) {
-            canvas.cd(layerSelect-1);
-            if(H_WAVE.hasEntry(secSelect,
-			       layerSelect,
+	int selectedLayerCDIndexLeft =  2*selectedLayerCDIndex;
+	int otherLayerCDIndexLeft    =  2*otherLayerCDIndex;
+	
+	int selectedLayerCDIndexRight = selectedLayerCDIndexLeft + 1;
+	int otherLayerCDIndexRight    = otherLayerCDIndexLeft    + 1;
+	
+	//============================================================
+	// Combined View 
+
+	
+	//============================================================
+	// Event Tab Selected
+        if      ( tabSelect == 0 && (nProcessed%repaintFrequency==0) ) {
+	    
+            this.canvasEvent.divide(2, 2);
+	    
+	    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // raw fADC pulse
+	    canvasEvent.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasEvent.draw(H_WAVE.get(secSelect,
+						 layerSelect,
+						 componentSelect));
+		
+	    }
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    // raw fADC pulse
+	    canvasEvent.cd(otherLayerCDIndexLeft);
+            
+	    if(H_WAVE.hasEntry(secSelect,
+			       otherLayer,
 			       componentSelect))
-                this.canvas.draw(H_WAVE.get(secSelect,
-					    layerSelect,
-					    componentSelect));
-            canvas.cd(layerSelect%2);
-            if(H_WAVE.hasEntry(secSelect,
-			       (layerSelect%2)+1,
-			       componentSelect))
-                this.canvas.draw(H_WAVE.get(secSelect,
-					    (layerSelect%2)+1,
-					    componentSelect));
-        }
-	else if (plotSelect == 1 ) {
-            canvas.cd(layerSelect-1);
-            if(H_CWAVE.hasEntry(secSelect,
+                this.canvasEvent.draw(H_WAVE.get(secSelect,
+						 otherLayer,
+						 componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasEvent.cd(selectedLayerCDIndexRight);
+            
+	    if(H_CWAVE.hasEntry(secSelect,
 				layerSelect,
 				componentSelect))
-                this.canvas.draw(H_CWAVE.get(secSelect,
-					     layerSelect,
-					     componentSelect));
-            canvas.cd(layerSelect%2);
+                this.canvasEvent.draw(H_CWAVE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
+            
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    // calibrated fADC pulse
+	    canvasEvent.cd(otherLayerCDIndexRight);
             if(H_CWAVE.hasEntry(secSelect,
-				(layerSelect%2)+1,
+				otherLayer,
 				componentSelect))
-                this.canvas.draw(H_CWAVE.get(secSelect,
-					     (layerSelect%2)+1,
-					     componentSelect));
-        }
-	else if (plotSelect == 2 ) {
-            canvas.cd(layerSelect-1);
-            if(H_NPE.hasEntry(secSelect,
-			      layerSelect,
-			      componentSelect))
-                this.canvas.draw(H_NPE.get(secSelect,
-					   layerSelect,
-					   componentSelect));
-            canvas.cd(layerSelect%2);
-            if(H_NPE.hasEntry(secSelect,
-			      (layerSelect%2)+1,
-			      componentSelect))
-                this.canvas.draw(H_NPE.get(secSelect,
-					   (layerSelect%2)+1,
-					   componentSelect));
-        }
-	else if (plotSelect == 10 ) {
-            canvas.cd(layerSelect-1);
-            if(H_MAXV.hasEntry(secSelect,
-			       layerSelect,
-			       componentSelect))
-                this.canvas.draw(H_MAXV.get(secSelect,
-					    layerSelect,
-					    componentSelect));
-            canvas.cd(layerSelect%2);
-            if(H_MAXV.hasEntry(secSelect,
-			       (layerSelect%2)+1,
-			       componentSelect))
-                this.canvas.draw(H_MAXV.get(secSelect,
-					    (layerSelect%2)+1,
-					    componentSelect));
-        }
-	// else if ( plotSelect == 11 ) {
-//             this.canvas.divide(1, 2);
-//             canvas.cd(layerSelect-1);
-//             if(H_COSMIC_CHARGE.hasEntry(secSelect,
-// 					layerSelect,
-// 					componentSelect))
-//                 this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
-// 						     layerSelect,
-// 						     componentSelect));
-//             canvas.cd(layerSelect%2);
-//             if(H_COSMIC_CHARGE.hasEntry(secSelect,
-// 					(layerSelect%2)+1, 
-// 					componentSelect))
-//                 this.canvas.draw(H_COSMIC_CHARGE.get(secSelect,
-// 						     (layerSelect%2)+1, 
-// 						     componentSelect));
-//         }
-
-	// else if (plotSelect == 2 ||plotSelect ==  3 ) {
-//             this.canvas.divide(1, 3);
-//             canvas.cd(layerSelect-1);
-//             if(H_FADCSAMPLE.hasEntry(secSelect,layerSelect,componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLE.get(secSelect,layerSelect,componentSelect));
-//             canvas.cd(layerSelect%2);
-//             if(H_FADCSAMPLE.hasEntry(secSelect,(layerSelect%2)+1,componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLE.get(secSelect,(layerSelect%2)+1,componentSelect));
-//             canvas.cd(2);
-//             if(H_FADCSAMPLEdiff.hasEntry(secSelect,1,componentSelect))
-//                 this.canvas.draw(H_FADCSAMPLEdiff.get(secSelect,1,componentSelect));
-//         }
+                this.canvasEvent.draw(H_CWAVE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
 	
-	//        else if (plotSelect == 3 ) {
-//            this.canvas.divide(1, 1);
-//            canvas.cd(0);
-//            if(H_FADCSAMPLEdiff.hasEntry(secSelect,1,componentSelect))
-//                this.canvas.draw(H_FADCSAMPLEdiff.get(secSelect,1,componentSelect));
-//        }
+	} // end of: if ( tabSelect == 0 ) {....
+	//======================================================================
+	// Noise Tab Selected
+        if      ( tabSelect == 1 && (nProcessed%(100*repaintFrequency)==0) ) {
+	    
+            this.canvasNoise.divide(2, 2);
+	    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasNoise.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_CWAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasNoise.draw(H_CWAVE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
+		
+	    }
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasNoise.cd(otherLayerCDIndexLeft);
+            
+	    if(H_CWAVE.hasEntry(secSelect,
+				otherLayer,
+				componentSelect))
+                this.canvasNoise.draw(H_CWAVE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasNoise.cd(selectedLayerCDIndexRight);
+            
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,
+				       layerSelect,
+				       componentSelect))
+                this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
+							 layerSelect,
+							 componentSelect));
+            
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasNoise.cd(otherLayerCDIndexRight);
+            if(H_NOISE_CHARGE.hasEntry(secSelect,
+				       otherLayer,
+				       componentSelect))
+                this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
+							 otherLayer,
+							 componentSelect));
 
-        
-	//this.dcHits.show();
-        this.view.repaint();
+	} // end of: if ( tabSelect == 1 ) {....
+	//======================================================================
+	// Energy Tab Selected
+        if      ( tabSelect == 2 && (nProcessed%(100*repaintFrequency)==0) ) {
+	    
+            this.canvasEnergy.divide(2, 2);
+	    
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(selectedLayerCDIndexLeft);
+	    
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,layerSelect,componentSelect)){
+                this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+						  layerSelect,
+						  componentSelect));
+		
+	    }
+	    //----------------------------------------
+	    // left top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(otherLayerCDIndexLeft);
+            
+	    if(H_NOISE_CHARGE.hasEntry(secSelect,
+				otherLayer,
+				componentSelect))
+                this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+						  otherLayer,
+						  componentSelect));
+	    
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(selectedLayerCDIndexRight);
+            
+	    if(H_COSMIC_CHARGE.hasEntry(secSelect,
+				       layerSelect,
+				       componentSelect))
+                this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
+							 layerSelect,
+							 componentSelect));
+            
+	    //----------------------------------------
+	    // right top (bottom) for thin (thick) layer
+	    canvasEnergy.cd(otherLayerCDIndexRight);
+            if(H_COSMIC_CHARGE.hasEntry(secSelect,
+				       otherLayer,
+				       componentSelect))
+                this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
+							 otherLayer,
+							 componentSelect));
 
-        
+	} // end of: if ( tabSelect == 2 ) {....
+	//======================================================================
+	
+	if(nProcessed%repaintFrequency==0)
+	    this.view.repaint();
         
     }
 
 
 
-    public void initPanel() {
 
-        JSplitPane splitPane = new JSplitPane();
-
-        splitPane.setLeftComponent(this.view);
-  
-        
-        JPanel canvasPane = new JPanel();
-        canvasPane.setLayout(new BorderLayout());
-
-        JPanel buttonPane = new JPanel();
-        buttonPane.setLayout(new FlowLayout());
-        
-        JButton resetBtn = new JButton("Reset");
-        resetBtn.addActionListener(this);
-        
-	buttonPane.add(resetBtn);
-        
-
-	ButtonGroup group = new ButtonGroup();
-
-	//=================================
-	//      PLOTTING OPTIONS
-	//=================================
-
-	//
-	// Non-accumulated
-        //
-	// 0 - waveforms
-	// 1 - waveforms calibrated in time and voltage
-	// 2 - voltage / npe voltage peak (40 mV for now)
-
-	JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
-	JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
-	JRadioButton npeWavesRb  = new JRadioButton("NPE Wave"); // voltage / spe voltage
-	
-	
-        group.add(wavesRb);
-        buttonPane.add(wavesRb);
-        //wavesRb.setSelected(true);
-        wavesRb.addActionListener(this);
-        
-        group.add(cWavesRb);
-        buttonPane.add(cWavesRb);
-//        cWavesRb.setSelected(true);
-        cWavesRb.addActionListener(this);
-        
-	group.add(npeWavesRb);
-        buttonPane.add(npeWavesRb);
-        //npeWavesRb.setSelected(true);
-        npeWavesRb.addActionListener(this);
-        
-	//
-	// Accumulated
-	//
-	// 10 - Max Pulse Voltage
-	// 11 - Charge
-	// ...
-	
-	JRadioButton noiseRb   = new JRadioButton("Noise"); 
-	
-	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
-        JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
-	
-	group.add(noiseRb);
-	buttonPane.add(noiseRb);
-        //noiseRb.setSelected(true);
-        noiseRb.addActionListener(this);
-	
-	group.add(maxVoltRb);
-	buttonPane.add(maxVoltRb);
-        //maxVoltRb.setSelected(true);
-        maxVoltRb.addActionListener(this);
-	
-	group.add(chargeRb);
-	buttonPane.add(chargeRb);
-        //chargeRb.setSelected(true);
-        chargeRb.addActionListener(this);
-
-	
-	//=======================================================
-	//=======================================================
-	// IN PROGRESS
-
-	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
-//         JRadioButton fitRb  = new JRadioButton("Fit Timing");
-//         group.add(fitRb);
-//         buttonPane.add(fitRb);
-//         //fitRb.setSelected(true);
-//         fitRb.addActionListener(this);
-        
-//         group.add(fadcsampleRb);
-//         buttonPane.add(fadcsampleRb);
-//         //fadcsampleRb.setSelected(true);
-//         fadcsampleRb.addActionListener(this);
-
-	
-        //=======================================================
-	//=======================================================
-        this.canvas.divide(1, 2);
-        this.canvas.cd(0);
-        this.canvas.setGridX(false);
-        this.canvas.setGridY(false);
-        this.canvas.setAxisFontSize(10);
-        this.canvas.setTitleFontSize(16);
-        this.canvas.setAxisTitleFontSize(14);
-        this.canvas.setStatBoxFontSize(8);
-        this.canvas.cd(1);
-        this.canvas.setGridX(false);
-        this.canvas.setGridY(false);
-        this.canvas.setAxisFontSize(10);
-        this.canvas.setTitleFontSize(16);
-        this.canvas.setAxisTitleFontSize(14);
-        this.canvas.setStatBoxFontSize(8);
     
-	canvasPane.add(this.canvas, BorderLayout.CENTER);
-	canvasPane.add(buttonPane, BorderLayout.PAGE_END);
 
-	JTabbedPane tabbedPane = new JTabbedPane();
-	
-// 	JPanel canvasPane = new JPanel();
-// 	canvasPane.setLayout(new BorderLayout());
-	
-// 	JPanel buttonPane = new JPanel();
-//         buttonPane.setLayout(new FlowLayout());
-
-// 	JButton resetBtn = new JButton("Reset");
-//         resetBtn.addActionListener(this);
-//         buttonPane.add(resetBtn);
-
-	JButton fitBtn = new JButton("Fit");
-        fitBtn.addActionListener(this);
-        buttonPane.add(fitBtn);
-	
-		
-        //=======================================================
-	//=======================================================
-
-	
-        splitPane.setLeftComponent(this.view);
-        splitPane.setRightComponent(canvasPane);
-	splitPane.setDividerLocation(400);
-	
-        this.detectorPanel.add(splitPane, BorderLayout.CENTER);
-	
-
-    } // end of: public void initPanel() {
-
-
+    
+    public void hashTableCallback(String string, Long l) {
+        // ToDO
+        System.out.println("Selected table row " + string + " " + l);
+    }
+    
+    
 
     public void initDecoder() {
         decoder.addFitter(DetectorType.FTHODO,
-                          new FADCBasicFitter(ped_i1,
+			  new FADCBasicFitter(ped_i1,
                                               ped_i2,
                                               pul_i1,
                                               pul_i2 
                                               ));
         
     }
-
     
     public class HistogramParam extends Object {
-
+	
         public int    layer;
         public int    quadrant;
         public int    element;
@@ -1226,9 +1547,9 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             layer = index/116 + 1;    
 
             if (layer==1)
-                layerStr = "thin";
+                layerStr = "Thin";
             else
-                layerStr = "thick";
+                layerStr = "Thick";
 
             // (map indices in both layers to [0,115])
             //  /map indices to quadrants [0,3]
@@ -1238,8 +1559,8 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
             element = index - quadrant * 29 -(layer-1)*116; 
 
             // map quadrant to sectors [1,8]
-            // map element to crystals [1,9] or
-            // map element to crystals [1,20]
+            // map element to tiles [1,9] or
+            // map element to tiles [1,20]
 
             if (element<9) {
                 sector  = quadrant*2 +1;
@@ -1250,7 +1571,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                 component = element + 1 -9;
             }
 
-            title =  " " +layerStr +" layer, sector" + sector + ", crystal" + component ;
+            title =  " " + layerStr + " S" + sector + " C" + component ;
         }
 
     	public int getLayer(){
@@ -1336,7 +1657,7 @@ public class FTHODOViewerModule implements IDetectorListener,ActionListener{
                         fadctimethre=bin;            
             }
             
-                //Returns the smallest pedestal value. Works better if peak is close to the beginning of the histogram.
+	    //Returns the smallest pedestal value. Works better if peak is close to the beginning of the histogram.
             
             rms = LSB * Math.sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
             wave_max=wmax;

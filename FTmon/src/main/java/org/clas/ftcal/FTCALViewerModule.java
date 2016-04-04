@@ -111,8 +111,6 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     // control variables
     private int plotSelect = 0;  // 0 - waveforms, 1 - noise
     private int keySelect = 8;
-
-    
     
     public FTCALViewerModule(){
         this.detectorPanel=null;
@@ -530,18 +528,18 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         for(int key=0; key< 22*22; key++) {
             if(mylandau.hasEntry(0, 0, key)) {
                 if(flag_parnames) {
-                    System.out.println("Component\t amp\t mean\t sigma\t p0\t p1\t Chi2");
+		    //  System.out.println("Component\t amp\t mean\t sigma\t p0\t p1\t Chi2");
                     flag_parnames=false;
                 }
-                System.out.print(key + "\t\t ");
+                //System.out.print(key + "\t\t ");
                 for(int i=0; i<mylandau.get(0, 0, key).getNParams(); i++) System.out.format("%.2f\t ",mylandau.get(0, 0, key).getParameter(i));
                 if(mylandau.get(0, 0, key).getNParams()==3) System.out.print("0.0\t 0.0\t");
                 double perrors = mylandau.get(0, 0, key).parameter(0).error();
-                if(mylandau.get(0, 0, key).getParameter(0)>0)
-                    System.out.format("%.2f\n",mylandau.get(0, 0, key).getChiSquare(H_COSMIC_CHARGE.get(0,0,key).getDataSet())
-                            /mylandau.get(0, 0, key).getNDF(H_COSMIC_CHARGE.get(0,0,key).getDataSet()));
-                else
-                    System.out.format("0.0\n");
+		//                if(mylandau.get(0, 0, key).getParameter(0)>0)
+		//                     System.out.format("%.2f\n",mylandau.get(0, 0, key).getChiSquare(H_COSMIC_CHARGE.get(0,0,key).getDataSet())
+		//                             /mylandau.get(0, 0, key).getNDF(H_COSMIC_CHARGE.get(0,0,key).getDataSet()));
+		//                else
+		//                    System.out.format("0.0\n");
             }
         }
     }
@@ -706,8 +704,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         }
         for (DetectorCounter counter : counters) {
             int key = counter.getDescriptor().getComponent();
-            int iy  = key/22;
-            int ix  = key - iy * 22;
+	    int iy  = key/22;
+	    int ix  = key - iy * 22;
             int nCrystalInColumn = 0;
             fadcFitter.fit(counter.getChannels().get(0));
             int i1=(int) max(0,iy-ncry_cosmic-1);    // allowing for +/- to cope with dead channels
@@ -759,9 +757,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     public void detectorSelected(DetectorDescriptor desc) {
         // TODO Auto-generated method stub
 
-
-        keySelect = desc.getComponent();
-
+        keySelect   = desc.getComponent();
+	
 	// combined view
 	if(H_WAVE.hasEntry(0, 0, keySelect))
 	    this.canvasCALEvent.draw(H_WAVE.get(0, 0, keySelect)); 
@@ -831,7 +828,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         if(H_COSMIC_CHARGE.hasEntry(0, 0, keySelect)) {
             H1D hcosmic = H_COSMIC_CHARGE.get(0,0,keySelect);
             initLandauFitPar(keySelect,hcosmic);
-            hcosmic.fit(mylandau.get(0, 0, keySelect),"L");
+            //!!!hcosmic.fit(mylandau.get(0, 0, keySelect),"L");
             canvasEnergy.draw(hcosmic,"S");
             canvasEnergy.draw(mylandau.get(0, 0, keySelect),"sameS");
         } 
@@ -868,7 +865,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
             canvasTime.draw(htime,"S");
             canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
         }
-        this.updateTable();
+	//!!!   this.updateTable();
     }
 
     public void update(DetectorShape2D shape) {
@@ -877,7 +874,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         int sector = shape.getDescriptor().getSector();
         int layer = shape.getDescriptor().getLayer();
         int paddle = shape.getDescriptor().getComponent();
-        //shape.setColor(200, 200, 200);
+
+	//shape.setColor(200, 200, 200);
         if(plotSelect==0) {
             if(H_WMAX.getBinContent(paddle)>threshold) {
                 if(H_TCROSS.getBinContent(paddle)>0) {

@@ -31,7 +31,9 @@ import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clasrec.main.DetectorEventProcessorPane;
 import org.jlab.data.io.DataEvent;
 import org.jlab.evio.clas12.EvioDataEvent;
+
 import org.root.attr.ColorPalette;
+import org.root.basic.EmbeddedCanvas;
 
 /**
  *
@@ -196,8 +198,9 @@ public class FTViewerModule implements IDetectorProcessor,
         nProcessed++;
 	
 	moduleFTCAL.processDecodedEvent(this.repaintFrequency);        
-        moduleFTHODO.processDecodedEvent(this.repaintFrequency);
-	
+        moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
+	moduleFTHODO.processDecodedEvent(this.repaintFrequency,1);
+
 	switch(buttonSelect){
 	case 0: repaintFrequency=1;
 	    break;
@@ -290,17 +293,12 @@ public class FTViewerModule implements IDetectorProcessor,
     
     public void detectorSelected(DetectorDescriptor dd) {
 	//To change body of generated methods, choose Tools | Templates.
-	// 	componentSelect = dd.getComponent();
-	//         secSelect = dd.getSector();
-	//         layerSelect = dd.getLayer();
+	componentSelect = dd.getComponent();
+	secSelect = dd.getSector();
+	layerSelect = dd.getLayer();
 	
-	moduleFTHODO.detectorSelected(dd);
 	moduleFTCAL.detectorSelected(dd);
-	
-	// 	System.out.println("detector selected:" +
-	// 			   " layer = " + layerSelect +
-	// 			   ", sector = " + secSelect + 
-	// 			   ", component = " + componentSelect );
+	moduleFTHODO.detectorSelected(dd);
 	
     }
 

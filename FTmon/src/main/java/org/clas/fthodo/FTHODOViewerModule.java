@@ -48,14 +48,14 @@ import org.root.histogram.H1D;
 import org.root.basic.EmbeddedCanvas;
 
 public class FTHODOViewerModule implements IDetectorListener,
-IHashTableListener,
-ActionListener,
-ChangeListener{
+					   IHashTableListener,
+					   ActionListener,
+					   ChangeListener{
     EventDecoder decoder;
     
-        //=================================
-        //      PANELS AND CANVASES
-        //=================================
+    //=================================
+    //      PANELS AND CANVASES
+    //=================================
     JPanel         detectorPanel;
     
     JPanel canvasPane = new JPanel(new BorderLayout());

@@ -73,7 +73,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     HashTable  summaryTable   = null;
     
     ColorPalette palette = new ColorPalette();
-    
+    //
         //=================================
         //           HISTOGRAMS
         //=================================

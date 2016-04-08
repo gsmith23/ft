@@ -73,7 +73,7 @@ ChangeListener{
     HashTable  summaryTable   = null;
     
     ColorPalette palette = new ColorPalette();
-    //
+    
         //=================================
         //           HISTOGRAMS
         //=================================

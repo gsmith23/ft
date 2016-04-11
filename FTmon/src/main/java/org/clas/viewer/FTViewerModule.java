@@ -14,7 +14,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 
 import org.clas.fthodo.FTHODOViewerModule;
@@ -25,7 +24,6 @@ import org.jlab.clas12.basic.IDetectorModule;
 import org.jlab.clas12.basic.IDetectorProcessor;
 import org.jlab.clas12.calib.DetectorShape2D;
 import org.jlab.clas12.calib.DetectorShapeTabView;
-import org.jlab.clas12.calib.DetectorShapeView2D;
 import org.jlab.clas12.calib.IDetectorListener;
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clasrec.main.DetectorEventProcessorPane;
@@ -33,7 +31,6 @@ import org.jlab.data.io.DataEvent;
 import org.jlab.evio.clas12.EvioDataEvent;
 
 import org.root.attr.ColorPalette;
-import org.root.basic.EmbeddedCanvas;
 
 /**
  *
@@ -197,25 +194,10 @@ public class FTViewerModule implements IDetectorProcessor,
         decoder.decode(event);
         nProcessed++;
 	
-	moduleFTCAL.processDecodedEvent(this.repaintFrequency);        
+	moduleFTCAL.processDecodedEvent();        
         moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
 	moduleFTHODO.processDecodedEvent(this.repaintFrequency,1);
 
-	switch(buttonSelect){
-	case 0: repaintFrequency=1;
-	    break;
-	case 1: repaintFrequency=10;
-	    break;
-	case 2: repaintFrequency=100;
-	    break;
-	case 3: repaintFrequency=1000;
-	    break;
-	case 4: repaintFrequency=10000;
-	    break;
-	default:repaintFrequency=1;
-	    break;
-	    
-	}
 	
         if(nProcessed%repaintFrequency==0)
 	    this.FTviewMaster.repaint();
@@ -272,23 +254,30 @@ public class FTViewerModule implements IDetectorProcessor,
 	
 	if (e.getActionCommand().compareTo("All") == 0) {
 	    buttonSelect = 0;
+            repaintFrequency = 1;
 	}
         else if (e.getActionCommand().compareTo("1/10") == 0) {
             buttonSelect = 1;
+            repaintFrequency = 10;
 	    System.out.println("Updating every 10 events ");
         }
         else if (e.getActionCommand().compareTo("1/100") == 0) {
             buttonSelect = 2;
+            repaintFrequency = 100;
 	    System.out.println("Updating every 100 events ");
         }
         else if (e.getActionCommand().compareTo("1/1000") == 0) {
             buttonSelect = 3;
+            repaintFrequency = 1000;
 	    System.out.println("Updating every 1000 events ");
         }
-        else if (e.getActionCommand().compareTo("1/1000") == 0) {
+        else if (e.getActionCommand().compareTo("1/10000") == 0) {
             buttonSelect = 4;
+            repaintFrequency = 10000;
 	    System.out.println("Updating every Blue Moon ");
         }
+        moduleFTCAL.setRepaintFrequency(repaintFrequency);
+
     }
     
     public void detectorSelected(DetectorDescriptor dd) {

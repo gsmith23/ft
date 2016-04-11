@@ -52,8 +52,9 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     EmbeddedCanvas canvasTime      = new EmbeddedCanvas();
     DetectorShapeTabView view = new DetectorShapeTabView();
     HashTable  summaryTable   = null; 
-
+    
     public EmbeddedCanvas canvasCALEvent     = new EmbeddedCanvas();
+
     
     // histograms, functions and graphs
     DetectorCollection<H1D> H_fADC = new DetectorCollection<H1D>();
@@ -111,6 +112,8 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     // control variables
     private int plotSelect = 0;  // 0 - waveforms, 1 - noise
     private int keySelect = 8;
+
+    int repaintFrequency = 1;
     
     public FTCALViewerModule(){
         this.detectorPanel=null;
@@ -124,6 +127,10 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     public void setDetectorPanel(JPanel detectorPanel) {
         this.detectorPanel = detectorPanel;
+    }
+    
+    public void setRepaintFrequency(int freq) {
+        this.repaintFrequency=freq;
     }
 
     public void initPanel() {
@@ -144,7 +151,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         tabbedPane.add("Summary"     ,canvasTable);
         tabbedPane.addChangeListener(this);
         this.initCanvas();
-       
+        
         JPanel canvasPane = new JPanel();
 
         canvasPane.setLayout(new BorderLayout());
@@ -200,7 +207,6 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         this.canvasCALEvent.setTitleFontSize(16);
         this.canvasCALEvent.setAxisTitleFontSize(14);
         this.canvasCALEvent.setStatBoxFontSize(8);
-
         // event canvas
         this.canvasEvent.setGridX(false);
         this.canvasEvent.setGridY(false);
@@ -390,7 +396,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     }
 
-     public void stateChanged(ChangeEvent e) {
+    public void stateChanged(ChangeEvent e) {
         JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
         int index = sourceTabbedPane.getSelectedIndex();
         System.out.println("Tab changed to: " + sourceTabbedPane.getTitleAt(index) + " with index " + index);
@@ -401,7 +407,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     public void initHistograms() {
         for (int component = 0; component < 505; component++) {
-            if(doesThisCrystalExist(component) || component>500) {
+            if(doesThisCrystalExist(component) || component>=500) {
 
                 int iy = component / 22;
                 int ix = component - iy * 22;
@@ -445,7 +451,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
                 H_COSMIC_TCROSS.get(0, 0, component).setFillColor(5);
                 H_COSMIC_TCROSS.get(0, 0, component).setXTitle("Time (ns)");
                 H_COSMIC_TCROSS.get(0, 0, component).setYTitle("Counts");
-                H_COSMIC_THALF.add(0, 0, component, new H1D("T_TRIG_" + component, title, 80,-20.0, 60.0));
+                H_COSMIC_THALF.add(0, 0, component, new H1D("T_HALF_" + component, title, 80,-20.0, 60.0));
                 H_COSMIC_THALF.get(0, 0, component).setFillColor(5);
                 H_COSMIC_THALF.get(0, 0, component).setXTitle("Time (ns)");
                 H_COSMIC_THALF.get(0, 0, component).setYTitle("Counts"); 
@@ -479,28 +485,42 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     }
 
-    private void initLandauFitPar(int key, H1D hcosmic) {
-        if(hcosmic.getBinContent(0)==0) mylandau.add(0, 0, key, new F1D("landau",     0.0, 40.0));
-        else                            mylandau.add(0, 0, key, new F1D("landau+exp", 0.0, 40.0));
+    private void initLandauFitPar(int key) {
+        H1D hcosmic = H_COSMIC_CHARGE.get(0,0,key);
+        double mlMin=hcosmic.getAxis().min();
+        double mlMax=hcosmic.getAxis().max();
+        mlMin=1.0;
+        if(hcosmic.getBinContent(0)==0) mylandau.add(0, 0, key, new F1D("landau",     mlMin, mlMax));
+        else                            mylandau.add(0, 0, key, new F1D("landau+exp", mlMin, mlMax));
+        mylandau.get(0,0,key).setName("Landau_"+key);
         if(hcosmic.getBinContent(0)<10) {
             mylandau.get(0, 0, key).setParameter(0, hcosmic.getBinContent(hcosmic.getMaximumBin()));
         }
         else {
             mylandau.get(0, 0, key).setParameter(0, 10);
         }
+        mylandau.get(0, 0, key).setParLimits(0, 0.0, 10000000.); 
         mylandau.get(0, 0, key).setParameter(1,hcosmic.getMean());
         mylandau.get(0, 0, key).setParLimits(1, 5.0, 30.);        
         mylandau.get(0, 0, key).setParameter(2,2);
         mylandau.get(0, 0, key).setParLimits(2, 0.5, 10);
         if(hcosmic.getBinContent(0)!=0) {
             mylandau.get(0, 0, key).setParameter(3,hcosmic.getBinContent(0));
+            mylandau.get(0, 0, key).setParLimits(3,  0.0, 10000000.); 
             mylandau.get(0, 0, key).setParameter(4, -0.2);
+            mylandau.get(0, 0, key).setParLimits(4, -10, 0.); 
         }
+    }
+    
+    private void fitLandau(int key) {
+        H1D hcosmic = H_COSMIC_CHARGE.get(0,0,key);
+        initLandauFitPar(key);
+        hcosmic.fit(mylandau.get(0, 0, key),"LQ");
     }
 
     private void initTimeGaussFitPar(int key, H1D htime) {
         double hAmp  = htime.getBinContent(htime.getMaximumBin());
-        double hMean = htime.getMean();
+        double hMean = htime.getAxis().getBinCenter(htime.getMaximumBin());
         double hRMS  = htime.getRMS();        
         double rangeMin = hMean - 3*hRMS; 
         double rangeMax = hMean + 3*hRMS;         
@@ -511,36 +531,23 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         myTimeGauss.get(0, 0, key).setParameter(2, 2.);
     }    
 
+    private void fitTime(int key) {
+        H1D htime = H_COSMIC_THALF.get(0,0,key);
+        initTimeGaussFitPar(key,htime);
+        htime.fit(myTimeGauss.get(0, 0, key),"NQ");
+    }
+    
     private void fitHistograms() {
-        for(int key=0; key< 22*22; key++) {
-            if(H_COSMIC_CHARGE.hasEntry(0, 0, key)) {
-                if(H_COSMIC_CHARGE.get(0, 0, key).getEntries()>200) {
-                    H1D hcosmic = H_COSMIC_CHARGE.get(0,0,key);
-                    initLandauFitPar(key,hcosmic);
-                    hcosmic.fit(mylandau.get(0, 0, key),"L");
-                    H1D htime = H_COSMIC_THALF.get(0,0,key);
-                    initTimeGaussFitPar(key,htime);
-                    htime.fit(myTimeGauss.get(0, 0, key),"L");
-                }
-            }   
-        }
-        boolean flag_parnames=true;
-        for(int key=0; key< 22*22; key++) {
-            if(mylandau.hasEntry(0, 0, key)) {
-                if(flag_parnames) {
-		    //  System.out.println("Component\t amp\t mean\t sigma\t p0\t p1\t Chi2");
-                    flag_parnames=false;
-                }
-                //System.out.print(key + "\t\t ");
-                for(int i=0; i<mylandau.get(0, 0, key).getNParams(); i++) System.out.format("%.2f\t ",mylandau.get(0, 0, key).getParameter(i));
-                if(mylandau.get(0, 0, key).getNParams()==3) System.out.print("0.0\t 0.0\t");
-                double perrors = mylandau.get(0, 0, key).parameter(0).error();
-		//                if(mylandau.get(0, 0, key).getParameter(0)>0)
-		//                     System.out.format("%.2f\n",mylandau.get(0, 0, key).getChiSquare(H_COSMIC_CHARGE.get(0,0,key).getDataSet())
-		//                             /mylandau.get(0, 0, key).getNDF(H_COSMIC_CHARGE.get(0,0,key).getDataSet()));
-		//                else
-		//                    System.out.format("0.0\n");
+        for(int key : H_COSMIC_CHARGE.getComponents(0, 0)) {
+            if(H_COSMIC_CHARGE.get(0, 0, key).getEntries()>100) {
+                System.out.println("Fitting charge histos for component: " + key);
+                this.fitLandau(key);
             }
+            else System.out.println("Skipping charge fit of component: " + key + 
+                                    ", only " + H_COSMIC_CHARGE.get(0, 0, key).getEntries() + " events");
+            if(H_COSMIC_THALF.get(0,0,key).getEntries()>0) {        
+                this.fitTime(key);
+            }   
         }
     }
 
@@ -667,7 +674,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
 
     }
 
-    public void processDecodedEvent(int repaintFrequency) {
+    public void processDecodedEvent() {
         // TODO Auto-generated method stub
 
         nProcessed++;
@@ -704,16 +711,20 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         }
         for (DetectorCounter counter : counters) {
             int key = counter.getDescriptor().getComponent();
-	    int iy  = key/22;
-	    int ix  = key - iy * 22;
+            int iy  = key/22;
+            int ix  = key - iy * 22;
             int nCrystalInColumn = 0;
             fadcFitter.fit(counter.getChannels().get(0));
             int i1=(int) max(0,iy-ncry_cosmic-1);    // allowing for +/- to cope with dead channels
             int i2=(int) min(22,iy+ncry_cosmic+1);
             for(int i=i1; i<=i2; i++) {
+//                threshold=12;
+//                if(ix==-9 && (i==-6 || i==-5 || i==-4 || i==-3 || i==-2 || i==-1)) threshold=4;
+//                if(ix==-9 && (i== 6 ||          i==4  || i==3  || i==2  || i==1)) threshold=6;
                 if(i!=iy && doesThisCrystalExist(i*22+ix)) {
 //                    System.out.println(ix + " " + iy + " " + i1 + " " + i2 + " " + i + " " +H_WMAX.getBinContent(i*22+ix));
-                    if(H_WMAX.getBinContent(i*22+ix)>threshold && H_TCROSS.getBinContent(i*22+ix)>0) nCrystalInColumn++;                    
+//                    if(H_WMAX.getBinContent(i*22+ix)>threshold && H_TCROSS.getBinContent(i*22+ix)>0) nCrystalInColumn++;                    
+                    if(H_WMAX.getBinContent(i*22+ix)>threshold ) nCrystalInColumn++;                    
                 }
             }
             if(nCrystalInColumn>=ncry_cosmic) {
@@ -731,13 +742,12 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         if (plotSelect == 0 && H_WAVE.hasEntry(0, 0, keySelect)) {
             this.canvas.draw(H_WAVE.get(0, 0, keySelect));            
         }
-	
-	if((nProcessed%repaintFrequency)==0){
+	if((nProcessed%this.repaintFrequency)==0){
 	    this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect)); 
-	    //this.dcHits.show();
-	
+	    //this.dcHits.show();	
 	    this.view.repaint();
 	}
+
 
     }
     
@@ -757,12 +767,12 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
     public void detectorSelected(DetectorDescriptor desc) {
         // TODO Auto-generated method stub
 
-        keySelect   = desc.getComponent();
-	
-	// combined view
+
+        keySelect = desc.getComponent();
+
+        // combined view
 	if(H_WAVE.hasEntry(0, 0, keySelect))
-	    this.canvasCALEvent.draw(H_WAVE.get(0, 0, keySelect)); 
-	
+	this.canvasCALEvent.draw(H_WAVE.get(0, 0, keySelect)); 
         // event viewer
         this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect));
         // noise
@@ -827,10 +837,11 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         canvasEnergy.cd(3);
         if(H_COSMIC_CHARGE.hasEntry(0, 0, keySelect)) {
             H1D hcosmic = H_COSMIC_CHARGE.get(0,0,keySelect);
-            initLandauFitPar(keySelect,hcosmic);
-            //!!!hcosmic.fit(mylandau.get(0, 0, keySelect),"L");
             canvasEnergy.draw(hcosmic,"S");
-            canvasEnergy.draw(mylandau.get(0, 0, keySelect),"sameS");
+            if(hcosmic.getEntries()>0) {
+                fitLandau(keySelect);
+                canvasEnergy.draw(mylandau.get(0, 0, keySelect),"sameS");
+            }
         } 
         // Time
         GraphErrors  G_TCROSS = new GraphErrors(crystalID,timeCross);
@@ -859,13 +870,13 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         canvasTime.cd(3);
         if(H_COSMIC_THALF.hasEntry(0, 0, keySelect)) {
             H1D htime = H_COSMIC_THALF.get(0, 0, keySelect);
-            initTimeGaussFitPar(keySelect,htime);
-	    // there is a bug here!!!
-	    // htime.fit(myTimeGauss.get(0, 0, keySelect),"L");
             canvasTime.draw(htime,"S");
-            canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
+            if(htime.getEntries()>0) {
+                fitTime(keySelect);
+                canvasTime.draw(myTimeGauss.get(0, 0, keySelect),"sameS");
+            }
         }
-	//!!!   this.updateTable();
+        this.updateTable();
     }
 
     public void update(DetectorShape2D shape) {
@@ -874,8 +885,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         int sector = shape.getDescriptor().getSector();
         int layer = shape.getDescriptor().getLayer();
         int paddle = shape.getDescriptor().getComponent();
-
-	//shape.setColor(200, 200, 200);
+        //shape.setColor(200, 200, 200);
         if(plotSelect==0) {
             if(H_WMAX.getBinContent(paddle)>threshold) {
                 if(H_TCROSS.getBinContent(paddle)>0) {
@@ -964,7 +974,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
                 summaryTable.setValueAtAsDouble(6, Double.parseDouble(stime)   , 0, 0, key);                
             }            
         }
-        summaryTable.show();
+//        summaryTable.show();
     }
 
 

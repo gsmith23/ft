@@ -463,7 +463,7 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         H_WMAX     = new H1D("WMAX"  , 504, 0, 504);
         H_TCROSS   = new H1D("TCROSS", 504, 0, 504);
         H_COSMIC_N = new H1D("EVENT" , 504, 0, 504);
-
+	
         crystalID       = new double[332];
         pedestalMEAN    = new double[332];
         noiseRMS        = new double[332];

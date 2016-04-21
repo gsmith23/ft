@@ -389,7 +389,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    // npe
                     summaryTable.addConstrain(3, 10.0, 1000.0);
 		    // gain
-		    summaryTable.addConstrain(4, 40.0, 100.0);
+		    summaryTable.addConstrain(4, 40.0, 60.0);
 		    //             }
                 }
             }
@@ -1224,12 +1224,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 			p15OddERR[lM][c] = errNPE[secSelect][lM+1][p15OddI[c]];
 		    }
 		}
-		
-		System.out.println("p30EvenNPE[l][c] = " + 
-				   p30EvenNPE[layerSelect][componentSelect]);
-		System.out.println("p30OddERR[l][c] = " + 
-				   p30EvenERR[layerSelect][componentSelect]);
-		
+				
 		// even
 		if(secSelect%2==0){
 		    G_NPE    = new GraphErrors[2];
@@ -1382,6 +1377,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double mean[]  = {0,0,0}; 
 	double sigma[] = {0,0,0};
 	
+	double ampErr[]   = {0,0,0};
+	double meanErr[]  = {0,0,0}; 
+	double sigmaErr[] = {0,0,0};
+		
 	double npeMean = 0;
 	double npeErr  = 0;
 	double gain    = 0;
@@ -1407,35 +1406,52 @@ public class FTHODOViewerModule implements IDetectorListener,
 						    l,
 						    c).getParameter(1);
 			
+			meanErr[0] = myfunctNoise1.get(s,
+						       l,
+						       c).getParError(1);
+			
+			sigma[0] = myfunctNoise1.get(s,
+						     l,
+						     c).getParameter(2);
+			
+
 			mean[1] = myfunctNoise2.get(s,
 						    l,
 						    c).getParameter(1);
 			
+			meanErr[1] = myfunctNoise2.get(s,
+						       l,
+						       c).getParError(1);
+			
+			sigma[1] = myfunctNoise2.get(s,
+						     l,
+						     c).getParameter(2);
+			
+			
 			gain    = mean[1]  - mean[0];
 			
-			gainErr = sqrt(sigma[1]*sigma[1] + sigma[0]*sigma[0]); 
+			gainErr = sqrt(meanErr[1]*meanErr[1] + meanErr[0]*meanErr[0]); 
 			
 			mean[2] = myfunctCosmic.get(s,
 						    l,
 						    c).getParameter(1);
-			
+
+			meanErr[2] = myfunctCosmic.get(s,
+						       l,
+						       c).getParError(1);
+
+			sigma[2] = myfunctCosmic.get(s,
+						     l,
+						     c).getParameter(2);
+
 			
 			npeMean = mean[2]/gain;
 			
-			if( npeMean > 5.0 ){
-			    System.out.println("--------------------- ");
-			    System.out.println("npeErr  = " + npeErr);
-			    npeErr  = sigma[2]*sigma[2]/(mean[2]*mean[2]); 
-			    System.out.println("npeErr  = " + npeErr);
-			    npeErr  = npeErr + gainErr*gainErr/(gain*gain);
-			    System.out.println("npeErr  = " + npeErr);
-			    npeErr  = sqrt(npeErr);
-			    System.out.println("npeErr  = " + npeErr);
-			    npeErr  = npeMean*npeErr;
-			    System.out.println("npeErr  = " + npeErr);
-			    System.out.println("--------------------- ");
-			}
-			
+			npeErr  = meanErr[2]*meanErr[2]/(mean[2]*mean[2]); 
+			npeErr  = npeErr + gainErr*gainErr/(gain*gain);
+			npeErr  = sqrt(npeErr);
+			npeErr  = npeMean*npeErr;
+						
 			this.meanNPE[s][l][c] = npeMean;
 			this.errNPE[s][l][c]  = npeErr;
 						
@@ -1501,7 +1517,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                 }
             }
         }
-        summaryTable.show();
+        //summaryTable.show();
      	this.view.repaint();
     } // end of: private void updateTable() {
     
@@ -2044,7 +2060,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                 H_FADCSAMPLE.get(sector, layer, component).fill(fadcFitter.getADCtime()*4.0);
                 timediff[sector-1][layer-1][component-1]=fadcFitter.getADCtime()*4;
             }
-            
+	    
             H_WMAX.fill(index,fadcFitter.getWave_Max()-fadcFitter.getPedestal());
             
             if(fadcFitter.getWave_Max()-fadcFitter.getPedestal()>cosmicsThrsh)
@@ -2410,7 +2426,9 @@ public class FTHODOViewerModule implements IDetectorListener,
             int fadctimethre=0;
             double noise = 0;
             double wmax=0;
-            for (int bin = ped_i1; bin < ped_i2; bin++) {
+            
+	    
+	    for (int bin = ped_i1; bin < ped_i2; bin++) {
                 pedlow += pulse[bin];
                 noise += pulse[bin] * pulse[bin];
             }
@@ -2434,7 +2452,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                         fadctimethre=bin;            
             }
             
-                //Returns the smallest pedestal value. Works better if peak is close to the beginning of the histogram.
+	    // Returns the smallest pedestal value. 
+	    // Works better if peak is close to the beginning of the histogram.
             
             rms = LSB * Math.sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
             wave_max=wmax;

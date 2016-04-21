@@ -748,7 +748,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    //ampl=hchargetofit.getBinContent(hchargetofit.getMaximumBin());
 	    //mean=hchargetofit.getMaximumBin()*43+200;
 	    //std=hchargetofit.getRMS();
-            myfunctCosmic.add(sec, lay, com, new F1D("gaus", 500, 4500));
+            //myfunctCosmic.add(sec, lay, com, new F1D("gaus", 500, 4500));
+	    myfunctCosmic.add(sec, lay, com, new F1D("landau", 500, 4500));
             myfunctCosmic.get(sec, lay, com).setParameter(0, ampl);
             myfunctCosmic.get(sec, lay, com).setParameter(1, mean);
             myfunctCosmic.get(sec, lay, com).setParameter(2, 150);

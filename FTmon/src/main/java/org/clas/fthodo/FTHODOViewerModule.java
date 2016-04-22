@@ -81,7 +81,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     // Event Viewing
     // raw pulse
     DetectorCollection<H1D> H_WAVE = new DetectorCollection<H1D>();
-    // baseline suptracted pulse calibrated to voltage and time
+    // baseline subtracted pulse calibrated to voltage and time
     DetectorCollection<H1D> H_CWAVE = new DetectorCollection<H1D>();
     // '' calibrated to no. photoelectrons and time
     DetectorCollection<H1D> H_NPE = new DetectorCollection<H1D>();
@@ -456,78 +456,78 @@ public class FTHODOViewerModule implements IDetectorListener,
     public DetectorShapeView2D drawDetector(double x0, double y0) {
         DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("FTHODO");
         
-            // sectors 1-8 for each layer.
-            // detector symmetry is fourfold
-            // with elements 0-28 for each quarter.
+	// sectors 1-8 for each layer.
+	// detector symmetry is fourfold
+	// with elements 0-28 for each quarter.
         int sector;
         
-            // tile component
-            // 1-9 for odd sectors
-            // 1-20 for even
+	// tile component
+	// 1-9 for odd sectors
+	// 1-20 for even
         int component;
         
-            // thick and thin
+	// thick and thin
         int layer;
         
-            // y-offset to place thin and thick layer on same pane
+	// y-offset to place thin and thick layer on same pane
         double[] layerOffsetY = {-200.0,200.0};
-            // size of tiles per quadrant
+	// size of tiles per quadrant
         double[] tileSize = {15.0,30.0,15.0,30.0,30.0,30.0,30.0,30.0,15.0,
-            30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
-            30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0};
+			     30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
+			     30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0};
         
         double[] tileThickness = {7., 15.};
         
-            //============================================================
+	//============================================================
         double[] xx = {-97.5 ,  -75.0, -127.5, -105.0, -75.0,
-            -135.0, -105.0,  -75.0,  -52.5,
-            -45.0 ,  -15.0,   15.0,   45.0, -45.0,
-            -15.0 ,   15.0,   45.0,  -45.0, -15.0,
-            15.0  ,   45.0,  -52.5,  -37.5, -22.5,
-            -7.5  ,    7.5,   22.5,   37.5,  52.5};
+		       -135.0, -105.0,  -75.0,  -52.5,
+		       -45.0 ,  -15.0,   15.0,   45.0, -45.0,
+		       -15.0 ,   15.0,   45.0,  -45.0, -15.0,
+		       15.0  ,   45.0,  -52.5,  -37.5, -22.5,
+		       -7.5  ,    7.5,   22.5,   37.5,  52.5};
         
         double[] yy = {-127.5, -135.0,  -97.5, -105.0, -105.0,
-            -75.0 ,  -75.0,  -75.0,  -52.5,
-            -150.0, -150.0, -150.0, -150.0, -120.0,
-            -120.0, -120.0, -120.0,  -90.0,  -90.0,
-            -90.0 ,  -90.0,  -67.5,  -67.5,  -67.5,
-            -67.5 ,  -67.5,  -67.5,  -67.5,  -67.5};
-            //============================================================
+		       -75.0 ,  -75.0,  -75.0,  -52.5,
+		       -150.0, -150.0, -150.0, -150.0, -120.0,
+		       -120.0, -120.0, -120.0,  -90.0,  -90.0,
+		       -90.0 ,  -90.0,  -67.5,  -67.5,  -67.5,
+		       -67.5 ,  -67.5,  -67.5,  -67.5,  -67.5};
+	//============================================================
         
         double xcenter = 0;
         double ycenter = 0;
         double zcenter = 0;
         
-            // two layers: I==0 for thin and I==1 for thick
+	// two layers: I==0 for thin and I==1 for thick
         for (int layerI = 0; layerI < 2; layerI++){
             layer = layerI+1;
             
-                // 4 symmetry sectors per layer (named quadrant) from 0-3
+	    // 4 symmetry sectors per layer (named quadrant) from 0-3
             for (int quadrant=0; quadrant < 4; quadrant++) {
                 
-                    // 29 elements per symmetry sector
+		// 29 elements per symmetry sector
                 for (int element = 0; element < 29; element++) {
-                    
-                        // sector is odd for first 9 elements
-                        // and even for the rest
+		    
+		    // sector is odd for first 9 elements
+		    // and even for the rest
                     if (element < 9) {
                         sector = quadrant*2 + 1;
-                            // component number for odd sector is 1-9
+			// component number for odd sector is 1-9
                         component = element + 1;
                     }
                     else  {
                         sector = quadrant*2 + 2;
-                            // component number for even sector is 1-20
+			// component number for even sector is 1-20
                         component = element + 1 - 9;
                     }
                     
-                        // calculate the x-element of the center of each tile;
+		    // calculate the x-element of the center of each tile;
                     if     (quadrant==0) xcenter = xx[element];
                     else if(quadrant==1) xcenter =-yy[element];
                     else if(quadrant==2) xcenter =-xx[element];
                     else if(quadrant==3) xcenter = yy[element];
                     
-                        // calculate the y-element of the center of each tile
+		    // calculate the y-element of the center of each tile
                     if     (quadrant==0) ycenter = yy[element] + layerOffsetY[layerI];
                     else if(quadrant==1) ycenter = xx[element] + layerOffsetY[layerI];
                     else if(quadrant==2) ycenter =-yy[element] + layerOffsetY[layerI];
@@ -539,10 +539,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                     else
                         zcenter =  tileThickness[layerI]/2.0;
                     
-                        // Sectors 1-8
-                        // (sect=1: upper left - clockwise);
-                        // layers 1-2 (thin==1, thick==2);
-                        // tiles (1-9 for odd and 1-20 for even sectors)
+		    // Sectors 1-8
+		    // (sect=1: upper left - clockwise);
+		    // layers 1-2 (thin==1, thick==2);
+		    // tiles (1-9 for odd and 1-20 for even sectors)
                     DetectorShape2D shape  = new DetectorShape2D(DetectorType.FTHODO,
                                                                  sector,
                                                                  layer,
@@ -553,23 +553,23 @@ public class FTHODOViewerModule implements IDetectorListener,
                                                                  layer,
                                                                  component);
                     
-                        // defines the 2D bars dimensions using the element size
+		    // defines the 2D bars dimensions using the element size
                     shape.createBarXY(tileSize[element], tileSize[element]);
                     
                     shape2.createBarXY(tileSize[element],tileThickness[layerI]);
                     
-                        // defines the placements of the 2D bar according to the
-                        // xcenter and ycenter calculated above
+		    // defines the placements of the 2D bar according to the
+		    // xcenter and ycenter calculated above
                     shape.getShapePath().translateXYZ(xcenter,ycenter,zcenter);
                     
-                        //
+		    //
                     shape.setColor(0, 0, 0, 0);
                     
                     viewFTHODO.addShape(shape);
                     
-                        //===========================================================
+		    //===========================================================
                     
-                        // calculate the y-element of the center of each tile
+		    // calculate the y-element of the center of each tile
                     if(quadrant==0)       ycenter = yy[element];
                     else if(quadrant==1) ycenter = xx[element];
                     else if(quadrant==2) ycenter =-yy[element];
@@ -729,10 +729,6 @@ public class FTHODOViewerModule implements IDetectorListener,
                 myfunctNoise2.get(sec, lay, com).setParLimits(2, 1, std*3.0);
             }
         }
-
-	// 	    final int NBinsCosmic = 50;
-//     final int CosmicXMin  = 300;
-//     final int CosmicXMax  = 5300;
 
 	int integralLowBin  = (500 - CosmicXMin)*NBinsCosmic/(CosmicXMax-CosmicXMin);
         int integralHighBin = NBinsCosmic-1;
@@ -1196,7 +1192,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 		double p30OddE[]  = {0,0,0,0,0,0};
 		double p15OddE[]  = {0,0,0};
 		
-		
 		double p30EvenNPE[][] = new double[2][12];
 		double p30EvenERR[][] = new double[2][12];
 		double p15EvenNPE[][] = new double[2][8];
@@ -1225,16 +1220,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 			p15OddERR[lM][c] = errNPE[secSelect][lM+1][p15OddI[c]];
 		    }
 		}
-				
+		
+		G_NPE    = new GraphErrors[2];
 		// even
 		if(secSelect%2==0){
-		    G_NPE    = new GraphErrors[2];
 		    dummyNPE = new double[2][20];
 		    compArr  = new double[20];
 		    plotP30  = new boolean[20];
 		} // odd
 		else{
-		    G_NPE    = new GraphErrors[2];
 		    dummyNPE = new double[2][9];
 		    compArr  = new double[9];
 		    plotP30  = new boolean[9];
@@ -1313,8 +1307,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         return col;
     }
     
-        // for all shapes made this is executed
-        // for every event and every action
+    // for all shapes made this is executed
+    // for every event and every action
     public void update(DetectorShape2D shape) {
         int sector    = shape.getDescriptor().getSector();
         int layer     = shape.getDescriptor().getLayer();
@@ -1332,12 +1326,12 @@ public class FTHODOViewerModule implements IDetectorListener,
         else
             index = (layer-1)*116+sector_count[sector-1]+component;
         
-            // 	System.out.println("update: layer = " + layer +
-            // 			   ", sector = " + sector +
-            // 			   ", component = " + component );
+	// 	System.out.println("update: layer = " + layer +
+	// 			   ", sector = " + sector +
+	// 			   ", component = " + component );
         
-            // shape.setColor(200, 200, 200);
-            // System.out.println("Bin Content n" +index + "="+ H_WMAX.getBinContent(index));
+	// shape.setColor(200, 200, 200);
+	// System.out.println("Bin Content n" +index + "="+ H_WMAX.getBinContent(index));
         
         double waveMax     = H_WMAX.getBinContent(index);
         int    signalAlpha = (int)(waveMax-1)*128/4096 + 128;
@@ -1346,7 +1340,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         if( (signalAlpha-128) < 25)
             noiseAlpha = (signalAlpha-128)*10;
         
-            // Event Viewer
+	// Event Viewer
         if( tabSelect==0 ) {
             if      ( waveMax > cosmicsThrsh) {
                 shape.setColor(0, 255, 0, signalAlpha);
@@ -1358,19 +1352,36 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 255, 0);
             }
         }
-            // Noise
+	// Noise
         else if( tabSelect==1 ) {
             if      ( waveMax > noiseThrsh) {
                 shape.setColor(255, 255, 0, (256/4)-1);
             }
         }
-            // Energy
+	// Energy
         else if(tabSelect==2 && (waveMax  > cosmicsThrsh) ) {
             shape.setColor(0, 255, 0, (256/2)-1);
         }
         
     } // end of : public void update(Detec
     
+    // Gain
+    private void setGain(){
+	
+    }
+    
+    private void setGainError(){
+	
+    }
+    
+    private void getGain(){
+	
+    }
+    
+    private void getGainError(){
+	    
+    }
+
     
     private void updateTable() {
         

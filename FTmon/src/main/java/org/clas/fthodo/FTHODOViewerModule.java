@@ -476,7 +476,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         DetectorShapeView2D viewChannels = new DetectorShapeView2D("HODO ELEC");
         
         int nChannels = 16;
-	int nMezzPlus = 15;//!!
+	int nMezzPlus = 16;
 		
 	int sec = 1;
 	int com = 0;
@@ -489,6 +489,16 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    for(int iCh=0; iCh < nChannels; iCh++) {
 		
 		if( iCh > 7 ) lay = 2;
+		if( iMez == 15 &&  
+		    ((iCh == 0 ) ||
+		     (iCh == 2)  ||
+		     (iCh == 5)  ||
+		     (iCh == 7)  ||
+		     (iCh == 8)  ||
+		     (iCh == 10) ||
+		     (iCh == 13) ||
+		     (iCh == 15))
+		    ) continue;
 		
 		com = getComp4ChMez(iCh,iMez);
 		sec = getSect4ChMez(iCh,iMez);

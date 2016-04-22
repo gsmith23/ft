@@ -127,8 +127,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     double voltageMax    = 2000; // for run < 230 max = 1000 mV
     double LSB           = voltageMax/fADCBins;
     
-    double thrshNPE      = 4.;
-    double thrshNoiseNPE = 0.5;
+    double thrshNPE      = 10.;
+    double thrshNoiseNPE = 1.5;
     
     double voltsPerSPE   = 38.; // approximate for now
     
@@ -422,237 +422,61 @@ public class FTHODOViewerModule implements IDetectorListener,
         view.addDetectorListener(this);
     }
     
-    public int[] getChMez2Comp(int ch,
-			       int mez,
-			       int lay){
+    public int getComp4ChMez(int ch,
+			     int mez){
 	
-	int sC[] = {{1,5,8,4,
-		     2,3,1,9,
-		     1,9,2,3,
-		     8,4,1,5,
-		     2,8,7,6,
-		     10,6,2,5,
-		     8,2,6,7,
-		     6,10,5,2,
-		     
-4
-7
-2
-1
-2
-9
-3
-1
-7
-4
-1
-2
-2
-1
-3
-9
-5
-3
-1
-5
-4
-9
-7
-6
-6
-4
-5
-7
-9
-5
-3
-1
-11
-17
-18
-8
-12
-15
-16
-10
-15
-16
-10
-12
-8
-17
-18
-11
-13
-9
-8
-20
-9
-11
-14
-13
-9
-20
-8
-13
-14
-9
-13
-11
-16
-17
-7
-20
-19
-14
-15
-3
-17
-16
-7
-15
-14
-19
-20
-3
-19
-18
-15
-14
-16
-17
-19
-18
-18
-19
-15
-14
-17
-16
-19
-18
-13
-14
-10
-2
-6
-8
-13
-9
-8
-13
-9
-10
-6
-14
-13
-2
-9
-20
-9
-17
-18
-10
-20
-19
-18
-17
-9
-20
-19
-10
-20
-9
-11
-5
-12
-16
-15
-8
-1
-3
-11
-5
-12
-15
-16
-8
-1
-3
-7
-12
-6
-4
-8
-6
-5
-7
-12
-7
-4
-6
-6
-8
-7
-5
-3
-8
-2
-3
-1
-4
-6
-4
-3
-3
-1
-2
-6
-4
-4
-5
-5
-4
-2
-6
-7
-5
-7
-11
-4
-6
-7
-2
-5
-11
-8
-7
-0
-4
-0
-1
-3
-0
-12
-0
-0
-4
-0
-1
-3
-0
-12
-0
+	int compM[][] = {{1,5,8,4,2,3,1,9,1,9,2,3,8,4,1,5},
+			 {2,8,7,6,10,6,2,5,8,2,6,7,6,10,5,2},
+			 {4,7,2,1,2,9,3,1,7,4,1,2,2,1,3,9},
+			 {5,3,1,5,4,9,7,6,6,4,5,7,9,5,3,1},
+			 {11,17,18,8,12,15,16,10,15,16,10,12,8,17,18,11},
+			 {13,9,8,20,9,11,14,13,9,20,8,13,14,9,13,11},
+			 {16,17,7,20,19,14,15,3,17,16,7,15,14,19,20,3},
+			 {19,18,15,14,16,17,19,18,18,19,15,14,17,16,19,18},
+			 {13,14,10,2,6,8,13,9,8,13,9,10,6,14,13,2},
+			 {9,20,9,17,18,10,20,19,18,17,9,20,19,10,20,9},
+			 {11,5,12,16,15,8,1,3,11,5,12,15,16,8,1,3},
+			 {7,12,6,4,8,6,5,7,12,7,4,6,6,8,7,5},
+			 {3,8,2,3,1,4,6,4,3,3,1,2,6,4,4,5},
+			 {5,4,2,6,7,5,7,11,4,6,7,2,5,11,8,7},
+			 {0,4,0,1,3,0,12,0,0,4,0,1,3,0,12,0}};
+
+	int comp = compM[mez-1][ch];
 	
-	return cS;
+	return comp;
+	
+    }
+    
+    public int getSect4ChMez(int ch,
+			     int mez){
+	
+	int sectM[][] = {{2,1,8,8,8,8,6,6,6,6,8,8,8,8,2,1},
+			 {5,6,8,8,8,1,2,2,6,5,8,8,1,8,2,2},
+			 {7,7,7,8,1,2,1,1,7,7,8,7,1,1,1,2},
+			 {7,7,7,8,1,8,1,2,2,1,8,1,8,7,7,7},
+			 {6,6,6,7,8,2,2,2,2,2,2,8,7,6,6,6},
+			 {8,7,1,8,1,8,2,2,1,8,1,2,2,7,8,8},
+			 {8,8,6,6,6,8,8,6,8,8,6,8,8,6,6,6},
+			 {8,8,4,4,4,4,4,4,8,8,4,4,4,4,4,4},
+			 {6,6,6,6,6,3,4,3,3,4,3,6,6,6,6,6},
+			 {5,4,4,2,2,4,2,2,2,2,4,2,2,4,4,5},
+			 {2,3,4,6,6,5,5,5,2,3,4,6,6,5,5,5},
+			 {2,2,3,3,4,5,5,5,2,2,3,3,5,4,5,5},
+			 {2,2,3,3,3,4,4,5,2,3,3,3,4,4,5,6},
+			 {6,6,4,7,4,4,3,4,6,7,4,4,4,4,2,3},
+			 {0,2,0,4,4,0,6,0,0,2,0,4,4,0,6,0}};
+	
+	int sect = sectM[mez-1][ch];
+	return sect;
+	
     }
     
 
     public DetectorShapeView2D drawChannels(double x0, double y0) {
-        DetectorShapeView2D viewChannels = new DetectorShapeView2D("FTCHANNELS");
+        DetectorShapeView2D viewChannels = new DetectorShapeView2D("HODO ELEC");
         
         int nChannels = 16;
-	int nMezzPlus = 16;
+	int nMezzPlus = 15;//!!
 		
 	int sec = 1;
 	int com = 0;
@@ -666,9 +490,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 		if( iCh > 7 ) lay = 2;
 		
-		//    sec = getChMezLay2Sect(iCh,iMez,lay);
-		sC = getChMez2Comp(iCh,iMez,lay);
-		
+		com = getComp4ChMez(iCh,iMez);
+		sec = getSect4ChMez(iCh,iMez);
+		    
 		DetectorShape2D channel = new DetectorShape2D(DetectorType.FTHODO,
 							      sec,lay,com);
 		

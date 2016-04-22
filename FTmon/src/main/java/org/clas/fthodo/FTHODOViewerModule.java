@@ -114,8 +114,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     //           ARRAYS
     //=================================
     
-    double meanNPE[][][];
-    double errNPE[][][];
+    private double meanNPE[][][];
+    private double errNPE[][][]; 
+    private double gain[][][]; 
+    private double errGain[][][];
     
     //=================================
     //           CONSTANTS
@@ -184,6 +186,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         JSplitPane splitPane = new JSplitPane();
         
         this.initTable();
+	
         HashTableViewer canvasTable = new HashTableViewer(summaryTable);
         canvasTable.addListener(this);
         
@@ -371,9 +374,11 @@ public class FTHODOViewerModule implements IDetectorListener,
     private void initTable() {
         summaryTable = new HashTable(3,
                                      "NPE:d",
-				     "Gain:d");
+				     "NPE Error:d",
+				     "Gain:d",
+				     "Gain Error:d");
         
-	double[] summaryInitialValues = {-1,-1};
+	double[] summaryInitialValues = {-1,-1,-1,-1};
         
 	for (int layer = 2; layer > 0; layer--) {
             for (int sector = 1; sector < 9; sector++) {
@@ -386,10 +391,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                                         layer,
                                         component);
                     
+		    
 		    // npe
                     summaryTable.addConstrain(3, 10.0, 1000.0);
 		    // gain
-		    summaryTable.addConstrain(4, 40.0, 60.0);
+		    summaryTable.addConstrain(5, 40.0, 60.0);
 		    //             }
                 }
             }
@@ -409,45 +415,292 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         DetectorShapeView2D viewPaddles = this.drawPaddles(0.0, 0.0);
         this.view.addDetectorLayer(viewPaddles);
-        
+
+	DetectorShapeView2D viewChannels = this.drawChannels(0.0, 0.0);
+        this.view.addDetectorLayer(viewChannels);
+	
         view.addDetectorListener(this);
     }
     
+    public int[] getChMez2Comp(int ch,
+			       int mez,
+			       int lay){
+	
+	int sC[] = {{1,5,8,4,
+		     2,3,1,9,
+		     1,9,2,3,
+		     8,4,1,5,
+		     2,8,7,6,
+		     10,6,2,5,
+		     8,2,6,7,
+		     6,10,5,2,
+		     
+4
+7
+2
+1
+2
+9
+3
+1
+7
+4
+1
+2
+2
+1
+3
+9
+5
+3
+1
+5
+4
+9
+7
+6
+6
+4
+5
+7
+9
+5
+3
+1
+11
+17
+18
+8
+12
+15
+16
+10
+15
+16
+10
+12
+8
+17
+18
+11
+13
+9
+8
+20
+9
+11
+14
+13
+9
+20
+8
+13
+14
+9
+13
+11
+16
+17
+7
+20
+19
+14
+15
+3
+17
+16
+7
+15
+14
+19
+20
+3
+19
+18
+15
+14
+16
+17
+19
+18
+18
+19
+15
+14
+17
+16
+19
+18
+13
+14
+10
+2
+6
+8
+13
+9
+8
+13
+9
+10
+6
+14
+13
+2
+9
+20
+9
+17
+18
+10
+20
+19
+18
+17
+9
+20
+19
+10
+20
+9
+11
+5
+12
+16
+15
+8
+1
+3
+11
+5
+12
+15
+16
+8
+1
+3
+7
+12
+6
+4
+8
+6
+5
+7
+12
+7
+4
+6
+6
+8
+7
+5
+3
+8
+2
+3
+1
+4
+6
+4
+3
+3
+1
+2
+6
+4
+4
+5
+5
+4
+2
+6
+7
+5
+7
+11
+4
+6
+7
+2
+5
+11
+8
+7
+0
+4
+0
+1
+3
+0
+12
+0
+0
+4
+0
+1
+3
+0
+12
+0
+	
+	return cS;
+    }
+    
+
+    public DetectorShapeView2D drawChannels(double x0, double y0) {
+        DetectorShapeView2D viewChannels = new DetectorShapeView2D("FTCHANNELS");
+        
+        int nChannels = 16;
+	int nMezzPlus = 16;
+		
+	int sec = 1;
+	int com = 0;
+	int lay = 1;
+	
+	int width = 10;
+	
+	for(int iMez = 1 ; iMez < nMezzPlus ; iMez++){
+	    lay = 1;
+	    for(int iCh=0; iCh < nChannels; iCh++) {
+		
+		if( iCh > 7 ) lay = 2;
+		
+		//    sec = getChMezLay2Sect(iCh,iMez,lay);
+		sC = getChMez2Comp(iCh,iMez,lay);
+		
+		DetectorShape2D channel = new DetectorShape2D(DetectorType.FTHODO,
+							      sec,lay,com);
+		
+		channel.createBarXY(width,width);
+		
+		channel.getShapePath().translateXYZ( 2*(iMez-7)*width,
+						     (width*iCh)+width*(lay-1),
+						     0.0);
+		//viewChannels.setColor(0, 145, 0, 0);
+		viewChannels.addShape(channel);
+	    }
+	}
+        
+        return viewChannels;
+    };
+
     public DetectorShapeView2D drawPaddles(double x0, double y0) {
         DetectorShapeView2D viewPaddles = new DetectorShapeView2D("FTPADDLES");
         
         int nPaddles = 4;
         
         for(int ipaddle=0; ipaddle < nPaddles; ipaddle++) {
-                //  DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTHODO,
-                // 	       					 0, 0, 501+ipaddle);
-                //
-                // set detector type of shape to FTCAL
-                // and specify sector, layer and component
-            
             DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTCAL,
                                                          0, 0, 501 + ipaddle );
-            
-                //             DetectorShape2D paddle = new DetectorShape2D(DetectorType.FTHODO,
-                // 							 1, 1, 1);
-            
             paddle.createBarXY(tile_size*11, tile_size/2.);
             
             paddle.getShapePath().translateXYZ(tile_size*11/2.*(((int) ipaddle/2)*2+1),
                                                tile_size*(22+2)*(ipaddle % 2),
                                                0.0);
-            
-                // 	    paddle.getShapePath().translateXYZ(0.,
-                // 					       500.,
-                // 					       0.0);
-            
-                // paddle.getShapePath().translateXYZ(0.0,
-                // 					       0.0,
-                // 					       0.0);
-            paddle.setColor(0, 145, 0);
+            //paddle.setColor(0, 145, 0, 0);
             viewPaddles.addShape(paddle);
         }
-        
         
         return viewPaddles;
     };
@@ -673,11 +926,15 @@ public class FTHODOViewerModule implements IDetectorListener,
                     flag_parnames=false;}
                 System.out.print(index+ "\t" + sLC[0] + "\t " +sLC[1] + "\t "+sLC[2] + "\t ");
                 
-                if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
-                    for(int i=0; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
+                // if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
+                //     for(int i=0; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
+                //         System.out.format("%.2f\t ",myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
+                // }
+		if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
+                    for(int i=2; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
                         System.out.format("%.2f\t ",myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
-                }
-                else {
+                } 
+		else {
                     System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
                 }
                 if(myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])){
@@ -711,13 +968,26 @@ public class FTHODOViewerModule implements IDetectorListener,
         double std=5.0;
 	
         if (hnoisetofit.getEntries()>100){
-            myfunctNoise1.add(sec, lay, com, new F1D("gaus", mean-20, mean+20));
-            myfunctNoise1.get(sec, lay, com).setParameter(0, ampl);
-            myfunctNoise1.get(sec, lay, com).setParameter(1, mean);
-            myfunctNoise1.get(sec, lay, com).setParameter(2, std);
-            myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/2.0, ampl*2);
-            myfunctNoise1.get(sec, lay, com).setParLimits(1, mean-25, mean+25);
-            myfunctNoise1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
+
+	    myfunctNoise1.add(sec, lay, com, new F1D("exp+gaus", 10,  mean+25));
+            myfunctNoise1.get(sec, lay, com).setParameter(0, ampl/5);
+            myfunctNoise1.get(sec, lay, com).setParameter(1, -0.001);
+            myfunctNoise1.get(sec, lay, com).setParameter(2, ampl);
+            myfunctNoise1.get(sec, lay, com).setParameter(3, mean);
+            myfunctNoise1.get(sec, lay, com).setParameter(4, std*3);
+            myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/4.0, ampl);
+            myfunctNoise1.get(sec, lay, com).setParLimits(1, -5, -0.0001);
+            myfunctNoise1.get(sec, lay, com).setParLimits(2, ampl/2, ampl*2);
+            myfunctNoise1.get(sec, lay, com).setParLimits(3, mean-25, mean+25);
+            myfunctNoise1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
+
+            // myfunctNoise1.add(sec, lay, com, new F1D("gaus", mean-20, mean+20));
+            // myfunctNoise1.get(sec, lay, com).setParameter(0, ampl);
+            // myfunctNoise1.get(sec, lay, com).setParameter(1, mean);
+            // myfunctNoise1.get(sec, lay, com).setParameter(2, std);
+            // myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/2.0, ampl*2);
+            // myfunctNoise1.get(sec, lay, com).setParLimits(1, mean-25, mean+25);
+            // myfunctNoise1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
             
             if (hnoisetofit.integral(23, 45)>50){
                 myfunctNoise2.add(sec, lay, com, new F1D("gaus", mean+20, mean+100));
@@ -1365,170 +1635,148 @@ public class FTHODOViewerModule implements IDetectorListener,
         
     } // end of : public void update(Detec
     
-    // Gain
-    private void setGain(){
+    private double getGain(int s, int l, int c){
 	
-    }
-    
-    private void setGainError(){
+	double g = 60.1;
 	
-    }
-    
-    private void getGain(){
-	
-    }
-    
-    private void getGainError(){
+	if(myfunctNoise1.hasEntry(s, l, c) &&
+	   myfunctNoise2.hasEntry(s, l, c)){
 	    
+	    double n2 = myfunctNoise2.get(s,
+					  l,
+					  c).getParameter(1);
+	    
+	    double n1 = myfunctNoise1.get(s,
+					  l,
+					  c).getParameter(3);
+	    	    
+	    g    = n2 - n1;
+	    	    
+	}
+	
+	return g;
+    }
+    
+    private double getGainError(int s, int l, int c){
+	
+	double gainError = 0.0;
+	
+	if(myfunctNoise1.hasEntry(s, l, c) &&
+	   myfunctNoise2.hasEntry(s, l, c)){
+	    
+	    double n2Error = myfunctNoise2.get(s,
+					       l,
+					       c).getParError(1);
+	    
+	    double n1Error = myfunctNoise1.get(s,
+					       l,
+					       c).getParError(3);
+	    
+	    gainError    = n2Error - n1Error;
+	    
+	}
+	
+	return gainError;
+	
+    }
+    
+    private double getQMean(int s, int l, int c){
+	
+	double qMean = 0.0;
+	
+	if(myfunctCosmic.hasEntry(s, l, c)){
+	    
+	    qMean = myfunctCosmic.get(s,
+				      l,
+				      c).getParameter(1);
+	    
+	}
+	
+	return qMean;
+	
     }
 
+    private double getQMeanError(int s, int l, int c){
+	
+	double qMeanError = 0.0;
+	
+	if(myfunctCosmic.hasEntry(s, l, c)){
+	    
+	    qMeanError = myfunctCosmic.get(s,
+					   l,
+					   c).getParError(1);
+	    
+	}
+	
+	return qMeanError;
+	
+    }
     
+    private double getNpeMean(int s, int l, int c){
+	
+	double npeMean = getQMean(s,l,c)/getGain(s,l,c);
+	
+	return npeMean;
+	
+    }
+
+    private double getNpeError(int s, int l, int c){
+	
+	double npeError = getQMeanError(s,l,c)*getQMeanError(s,l,c);
+	
+	npeError = npeError / ( getQMean(s,l,c)*getQMean(s,l,c));
+	npeError = npeError + 
+	    (getGainError(s,l,c)*getGainError(s,l,c)/
+	     (getGain(s,l,c)*getGain(s,l,c)));
+	
+	npeError = sqrt(npeError);
+	npeError = getNpeMean(s,l,c)*npeError;
+	
+	return npeError;
+	
+    }
+
     private void updateTable() {
-        
-	double amp[]   = {0,0,0};
-	double mean[]  = {0,0,0}; 
-	double sigma[] = {0,0,0};
-	
-	double ampErr[]   = {0,0,0};
-	double meanErr[]  = {0,0,0}; 
-	double sigmaErr[] = {0,0,0};
-		
-	double npeMean = 0;
-	double npeErr  = 0;
-	double gain    = 0;
-	double gainErr = 0;
-	
 	
 	for (int s = 1; s < 9; s++) {
             for (int l = 1; l < 3; l++) {
                 for ( int c = 1 ; c < 21 ; c++){
-		    
-		    meanNPE[s][l][c] = 0;
-		    errNPE[s][l][c]  = 0;
-		    
+		    		    
                     if(s%2==1 && c > 9 ) continue;
 		    
-		    if(myfunctNoise1.hasEntry(s, l, c) &&
-		       myfunctNoise2.hasEntry(s, l, c) &&
-		       myfunctCosmic.hasEntry(s, l, c)
-		       
-		       ){
-			
-			mean[0] = myfunctNoise1.get(s,
-						    l,
-						    c).getParameter(1);
-			
-			meanErr[0] = myfunctNoise1.get(s,
-						       l,
-						       c).getParError(1);
-			
-			sigma[0] = myfunctNoise1.get(s,
-						     l,
-						     c).getParameter(2);
-			
-
-			mean[1] = myfunctNoise2.get(s,
-						    l,
-						    c).getParameter(1);
-			
-			meanErr[1] = myfunctNoise2.get(s,
-						       l,
-						       c).getParError(1);
-			
-			sigma[1] = myfunctNoise2.get(s,
-						     l,
-						     c).getParameter(2);
-			
-			
-			gain    = mean[1]  - mean[0];
-			
-			gainErr = sqrt(meanErr[1]*meanErr[1] + meanErr[0]*meanErr[0]); 
-			
-			mean[2] = myfunctCosmic.get(s,
-						    l,
-						    c).getParameter(1);
-
-			meanErr[2] = myfunctCosmic.get(s,
-						       l,
-						       c).getParError(1);
-
-			sigma[2] = myfunctCosmic.get(s,
-						     l,
-						     c).getParameter(2);
-
-			
-			npeMean = mean[2]/gain;
-			
-			npeErr  = meanErr[2]*meanErr[2]/(mean[2]*mean[2]); 
-			npeErr  = npeErr + gainErr*gainErr/(gain*gain);
-			npeErr  = sqrt(npeErr);
-			npeErr  = npeMean*npeErr;
-						
-			this.meanNPE[s][l][c] = npeMean;
-			this.errNPE[s][l][c]  = npeErr;
-						
-			// System.out.println("gain    = " + gain);
-			// System.out.println("gainErr = " + gainErr);
-			// System.out.println("npeMean = " + npeMean);
-			// System.out.println("npeErr  = " + npeErr);
-			
-			
-			summaryTable.setValueAtAsDouble(0,
-							npeMean,
-							s,
-							l,
-							c);
-			
-			summaryTable.setValueAtAsDouble(1,
-							gain,
-							s,
-							l,
-							c);
+		    meanNPE[s][l][c] = getNpeMean(s,l,c);
+		    errNPE[s][l][c]  = getNpeError(s,l,c);
+		    gain[s][l][c]    = getGain(s,l,c);
+		    errGain[s][l][c] = getGainError(s,l,c);
 		    
-		    }
-		    // summaryTable.setValueAtAsDouble(0,
-// 							H_COSMIC_CHARGE.get(sector,
-// 									    layer,
-// 									    component).getMean(),
-// 							sector,
-// 							layer,
-// 							component);
-			
+		    summaryTable.setValueAtAsDouble(0,
+						    meanNPE[s][l][c],
+						    s,
+						    l,
+						    c);
 
-                        // 		    String pedestal = String.format ("%.1f",
-                        // 						     H_PED.get(0, 0, key).getMean());
-                        // 		    String noise    = String.format ("%.2f",
-                        // 						     H_NOISE.get(0, 0, key).getMean());
-                        // 		    String mips     = String.format ("%.2f",
-                        // 						     mylandau.get(0, 0, key).getParameter(1));
-                        // 		    String emips    = String.format ("%.2f",
-                        // 						     mylandau.get(0, 0, key).parameter(1).error());
-                        // 		    String chi2     = String.format ("%.1f",
-                        // 						     mylandau.get(0, 0, key).getChiSquare(H_COSMIC_CHARGE.get(0,0,key).getDataSet())
-                        // 						     /mylandau.get(0, 0, key).getNDF(H_COSMIC_CHARGE.get(0,0,key).getDataSet()));
-                        //
-                        // String time     = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(1));
-                        // String stime    = String.format ("%.2f", myTimeGauss.get(0, 0, key).getParameter(2));
-                    
-                        // 		    summaryTable.setValueAtAsDouble(0,
-                        // 						    Double.parseDouble(pedestal),
-                        // 						    0, 0, key);
-                        // 		    summaryTable.setValueAtAsDouble(1,
-                        // 						    Double.parseDouble(noise)   ,
-                        // 						    0, 0, key);
-                        // 		    summaryTable.setValueAtAsDouble(2,
-                        // 						    Double.parseDouble(mips)    ,
-                        // 						    0, 0, key);
-                        // 		    summaryTable.setValueAtAsDouble(3, Double.parseDouble(emips),
-                        // 						    0, 0, key);
-                        // 		    summaryTable.setValueAtAsDouble(4, Double.parseDouble(chi2) ,
-                        // 						    0, 0, key);
+		    summaryTable.setValueAtAsDouble(1,
+						    errNPE[s][l][c],
+						    s,
+						    l,
+						    c);
 		    
-                        // summaryTable.setValueAtAsDouble(5, Double.parseDouble(time), 0, 0, key);
-                        // summaryTable.setValueAtAsDouble(6, Double.parseDouble(stime)   , 0, 0, key);
-                }
-            }
-        }
+    
+		    summaryTable.setValueAtAsDouble(2,
+						    gain[s][l][c],
+						    s,
+						    l,
+						    c);
+
+		    summaryTable.setValueAtAsDouble(3,
+						    errGain[s][l][c],
+						    s,
+						    l,
+						    c);
+		    
+		}
+	    }
+	}
         //summaryTable.show();
      	this.view.repaint();
     } // end of: private void updateTable() {
@@ -1547,10 +1795,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public void initHistograms() {
         
-	HistogramParam HistPara = new HistogramParam();
+	this.initArrays();
 	
-	meanNPE = new double[9][3][21];
-        errNPE  = new double[9][3][21];
+	HistogramParam HistPara = new HistogramParam();
 	
         for (int index = 0; index < 232; index++) {
             
@@ -1895,8 +2142,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             HistPara.setAll(index);
             
             int[] sLC = {HistPara.getSect(),
-                HistPara.getLayer(),
-                HistPara.getComp()};
+			 HistPara.getLayer(),
+			 HistPara.getComp()};
             
             H_COSMIC_CHARGE.get(sLC[0],
                                 sLC[1],
@@ -1958,7 +2205,29 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         
         
-        
+	
+    }
+    
+
+    public void initArrays() {
+	
+	meanNPE = new double[9][3][21];
+        errNPE  = new double[9][3][21];
+	gain   = new double[9][3][21];
+	errGain = new double[9][3][21];
+
+	for (int s = 0; s < 9; s++) {
+            for (int l = 0; l < 3; l++) {
+                for ( int c = 0 ; c < 21 ; c++){
+                    this.meanNPE[s][l][c] = 0.0;
+		    this.errNPE[s][l][c]  = 0.0;
+		    this.gain[s][l][c]   = 0.0;
+		    this.errGain[s][l][c] = 0.0;
+		}
+	    }
+	}
+
+
     }
     
     
@@ -2475,6 +2744,4 @@ public class FTHODOViewerModule implements IDetectorListener,
     }
     
 }
-
-
 

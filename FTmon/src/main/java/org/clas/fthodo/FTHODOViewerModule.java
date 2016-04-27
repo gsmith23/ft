@@ -1566,7 +1566,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double getGain(int s, int l, int c){
 	
-	double g = 60.1;
+	double g = 70.1;
 	
 	if(myfunctNoise1.hasEntry(s, l, c) &&
 	   myfunctNoise2.hasEntry(s, l, c)){
@@ -2257,7 +2257,12 @@ public class FTHODOViewerModule implements IDetectorListener,
                 for ( int c = 0 ; c < 21 ; c++){
                     this.meanNPE[s][l][c] = 0.0;
 		    this.errNPE[s][l][c]  = 0.0;
-		    this.gain[s][l][c]    = 50.0;
+		    
+		    if(l!=0)
+			this.gain[s][l][c] = 50.0;
+		    else
+			this.gain[s][l][c] = 1000.0;
+		    
 		    this.errGain[s][l][c] = 0.0;
 		}
 	    }
@@ -2301,12 +2306,9 @@ public class FTHODOViewerModule implements IDetectorListener,
             int layer      = counter.getDescriptor().getLayer();
             int component  = counter.getDescriptor().getComponent();
 	    
-	    int otherLayer = (layerSelect%2)+1;
-	    
 	    short pulse[] = counter.getChannels().get(0).getPulse();
 	    
 	    double npeWave;
-		    
 	    
 	    int index;
             int sector_count[] = {0,9,29,38,58,67,87,96};
@@ -2323,6 +2325,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 
 	    //npeWave = pulse[i]*LSB/voltsPerSPE;
 
+            double calibratedWave;
+	    double baselineSubRaw;
+
+	    // reset non-accumulating histograms
+	    H_WAVE.get(sector, layer, component).reset();
+	    H_CWAVE.get(sector, layer, component).reset();
+	    H_NPE.get(sector, layer, component).reset();
+	    
 	    // Loop through fADC bins filling histograms
             for (int i = 0;
                  i < Math.min(pulse.
@@ -2335,7 +2345,23 @@ public class FTHODOViewerModule implements IDetectorListener,
 			      getNBins());
                  i++) {
 		
+		//System.out.println("pulse[" + i + "] = " + pulse[i]);
+                
+		H_WAVE.get(sector, layer, component).fill(i, pulse[i]);
+                
+                baselineSubRaw = pulse[i] - fadcFitter.getPedestal() + 10.0;
+                
+                H_fADC.get(sector, layer, component).fill(i,baselineSubRaw);
+                
+                calibratedWave = (pulse[i]-fadcFitter.getPedestal())*LSB + 5.0;
+                
+                H_CWAVE.get(sector,
+                            layer,
+                            component).fill(i*4,calibratedWave);
+		
+		
 		npeWave = (pulse[i] - fadcFitter.getPedestal())*LSB/voltsPerSPE + 1;
+		
 		H_NPE.get(sector, layer, component).fill(i*4, npeWave);
 	    }
 	    
@@ -2356,47 +2382,30 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    int otherLayer = (layerSelect%2)+1;
 	    
-	    //System.out.println("sector: " + sector + "  layer:" + layer + "  component:" + component);
-            
-            
-            
+	    if(detType==0)
+		otherLayer = 3;
+
+	    // System.out.println("sector: " + sector + "  layer:" + layer + "  component:" + component);
 
 	    // System.out.println(counters.size() + " " + icounter + " " + counter.getDescriptor().getComponent());
 	    // System.out.println(counter);
-            
-
-            
-            short pulse[] = counter.getChannels().get(0).getPulse();
-            
-
                         
-            double calibratedWave = 0.;
-            double baselineSubRaw = 0.;
+            //short pulse[] = counter.getChannels().get(0).getPulse();
+	    
+                        
+	    int index;
+	    int sector_count[] = {0,9,29,38,58,67,87,96};
+	    if(counter.getDescriptor().getType() == DetectorType.FTHODO)
+                index = (layer -1 ) *116+sector_count[sector-1]+component;
             
-	    // Loop through fADC bins filling histograms
-            for (int i = 0;
-                 i < Math.min(pulse.length,
-                              H_fADC.get(sector,
-                                         layer,
-                                         component).getAxis().getNBins());
-                 i++) {
-		
-                H_WAVE.get(sector, layer, component).fill(i, pulse[i]);
-                
-                baselineSubRaw = pulse[i] - fadcFitter.getPedestal() + 10.0;
-                
-                H_fADC.get(sector, layer, component).fill(i,baselineSubRaw);
-                
-                calibratedWave = (pulse[i]-fadcFitter.getPedestal())*LSB + 5.0;
-                
-                H_CWAVE.get(sector,
-                            layer,
-                            component).fill(i*4,calibratedWave);
-                
-            } // end of: Loop through fADC bins filling histograms
-            
-	    // Fill histograms with single value per event
-            
+            else{
+                index  = component;
+                sector = 0;
+                layer  = 0;
+            }
+	    
+	    H_fADC_N.fill(index);
+	    
             H_COSMIC_CHARGE.get(sector, layer, component)
 		.fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
             
@@ -2404,14 +2413,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 		.fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
 	    
 	    if( component < 21                        && 
-		gain[sector][layer][component] > 50.0 && 
-		gain[sector][layer][component] < 60.0 ){
+		gain[sector][layer][component] > 40.0 && 
+		gain[sector][layer][component] < 70.0 ){
 		
 		H_NPE_INT.get(sector, layer, component)
 		    .fill(counter.getChannels().
 			  get(0).getADC().get(0)*LSB*4.0/50/gain[sector][layer][component]);
-		
-		if( H_NPE.get(sector, otherLayer, component).
+
+		if( H_NPE.hasEntry(sector, otherLayer, component) &&
+		    H_NPE.get(sector, otherLayer, component).
 		    getBinContent(H_NPE.get(sector, otherLayer, component).getMaximumBin()) > 10 ){
 		    
 		    H_NPE_MATCH.get(sector, layer, component)
@@ -2439,11 +2449,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// System.out.println("   Component #" + component + " is above threshold, max=" + fadcFitter.getWave_Max() + " ped=" + fadcFitter.getPedestal());
                 H_NOISE.get(sector, layer, component).fill(fadcFitter.getRMS());
             
-	    
-	    // reset non-accumulating histograms
-	    H_WAVE.get(sector, layer, component).reset();
-	    H_CWAVE.get(sector, layer, component).reset();
-	    H_NPE.get(sector, layer, component).reset();
 	    
         } // end of: for (DetectorCounter counter : counters) {
         

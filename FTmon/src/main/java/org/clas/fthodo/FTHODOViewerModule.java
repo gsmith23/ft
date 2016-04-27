@@ -90,8 +90,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     DetectorCollection<H1D> H_MAXV = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_COSMIC_CHARGE = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_NOISE_CHARGE = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_NPE_INT = new DetectorCollection<H1D>();
     
+    DetectorCollection<H1D> H_NPE_INT   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_NPE_MATCH = new DetectorCollection<H1D>();
     
     DetectorCollection<H1D> H_FADCSAMPLE = new DetectorCollection<H1D>();
@@ -122,6 +123,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double errNPE[][][]; 
     private double gain[][][]; 
     private double errGain[][][];
+    
+    private double npeEvent[][][];
     
     //=================================
     //           CONSTANTS
@@ -156,7 +159,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     final int CosmicQXMax[]  = {5200,5300};
     
     final int CosmicNPEXMin[]  = {0,3,5};
-    final int CosmicNPEXMax[]  = {200,53,80};
+    final int CosmicNPEXMax[]  = {200,53,85};
     
     
     //=================================
@@ -405,7 +408,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    // npe
                     summaryTable.addConstrain(3, 15.0, 1000.0);
 		    // gain
-		    summaryTable.addConstrain(5, 40.0, 60.0);
+		    summaryTable.addConstrain(5, 40.0, 70.0);
 		    //             }
                 }
             }
@@ -930,7 +933,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                 sec_c = iQuad_c*2 +2;
                 crys_c = iElem_c + 1 -9;
             }
-            if(H_FADCSAMPLEdiff.hasEntry(sec_c, 1, crys_c)&& H_FADCSAMPLEdiff.get(sec_c, 1, crys_c).getEntries()>10) {
+            if(H_FADCSAMPLEdiff.hasEntry(sec_c, 1, crys_c) && 
+	       H_FADCSAMPLEdiff.get(sec_c, 1, crys_c).getEntries()>10) {
                 H1D htimediff = H_FADCSAMPLEdiff.get(sec_c, 1, crys_c);
                 initGausFitPar(sec_c, 1, crys_c, htimediff);
                 H_FADCSAMPLEdiff.get(sec_c, 1, crys_c).fit(mygauss.get(sec_c, 1, crys_c));
@@ -1264,6 +1268,9 @@ public class FTHODOViewerModule implements IDetectorListener,
                     this.canvasEnergy.draw(H_NPE_INT.get(secSelect,
 							 layerSelect,
 							 componentSelect));
+		    
+		    //!!!! set x axis range
+		    
 		}
                 
 		//----------------------------------------
@@ -1566,7 +1573,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double getGain(int s, int l, int c){
 	
-	double g = 70.1;
+	double g = 0.0;
 	
 	if(myfunctNoise1.hasEntry(s, l, c) &&
 	   myfunctNoise2.hasEntry(s, l, c)){
@@ -1580,8 +1587,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 					  c).getParameter(3);
 	    	    
 	    g    = n2 - n1;
-	    	    
+	    
 	}
+	
+	if (g < 30.0 || 
+	    g > 70.0)
+	    g = 0.0;
 	
 	return g;
     }
@@ -1643,7 +1654,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double getNpeMean(int s, int l, int c){
 	
-	double npeMean = getQMean(s,l,c)/getGain(s,l,c);
+	double npeMean = 0.0;
+	
+	if( getGain(s,l,c) > 0.0 )
+	    npeMean = getQMean(s,l,c)/getGain(s,l,c);
 	
 	return npeMean;
 	
@@ -1651,7 +1665,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     private double getNpeError(int s, int l, int c){
 	
-	double npeError = getQMeanError(s,l,c)*getQMeanError(s,l,c);
+	double npeError = 0.0;
+	
+	if( getQMean(s,l,c) > 0.0 &&
+	    getGain(s,l,c)  > 0.0 )
+	    
+	npeError = getQMeanError(s,l,c)*getQMeanError(s,l,c);
 	
 	npeError = npeError / ( getQMean(s,l,c)*getQMean(s,l,c));
 	npeError = npeError + 
@@ -2247,23 +2266,23 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     public void initArrays() {
 	
-	meanNPE = new double[9][3][21];
-        errNPE  = new double[9][3][21];
-	gain    = new double[9][3][21];
-	errGain = new double[9][3][21];
+	meanNPE  = new double[9][3][21];
+        errNPE   = new double[9][3][21];
+	gain     = new double[9][3][21];
+	errGain  = new double[9][3][21];
+	
+	npeEvent = new double[9][3][21];
 	
 	for (int s = 0; s < 9; s++) {
             for (int l = 0; l < 3; l++) {
                 for ( int c = 0 ; c < 21 ; c++){
                     this.meanNPE[s][l][c] = 0.0;
 		    this.errNPE[s][l][c]  = 0.0;
-		    
-		    if(l!=0)
-			this.gain[s][l][c] = 50.0;
-		    else
-			this.gain[s][l][c] = 1000.0;
-		    
+		    this.gain[s][l][c] = 0.0;
+		    this.gain[s][l][c] = 1000.0;
 		    this.errGain[s][l][c] = 0.0;
+
+		    this.npeEvent[s][l][c] = 0.0;
 		}
 	    }
 	}
@@ -2300,6 +2319,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// Loop One
 	for (DetectorCounter counter : counters) {
 	    
+	    if(detType!=1) break;
+	    
 	    fadcFitter.fit(counter.getChannels().get(0));
 	    
             int sector     = counter.getDescriptor().getSector();
@@ -2327,12 +2348,25 @@ public class FTHODOViewerModule implements IDetectorListener,
 
             double calibratedWave;
 	    double baselineSubRaw;
+	    double npeEventSLC;
 
 	    // reset non-accumulating histograms
 	    H_WAVE.get(sector, layer, component).reset();
 	    H_CWAVE.get(sector, layer, component).reset();
 	    H_NPE.get(sector, layer, component).reset();
 	    
+	    npeEvent[sector][layer][component] = 0.0;
+	    
+	    if(gain[sector][layer][component] > 0.0){
+		
+		npeEvent[sector][layer][component] = counter.getChannels().
+		    get(0).getADC().get(0)*LSB*4.0/50./gain[sector][layer][component];
+		
+		npeEventSLC = npeEvent[sector][layer][component];
+		
+		H_NPE_INT.get(sector, layer, component).fill(npeEventSLC);
+	    
+	    }
 	    // Loop through fADC bins filling histograms
             for (int i = 0;
                  i < Math.min(pulse.
@@ -2380,11 +2414,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             int layer      = counter.getDescriptor().getLayer();
             int component  = counter.getDescriptor().getComponent();
 	    
-	    int otherLayer = (layerSelect%2)+1;
+	    int otherLayer = (layer%2)+1;
 	    
-	    if(detType==0)
-		otherLayer = 3;
-
 	    // System.out.println("sector: " + sector + "  layer:" + layer + "  component:" + component);
 
 	    // System.out.println(counters.size() + " " + icounter + " " + counter.getDescriptor().getComponent());
@@ -2412,25 +2443,36 @@ public class FTHODOViewerModule implements IDetectorListener,
             H_NOISE_CHARGE.get(sector, layer, component)
 		.fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
 	    
-	    if( component < 21                        && 
-		gain[sector][layer][component] > 40.0 && 
-		gain[sector][layer][component] < 70.0 ){
+	    // Matching Hits in layers
+	    if( detType == 1                         && 
+		gain[sector][layer][component] > 0.0 && 
+		gain[sector][otherLayer][component] > 0.0){
 		
-		H_NPE_INT.get(sector, layer, component)
-		    .fill(counter.getChannels().
-			  get(0).getADC().get(0)*LSB*4.0/50/gain[sector][layer][component]);
-
-		if( H_NPE.hasEntry(sector, otherLayer, component) &&
-		    H_NPE.get(sector, otherLayer, component).
-		    getBinContent(H_NPE.get(sector, otherLayer, component).getMaximumBin()) > 10 ){
+		double npeOtherLayer = npeEvent[sector][otherLayer][component];
+				
+		double meanNPEOther    = meanNPE[sector][otherLayer][component];
+		double errNPEOther     = errNPE[sector][otherLayer][component];
+		double npeLowLimOther  = meanNPEOther - abs(errNPEOther);
+		
+		if ( npeLowLimOther < 5.0 )
+		    npeLowLimOther = 5.0;
+		
+		if ( npeOtherLayer > npeLowLimOther ){
+		    
+		    // System.out.println(" =--=--=--=--=--=--=--=--=--=--" );
+		    // System.out.println(" sector        = " + sector);
+		    // System.out.println(" layer         = " + layer);
+		    // System.out.println(" component     = " + component);
+		    // System.out.println(" otherLayer    = " + otherLayer);
+		    // System.out.println(" npeOtherLayer = " + npeOtherLayer);
+		    // System.out.println(" npeLow        = " + npeLow);
+		    // System.out.println(" =--=--=--=--=--=--=--=--=--=--" );
 		    
 		    H_NPE_MATCH.get(sector, layer, component)
-			.fill(counter.getChannels().
-			      get(0).getADC().get(0)*LSB*4.0/50/gain[sector][layer][component]);
+			.fill(npeEvent[sector][layer][component]);
 		}
 	    }
-	    
-	    
+	    	    
 	    // 	    if(sector == 5 && layer == 1 && component == 5) {
 	    // 		System.out.println(" nProcessed = " + nProcessed);
 	    // 		System.out.println(" ADC        = " + counter.getChannels().get(0).getADC());

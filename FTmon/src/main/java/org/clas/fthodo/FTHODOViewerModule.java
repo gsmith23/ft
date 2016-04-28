@@ -61,18 +61,19 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     JPanel canvasPane = new JPanel(new BorderLayout());
     
-    EmbeddedCanvas canvasEvent     = new EmbeddedCanvas();
-    EmbeddedCanvas canvasNoise     = new EmbeddedCanvas();
-    EmbeddedCanvas canvasEnergy    = new EmbeddedCanvas();
-    EmbeddedCanvas canvasTime      = new EmbeddedCanvas();
-    EmbeddedCanvas canvasNPE       = new EmbeddedCanvas();
-    EmbeddedCanvas canvasMatch     = new EmbeddedCanvas();
+    EmbeddedCanvas canvasEvent  = new EmbeddedCanvas();
+    EmbeddedCanvas canvasNoise  = new EmbeddedCanvas();
+    EmbeddedCanvas canvasGain   = new EmbeddedCanvas();
+    EmbeddedCanvas canvasCharge = new EmbeddedCanvas();
+    EmbeddedCanvas canvasMIP    = new EmbeddedCanvas();
+    EmbeddedCanvas canvasMatch  = new EmbeddedCanvas();
+    EmbeddedCanvas canvasTime   = new EmbeddedCanvas();
     
     public EmbeddedCanvas canvasHODOEvent  = new EmbeddedCanvas();
     
     DetectorShapeTabView view = new DetectorShapeTabView();
     HashTable  summaryTable   = null;
-    ColorPalette palette = new ColorPalette();
+    ColorPalette      palette = new ColorPalette();
     
     //=================================
     //     HISTOGRAMS, GRAPHS
@@ -169,13 +170,20 @@ public class FTHODOViewerModule implements IDetectorListener,
     double   tile_size = 15;
     int      nProcessed = 0;
     
-    private int buttonSelect    = 0;
-    private int tabSelect       = 0;
-    private int componentSelect = 0;
-    private int secSelect       = 0;
-    private int layerSelect     = 0;
+    private int tabSelect = 0;
+    private int comSelect = 0;
+    private int secSelect = 0;
+    private int laySelect = 0;
     
-    
+    final private int tabIndexEvent  = 0;
+    final private int tabIndexNoise  = 1;
+    final private int tabIndexGain   = 2;
+    final private int tabIndexCharge = 3;
+    final private int tabIndexMIP    = 4;
+    final private int tabIndexMatch  = 5;
+    final private int tabIndexTime   = 6;
+    final private int tabIndexTable  = 7;
+        
     public EventDecoder getDecoder() {
         return decoder;
     }
@@ -203,16 +211,18 @@ public class FTHODOViewerModule implements IDetectorListener,
         canvasTable.addListener(this);
         
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.add("Event Viewer",this.canvasEvent);
-        tabbedPane.add("Noise"       ,this.canvasNoise);
-        tabbedPane.add("Energy"      ,this.canvasEnergy);
-	tabbedPane.add("NPE"         ,this.canvasNPE);
-	//tabbedPane.add("Time"        ,this.canvasTime);
-        tabbedPane.add("Summary"     ,canvasTable);
-	tabbedPane.add("Match"     ,canvasMatch);
-        tabbedPane.addChangeListener(this);
+        tabbedPane.add("Event"  ,this.canvasEvent);
+        tabbedPane.add("Noise"  ,this.canvasNoise);
+	tabbedPane.add("Gain"   ,this.canvasGain);
+        tabbedPane.add("Charge" ,this.canvasCharge);
+	tabbedPane.add("MIP"    ,this.canvasMIP);
+	tabbedPane.add("Match"  ,this.canvasMatch);
+	tabbedPane.add("Time"   ,this.canvasTime);
+        tabbedPane.add("Table"  ,canvasTable);
+	tabbedPane.addChangeListener(this);
         this.initCanvas();
-        
+
+	
         JPanel buttonPane = new JPanel();
         buttonPane.setLayout(new FlowLayout());
         
@@ -220,11 +230,11 @@ public class FTHODOViewerModule implements IDetectorListener,
         resetBtn.addActionListener(this);
         buttonPane.add(resetBtn);
         
-        JButton fitNoiseBtn = new JButton("Fit Charge");
-        fitNoiseBtn.addActionListener(this);
-        buttonPane.add(fitNoiseBtn);
+        JButton fitBtn = new JButton("Fit");
+        fitBtn.addActionListener(this);
+        buttonPane.add(fitBtn);
         
-        JButton tableBtn = new JButton("Update Summary");
+        JButton tableBtn = new JButton("Table");
         tableBtn.addActionListener(this);
         buttonPane.add(tableBtn);
         
@@ -234,96 +244,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 	//      PLOTTING OPTIONS
 	//=================================
         
-	//
-	// Non-accumulated
-	//
-	// 0 - waveforms
-	// 1 - waveforms calibrated in time and voltage
-	// 2 - voltage / npe voltage peak (40 mV for now)
-        
-	//JRadioButton wavesRb     = new JRadioButton("Waveforms");  // raw pulse
-	//JRadioButton cWavesRb    = new JRadioButton("Calibrated"); // ns/mV
-	//JRadioButton npeWavesRb  = new JRadioButton("NPE Wave");   // voltage / spe voltage
-        
-	//         group.add(wavesRb);
-	//         buttonPane.add(wavesRb);
-	//         wavesRb.setSelected(true);
-	//         wavesRb.addActionListener(this);
-        
-	//         group.add(cWavesRb);
-	//         buttonPane.add(cWavesRb);
-	// 	cWavesRb.setSelected(true);
-	//         cWavesRb.addActionListener(this);
-        
-	// 	group.add(npeWavesRb);
-	//         buttonPane.add(npeWavesRb);
-	//         //npeWavesRb.setSelected(true);
-	//         npeWavesRb.addActionListener(this);
-        
-	//
-	// Accumulated
-	//
-	// 10 - Max Pulse Voltage
-	// 11 - Charge
-	// ...
-        
-	// 	JRadioButton noiseRb   = new JRadioButton("Noise");
-        
-	// 	JRadioButton maxVoltRb  = new JRadioButton("Max"); // pulse max in mV
-	//         JRadioButton chargeRb   = new JRadioButton("Charge"); // integral in pF
-        
-	// 	group.add(noiseRb);
-	// 	buttonPane.add(noiseRb);
-	//         //noiseRb.setSelected(true);
-	//         noiseRb.addActionListener(this);
-        
-	// 	group.add(maxVoltRb);
-	// 	buttonPane.add(maxVoltRb);
-	//         //maxVoltRb.setSelected(true);
-	//         maxVoltRb.addActionListener(this);
-        
-	// 	group.add(chargeRb);
-	// 	buttonPane.add(chargeRb);
-	//         //chargeRb.setSelected(true);
-	//         chargeRb.addActionListener(this);
-        
-        
-	//=======================================================
-	//=======================================================
-	// IN PROGRESS
-        
-	// JRadioButton fadcsampleRb  = new JRadioButton("fADC time");
-	//         JRadioButton fitRb  = new JRadioButton("Fit Timing");
-	//         group.add(fitRb);
-	//         buttonPane.add(fitRb);
-	//         //fitRb.setSelected(true);
-	//         fitRb.addActionListener(this);
-        
-	//         group.add(fadcsampleRb);
-	//         buttonPane.add(fadcsampleRb);
-	//         //fadcsampleRb.setSelected(true);
-	//         fadcsampleRb.addActionListener(this);
-	//             	JButton fitBtn = new JButton("Fit");
-	//                     fitBtn.addActionListener(this);
-	//                     buttonPane.add(fitBtn);
-        
-	// 	JButton fitBtn = new JButton("Fit");
-	//         fitBtn.addActionListener(this);
-	//         buttonPane.add(fitBtn);
-        
-        
-        
-	//=======================================================
-	//=======================================================
-        
         this.canvasPane.add(tabbedPane, BorderLayout.CENTER);
-        
         this.canvasPane.add(buttonPane, BorderLayout.PAGE_END);
-        
-        splitPane.setLeftComponent(this.view);
-        
-	//JPanel dummyPane = new JPanel();
+
         splitPane.setRightComponent(this.canvasPane);
+        splitPane.setLeftComponent(this.view);
+
         splitPane.setDividerLocation(400);
         
         this.detectorPanel.add(splitPane, BorderLayout.CENTER);
@@ -341,47 +267,62 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.canvasHODOEvent.setStatBoxFontSize(8);
         this.canvasHODOEvent.divide(2,1);
         
-	// event canvas
         this.canvasEvent.setGridX(false);
         this.canvasEvent.setGridY(false);
         this.canvasEvent.setAxisFontSize(10);
         this.canvasEvent.setTitleFontSize(16);
         this.canvasEvent.setAxisTitleFontSize(14);
         this.canvasEvent.setStatBoxFontSize(8);
-        
-	// noise canvas
+        this.canvasEvent.divide(2,2);
+	
         this.canvasNoise.setGridX(false);
         this.canvasNoise.setGridY(false);
         this.canvasNoise.setAxisFontSize(10);
         this.canvasNoise.setTitleFontSize(16);
         this.canvasNoise.setAxisTitleFontSize(14);
         this.canvasNoise.setStatBoxFontSize(8);
-        
-	// energy canvas
-        this.canvasEnergy.setGridX(false);
-        this.canvasEnergy.setGridY(false);
-        this.canvasEnergy.setAxisFontSize(10);
-        this.canvasEnergy.setTitleFontSize(16);
-        this.canvasEnergy.setAxisTitleFontSize(14);
-        this.canvasEnergy.setStatBoxFontSize(2);
-        
-	// time canvas
+        this.canvasNoise.divide(2,2);
+	
+        this.canvasGain.setGridX(false);
+        this.canvasGain.setGridY(false);
+        this.canvasGain.setAxisFontSize(10);
+        this.canvasGain.setTitleFontSize(16);
+        this.canvasGain.setAxisTitleFontSize(14);
+        this.canvasGain.setStatBoxFontSize(2);
+	this.canvasGain.divide(3,3);
+	
+        this.canvasCharge.setGridX(false);
+        this.canvasCharge.setGridY(false);
+        this.canvasCharge.setAxisFontSize(10);
+        this.canvasCharge.setTitleFontSize(16);
+        this.canvasCharge.setAxisTitleFontSize(14);
+        this.canvasCharge.setStatBoxFontSize(2);
+	this.canvasCharge.divide(2,2);
+	
+        this.canvasMIP.setGridX(false);
+        this.canvasMIP.setGridY(false);
+        this.canvasMIP.setAxisFontSize(10);
+        this.canvasMIP.setTitleFontSize(16);
+        this.canvasMIP.setAxisTitleFontSize(14);
+        this.canvasMIP.setStatBoxFontSize(2);
+	this.canvasMIP.divide(3,3);
+	
+        this.canvasMatch.setGridX(true);
+        this.canvasMatch.setGridY(true);
+        this.canvasMatch.setAxisFontSize(10);
+        this.canvasMatch.setTitleFontSize(16);
+        this.canvasMatch.setAxisTitleFontSize(14);
+        this.canvasMatch.setStatBoxFontSize(8);
+	this.canvasMatch.divide(2,2);
+
         this.canvasTime.setGridX(false);
         this.canvasTime.setGridY(false);
         this.canvasTime.setAxisFontSize(10);
         this.canvasTime.setTitleFontSize(16);
         this.canvasTime.setAxisTitleFontSize(14);
         this.canvasTime.setStatBoxFontSize(8);
-        
-	// time npe
-        this.canvasNPE.setGridX(true);
-        this.canvasNPE.setGridY(true);
-        this.canvasNPE.setAxisFontSize(10);
-        this.canvasNPE.setTitleFontSize(16);
-        this.canvasNPE.setAxisTitleFontSize(14);
-        this.canvasNPE.setStatBoxFontSize(8);
-	this.canvasNPE.divide(3,3);
-	        
+        this.canvasTime.divide(2,2);
+    
     }
     
     private void initTable() {
@@ -392,7 +333,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				     "Gain Error:d");
         
 	double[] summaryInitialValues = {-1,-1,-1,-1};
-        
+	
 	for (int layer = 2; layer > 0; layer--) {
             for (int sector = 1; sector < 9; sector++) {
                 for ( int component = 1 ; component < 21 ; component++){
@@ -404,12 +345,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                                         layer,
                                         component);
                     
-		    
 		    // npe
                     summaryTable.addConstrain(3, 15.0, 1000.0);
 		    // gain
 		    summaryTable.addConstrain(5, 40.0, 70.0);
-		    //             }
+		    
                 }
             }
         }
@@ -438,21 +378,21 @@ public class FTHODOViewerModule implements IDetectorListener,
     public int getComp4ChMez(int ch,
 			     int mez){
 	
-	int compM[][] = {{1,5,8,4,2,3,1,9,1,9,2,3,8,4,1,5},
-			 {2,8,7,6,10,6,2,5,8,2,6,7,6,10,5,2},
-			 {4,7,2,1,2,9,3,1,7,4,1,2,2,1,3,9},
-			 {5,3,1,5,4,9,7,6,6,4,5,7,9,5,3,1},
-			 {11,17,18,8,12,15,16,10,15,16,10,12,8,17,18,11},
-			 {13,9,8,20,9,11,14,13,9,20,8,13,14,9,13,11},
-			 {16,17,7,20,19,14,15,3,17,16,7,15,14,19,20,3},
+	int compM[][] = {{1 ,5 ,8 ,4 ,2 ,3 ,1 ,9 ,1 ,9 ,2 ,3 ,8 ,4 ,1 ,5 },
+			 {2 ,8 ,7 ,6 ,10,6 ,2 ,5 ,8 ,2 ,6 ,7 ,6 ,10,5 ,2 },
+			 {4 ,7 ,2 ,1 ,2 ,9 ,3 ,1 ,7 ,4 ,1 ,2 ,2 ,1 ,3 ,9 },
+			 {5 ,3 ,1 ,5 ,4 ,9 ,7 ,6 ,6 ,4 ,5 ,7 ,9 ,5 ,3 ,1 },
+			 {11,17,18,8 ,12,15,16,10,15,16,10,12,8 ,17,18,11},
+			 {13,9 ,8 ,20,9 ,11,14,13,9 ,20,8 ,13,14,9 ,13,11},
+			 {16,17,7 ,20,19,14,15,3 ,17,16,7 ,15,14,19,20,3 },
 			 {19,18,15,14,16,17,19,18,18,19,15,14,17,16,19,18},
-			 {13,14,10,2,6,8,13,9,8,13,9,10,6,14,13,2},
-			 {9,20,9,17,18,10,20,19,18,17,9,20,19,10,20,9},
-			 {11,5,12,16,15,8,1,3,11,5,12,15,16,8,1,3},
-			 {7,12,6,4,8,6,5,7,12,7,4,6,6,8,7,5},
-			 {3,8,2,3,1,4,6,4,3,3,1,2,6,4,4,5},
-			 {5,4,2,6,7,5,7,11,4,6,7,2,5,11,8,7},
-			 {0,4,0,1,3,0,12,0,0,4,0,1,3,0,12,0}};
+			 {13,14,10,2 ,6 ,8 ,13,9 ,8 ,13,9 ,10,6 ,14,13,2 },
+			 {9 ,20,9 ,17,18,10,20,19,18,17,9 ,20,19,10,20,9 },
+			 {11,5 ,12,16,15,8 ,1 ,3 ,11,5 ,12,15,16,8 ,1 ,3 },
+			 {7 ,12,6 ,4 ,8 ,6 ,5 ,7 ,12,7 ,4 ,6 ,6 ,8 ,7 ,5 },
+			 {3 ,8, 2 ,3 ,1 ,4 ,6 ,4 ,3 ,3 ,1 ,2 ,6 ,4 ,4 ,5 },
+			 {5 ,4, 2 ,6 ,7 ,5 ,7 ,11,4 ,6 ,7 ,2 ,5 ,11,8 ,7 },
+			 {0 ,4, 0 ,1 ,3 ,0 ,12,0 ,0 ,4 ,0 ,1 ,3 ,0 ,12,0 }};
 
 	int comp = compM[mez-1][ch];
 	
@@ -484,6 +424,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
+    public boolean channelIsEmpty(int channel){
+	
+	boolean empty = false;
+	
+	int emptyChannels[] = {0,2,5,7,8,10,13,15};
+	
+	for(int i = 0 ; i < emptyChannels.length ; i++){
+	    
+	    if ( channel == emptyChannels[i] ) {
+		empty = true;
+		break;
+	    }
+	}
+	return empty;
+    }
 
     public DetectorShapeView2D drawChannels(double x0, double y0) {
         DetectorShapeView2D viewChannels = new DetectorShapeView2D("HODO ELEC");
@@ -502,12 +457,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    for(int iCh=0; iCh < nChannels; iCh++) {
 		
 		if( iCh > 7 ) lay = 2;
-		if( iMez == 15 &&  
-		    ((iCh == 0 ) || (iCh == 2)  ||
-		     (iCh == 5)  || (iCh == 7)  ||
-		     (iCh == 8)  || (iCh == 10) ||
-		     (iCh == 13) || (iCh == 15))
-		    ) continue;
+		
+		if( iMez == 15 && channelIsEmpty(iCh)) continue;
 		
 		com = getComp4ChMez(iCh,iMez);
 		sec = getSect4ChMez(iCh,iMez);
@@ -666,7 +617,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    //===========================================================
                     
 		    // calculate the y-element of the center of each tile
-                    if(quadrant==0)       ycenter = yy[element];
+                    if(quadrant==0)      ycenter = yy[element];
                     else if(quadrant==1) ycenter = xx[element];
                     else if(quadrant==2) ycenter =-yy[element];
                     else if(quadrant==3) ycenter =-xx[element];
@@ -684,110 +635,125 @@ public class FTHODOViewerModule implements IDetectorListener,
 	return viewFTHODO;
     }
     
-    
-    // Listener
     public void actionPerformed(ActionEvent e) {
+	
 	//System.out.println("ACTION = " + e.getActionCommand());
-        if (e.getActionCommand().compareTo("Reset") == 0) {
+        
+	if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
         
-        if (e.getActionCommand().compareTo("Update Summary") == 0) {
+        if (e.getActionCommand().compareTo("Table") == 0) {
             updateTable();
         }
-        if (e.getActionCommand().compareTo("Fit Charge") == 0) {
-            fitNoiseHistograms();
+        if (e.getActionCommand().compareTo("Fit") == 0) {
+            //!!!
+	    fitNoiseHistograms();
         }
         
-        if (e.getActionCommand().compareTo("Raw Waveforms") == 0) {
-            buttonSelect = 0;
-	}
-        else if (e.getActionCommand().compareTo("Calibrated Waveforms") == 0) {
-            buttonSelect = 1;
-	}
-        else if (e.getActionCommand().compareTo("NPE Wave") == 0) {
-            buttonSelect = 2;
-	}
-        else if (e.getActionCommand().compareTo("Max") == 0) {
-            buttonSelect = 10;
-        }
-        else if (e.getActionCommand().compareTo("Charge") == 0) {
-            buttonSelect = 11;
-        }
-        else if (e.getActionCommand().compareTo("Noise") == 0) {
-            buttonSelect = 12;
-        }
-        
-	// IN PROGRESS
-	//     if (e.getActionCommand().compareTo("Fit Timing") == 0) {
-	//             buttonSelect = 12;
-	//             fitTimingdiff();
-	//         }
-        
-    }
-    
-    private void resetCanvas() {
-	//this.canvas.divide(1, 2);
-	//canvas.cd(0);
     }
     
     private void fitNoiseHistograms() {
-        int binNmax=0;
-        double maxCont=0;
-        HistogramParam HistParam =  new HistogramParam();
-        for (int index = 0; index < 232; index++) {
-            HistParam.setAll(index);
-            int[] sLC = {HistParam.getSect(),
+        
+	int    binNmax = 0;
+        double maxCont = 0;
+        
+	HistogramParam HistParam =  new HistogramParam();
+        
+	// Do the fitting for all components
+	for (int index = 0; index < 232; index++) {
+	    
+	    HistParam.setAll(index);
+            
+	    int[] sLC = {HistParam.getSect(),
 			 HistParam.getLayer(),
 			 HistParam.getComp()};
-            H1D HNS = H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]);
+            
+	    H1D HNS = H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]);
             H1D HCS = H_COSMIC_CHARGE.get(sLC[0], sLC[1], sLC[2]);
-            initiFitNoiseParams(sLC[0], sLC[1], sLC[2], HNS, HCS);
+            
+	    initFitNoiseParams(sLC[0], sLC[1], sLC[2], HNS, HCS);
             
             if (myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
-                H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]).fit(myfunctNoise1.get(sLC[0], sLC[1], sLC[2]),"NR");
-                System.out.println("Fitted Noise1 Index="+ index + " Sector="+ sLC[0] +" Layer="+ sLC[1] + " Component="+ sLC[2]);
+        
+		H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]).
+		    fit(myfunctNoise1.get(sLC[0], sLC[1], sLC[2]),"NR");
+                
+		System.out.println("Fitted Noise1 Index = " + index +
+				   " Sector =" + sLC[0] +
+				   " Layer = " + sLC[1] +
+				   " Component="+ sLC[2]);
             }
+	    
             if (myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])){
-                H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]).fit(myfunctNoise2.get(sLC[0], sLC[1], sLC[2]),"NR");
-                System.out.println("Fitted Noise Index="+ index + " Sector="+ sLC[0] +" Layer="+ sLC[1] + " Component="+ sLC[2]);
+
+                H_NOISE_CHARGE.get(sLC[0], sLC[1], sLC[2]).
+		    fit(myfunctNoise2.get(sLC[0], sLC[1], sLC[2]),"NR");
+                
+		System.out.println("Fitted Noise Index = " + index +
+				   " Sector = " + sLC[0] + 
+				   " Layer = " + sLC[1] +
+				   " Component="+ sLC[2]);
             }
-            if(myfunctCosmic.hasEntry(sLC[0], sLC[1], sLC[2])){
-                H_COSMIC_CHARGE.get(sLC[0], sLC[1], sLC[2]).fit(myfunctCosmic.get(sLC[0], sLC[1], sLC[2]),"NR");
-                System.out.println("Fitted Cosminc Index="+ index + " Sector="+ sLC[0] +" Layer="+ sLC[1] + " Component="+ sLC[2]);
+            
+	    if(myfunctCosmic.hasEntry(sLC[0], sLC[1], sLC[2])){
+                
+		H_COSMIC_CHARGE.get(sLC[0], sLC[1], sLC[2]).
+		    fit(myfunctCosmic.get(sLC[0], sLC[1], sLC[2]),"NR");
+                
+		System.out.println("Fitted Cosminc Index = " + index +
+				   " Sector = " + sLC[0] +
+				   " Layer = " + sLC[1] +
+				   " Component = " + sLC[2]);
             }
-        }
-        boolean flag_parnames=true;
+        
+	} // end of : for (int index = 0; index < 232; index++) {
+        
+	boolean flag_parnames = true;
+
+	// Print out fit results
         for(int index = 0; index < 232; index++) {
+
             HistParam.setAll(index);
-            int[] sLC = {HistParam.getSect(),
+            
+	    int[] sLC = {HistParam.getSect(),
 			 HistParam.getLayer(),
 			 HistParam.getComp()};
-            if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])&& myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])) {
-                if(flag_parnames) {
-                    System.out.println("Index\t Sector\t Layer\t Component\t amp\t mean\t sigma\t amp\t mean\t sigma\t amp\t mean\t sigma");
-                    flag_parnames=false;}
-                System.out.print(index+ "\t" + sLC[0] + "\t " +sLC[1] + "\t "+sLC[2] + "\t ");
+            
+	    if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2]) && 
+	       myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])) {
                 
-                // if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
-                //     for(int i=0; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
-                //         System.out.format("%.2f\t ",myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
-                // }
+		if(flag_parnames) {
+                    System.out.println("Index\t Sector\t Layer\t Component\t " +
+				       "amp\t mean\t sigma\t " + 
+				       "amp\t mean\t sigma\t " + 
+				       "amp\t mean\t sigma");
+                    
+		    flag_parnames=false;
+		}
+                
+		System.out.print(index+ "\t" + sLC[0] + "\t " +sLC[1] + "\t "+sLC[2] + "\t ");
+                
 		if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])){
-                    for(int i=2; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
-                        System.out.format("%.2f\t ",myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
+                    
+		    for(int i=2; i<myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
+                        System.out.format("%.2f\t ",
+					  myfunctNoise1.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
                 } 
 		else {
                     System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
                 }
-                if(myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])){
-                    
+                
+		if(myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])){
+		    
                     for(int i=0; i<myfunctNoise2.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
-                        System.out.format("%.2f\t ",myfunctNoise2.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
+                        System.out.format("%.2f\t ",
+					  myfunctNoise2.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
                 }
                 else {
                     System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
                 }
+		
                 if(myfunctCosmic.hasEntry(sLC[0], sLC[1], sLC[2])){
                     for(int i=0; i<myfunctCosmic.get(sLC[0], sLC[1], sLC[2]).getNParams(); i++)
                         System.out.format("%.2f\t ",myfunctCosmic.get(sLC[0], sLC[1], sLC[2]).getParameter(i));
@@ -795,20 +761,22 @@ public class FTHODOViewerModule implements IDetectorListener,
                 else {
                     System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
                 }
-                System.out.format("\n");
+                
+		System.out.format("\n");
             }
-        }
+        } // end of: for(int index = 0; index < 23
         
     }
-    private void initiFitNoiseParams(int sec, 
-				     int lay, 
-				     int com,
-				     H1D hnoisetofit,
-				     H1D hchargetofit) {
+    
+    private void initFitNoiseParams(int sec, 
+				    int lay, 
+				    int com,
+				    H1D hnoisetofit,
+				    H1D hchargetofit) {
         
-        double ampl=hnoisetofit.getBinContent(hnoisetofit.getMaximumBin());
-        double mean=hnoisetofit.getMaximumBin()*3+10;
-        double std=5.0;
+        double ampl = hnoisetofit.getBinContent(hnoisetofit.getMaximumBin());
+        double mean = hnoisetofit.getMaximumBin()*3+10;
+        double std  = 5.0;
 	
         if (hnoisetofit.getEntries()>100){
 
@@ -824,14 +792,6 @@ public class FTHODOViewerModule implements IDetectorListener,
             myfunctNoise1.get(sec, lay, com).setParLimits(3, mean-25, mean+25);
             myfunctNoise1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
 
-            // myfunctNoise1.add(sec, lay, com, new F1D("gaus", mean-20, mean+20));
-            // myfunctNoise1.get(sec, lay, com).setParameter(0, ampl);
-            // myfunctNoise1.get(sec, lay, com).setParameter(1, mean);
-            // myfunctNoise1.get(sec, lay, com).setParameter(2, std);
-            // myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/2.0, ampl*2);
-            // myfunctNoise1.get(sec, lay, com).setParLimits(1, mean-25, mean+25);
-            // myfunctNoise1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
-            
             if (hnoisetofit.integral(23, 45)>50){
                 myfunctNoise2.add(sec, lay, com, new F1D("gaus", mean+20, mean+100));
                 myfunctNoise2.get(sec, lay, com).setParameter(0, ampl/5.0);
@@ -843,21 +803,26 @@ public class FTHODOViewerModule implements IDetectorListener,
             }
         }
 
-	int integralLowBin  = (500 - CosmicQXMin[lay-1])*NBinsCosmic/(CosmicQXMax[lay-1]-CosmicQXMin[lay-1]);
-        int integralHighBin = NBinsCosmic-1;
-	if (hchargetofit.integral(integralLowBin,integralHighBin )>25){
-            ampl=0;
-            mean=0;
-            for (int i=integralLowBin; i<integralHighBin; i++){
-                if (hchargetofit.getBinContent(i)>ampl){
-                    ampl=hchargetofit.getBinContent(i);
-                    mean=i*(CosmicQXMax[lay-1]-CosmicQXMin[lay-1])/NBinsCosmic + CosmicQXMin[lay-1];
-                }
+	int integralLowBin  = (500 - CosmicQXMin[lay-1])*NBinsCosmic;
+	    integralLowBin  = integralLowBin/(CosmicQXMax[lay-1]-CosmicQXMin[lay-1]);
+	    
+	int integralHighBin = NBinsCosmic-1;
+	
+	if (hchargetofit.integral(integralLowBin,integralHighBin ) > 25){
+
+            ampl = 0;
+            mean = 0;
+        
+	    for (int i = integralLowBin; i < integralHighBin; i++){
+                if (hchargetofit.getBinContent(i) > ampl){
+                   
+		    ampl = hchargetofit.getBinContent(i);
+                    
+		    mean = i*(CosmicQXMax[lay-1]-CosmicQXMin[lay-1]);
+		    mean = mean/NBinsCosmic + CosmicQXMin[lay-1];
+		}
             }
-	    //ampl=hchargetofit.getBinContent(hchargetofit.getMaximumBin());
-	    //mean=hchargetofit.getMaximumBin()*43+200;
-	    //std=hchargetofit.getRMS();
-            //myfunctCosmic.add(sec, lay, com, new F1D("gaus", 500, 4500));
+	    
 	    myfunctCosmic.add(sec, lay, com, new F1D("landau", 500, 4500));
             myfunctCosmic.get(sec, lay, com).setParameter(0, ampl);
             myfunctCosmic.get(sec, lay, com).setParameter(1, mean);
@@ -869,123 +834,57 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
-    
-    
-    private void fitHistograms() {
-	for(int component=0; component< 22*22; component++) {
-            if(H_COSMIC_CHARGE.hasEntry(0, 0, component)) {
-                if(H_COSMIC_CHARGE.get(0, 0, component).getEntries()>200) {
-                    H1D hcosmic = H_COSMIC_CHARGE.get(0,0,component);
-                    initLandauFitPar(component,hcosmic);
-                    hcosmic.fit(mylandau.get(0, 0, component));
-                }
-            }
-        }
-        boolean flag_parnames=true;
-        for(int component=0; component< 22*22; component++) {
-            if(mylandau.hasEntry(0, 0, component)) {
-                if(flag_parnames) {
-		    //System.out.println("Component\t amp\t mean\t sigma\t p0\t p1\t Chi2");
-                    flag_parnames=false;
-                }
-		//System.out.print(component + "\t\t ");
-		//for(int i=0; i<mylandau.get(0, 0, component).getNParams(); i++)
-		//System.out.format("%.2f\t ",mylandau.get(0, 0, component).getParameter(i));
-		//if(mylandau.get(0, 0, component).getNParams()==3) System.out.print("0.0\t 0.0\t");
-		//if(mylandau.get(0, 0, component).getParameter(0)>0)
-		//System.out.format("%.2f\n",mylandau.get(0, 0, component).getChiSquare(H_COSMIC_CHARGE.get(0,0,component).getDataSet())
-		///mylandau.get(0, 0, component).getNDF(H_COSMIC_CHARGE.get(0,0,component).getDataSet()));
-		//elseSystem.out.format("0.0\n");
-            }
-        }
-    }
-    
-    private void initLandauFitPar(int component, H1D hcosmic) {
-        if(hcosmic.getBinContent(0)==0) mylandau.add(0, 0, component, new F1D("landau",     0.0, 80.0));
-        else                            mylandau.add(0, 0, component, new F1D("landau+exp", 0.0, 80.0));
-        if(hcosmic.getBinContent(0)<10) {
-            mylandau.get(0, 0, component).setParameter(0, hcosmic.getBinContent(hcosmic.getMaximumBin()));
-        }
-        else {
-            mylandau.get(0, 0, component).setParameter(0, 10);
-        }
-        mylandau.get(0, 0, component).setParameter(1,hcosmic.getMean());
-        mylandau.get(0, 0, component).setParameter(2,5);
-        if(hcosmic.getBinContent(0)!=0) {
-            mylandau.get(0, 0, component).setParameter(3,hcosmic.getBinContent(0));
-            mylandau.get(0, 0, component).setParameter(4, -0.2);
-        }
-    }
-    
-    
-    private void fitTimingdiff() {
-        for (int comp = 0; comp < 116; comp++) {
-            int layerI = 1;
-            int iQuad_c = (comp-(layerI-1)*116) / 29;
-            int iElem_c = comp - iQuad_c * 29 -(layerI-1)*116;
-            int sec_c;
-            int crys_c;
-            if (iElem_c<9) {
-                sec_c = iQuad_c*2 +1;
-                crys_c = iElem_c + 1;
-            }
-            else {
-                sec_c = iQuad_c*2 +2;
-                crys_c = iElem_c + 1 -9;
-            }
-            if(H_FADCSAMPLEdiff.hasEntry(sec_c, 1, crys_c) && 
-	       H_FADCSAMPLEdiff.get(sec_c, 1, crys_c).getEntries()>10) {
-                H1D htimediff = H_FADCSAMPLEdiff.get(sec_c, 1, crys_c);
-                initGausFitPar(sec_c, 1, crys_c, htimediff);
-                H_FADCSAMPLEdiff.get(sec_c, 1, crys_c).fit(mygauss.get(sec_c, 1, crys_c));
-            }
-        }
-    }
-    
-    private void initGausFitPar(int sec_c, int lay_c, int crys_c, H1D htimediff) {
-        mygauss.add(sec_c, lay_c , crys_c, new F1D("gaus", -20.0, 20.0));
-        double ampldiff;
-        double sddiff;
-        double meandif;
-        
-        ampldiff=htimediff.getEntries()/1.5;
-        meandif=htimediff.getMean();
-        sddiff=htimediff.getRMS();
-        mygauss.get(sec_c, lay_c , crys_c).setParameter(0, ampldiff);
-        mygauss.get(sec_c, lay_c , crys_c).setParameter(1, meandif);
-        mygauss.get(sec_c, lay_c , crys_c).setParameter(2, sddiff);
-    }
-    
+    //=======================================================
+    //               Detector Selected 
+    //=======================================================
     public void detectorSelected(DetectorDescriptor desc) {
 	//System.out.println("SELECTED = " + desc);
-        componentSelect = desc.getComponent();
-        secSelect = desc.getSector();
-        layerSelect = desc.getLayer();
-
 	
-	// 	System.out.println("Sector="     +
-	// 			   secSelect     +
-	// 			   " Layer="     +
-	// 			   layerSelect   +
-	// 			   " Component=" +
-	// 			   componentSelect);
-        
+	String  detector;
+	boolean doThings;
+	
+	if ( desc.getType() == DetectorType.FTCAL ){
+	    detector = "FTCAL";
+	}
+	else if ( desc.getType() == DetectorType.FTHODO ){
+	    detector = "FTHODO";
+	}
+	else{
+	    detector = "Unidentified";
+	    doThings = true;
+	}
+	
+	System.out.println(" Detector = "  + detector);
+	
+        secSelect = desc.getSector();
+        laySelect = desc.getLayer();
+        comSelect = desc.getComponent();
+	
+	System.out.println(" Sector    = " +
+			   secSelect    +
+			   " Layer     = "  +
+			   laySelect    +
+			   " Component = " +
+			   comSelect);
+	//!! implement
+	//getChan4SLC(secSelect,laySelect,comSelect);
+	
 	// map [1,2] to [0,1]
-        int selectedLayerCDIndex = layerSelect-1;
+        int selectedLayerCDIndex = laySelect-1;
 	// map [1,2] to [1,0]
-        int otherLayerCDIndex    = layerSelect%2;
+        int otherLayerCDIndex    = laySelect%2;
 	// map [1,2] to [2,1]
-        int otherLayer           = (layerSelect%2)+1;
+        int otherLayer           = (laySelect%2)+1;
         
 	// skip calorimeter events that are not
 	// from the trigger paddles
         boolean skip = false;
         
 	// paddles (calorimeter)
-        if(layerSelect==0){
+        if(laySelect==0){
 	    
 	    // only plot paddles
-            if(componentSelect < 501)
+            if(comSelect < 501)
                 skip = true;
 	    
             selectedLayerCDIndex = 0;
@@ -1006,7 +905,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    //============================================================
 	    // Combined View
             
-            if(componentSelect > 500){
+            if(comSelect > 500){
 		
                 int nPaddles = 4;
                 
@@ -1016,10 +915,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                     
                     canvasHODOEvent.cd(ipaddle);
                     
-                    if(H_WAVE.hasEntry(secSelect,layerSelect,501+ipaddle))
+                    if(H_WAVE.hasEntry(secSelect,laySelect,501+ipaddle))
                         
                         this.canvasHODOEvent.draw(H_WAVE.get(secSelect,
-                                                             layerSelect,
+                                                             laySelect,
                                                              501+ipaddle));
                 }
                 
@@ -1029,23 +928,23 @@ public class FTHODOViewerModule implements IDetectorListener,
                 this.canvasHODOEvent.divide(2, 1);
                 
                 canvasHODOEvent.cd(selectedLayerCDIndex);
-                if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect))
+                if(H_WAVE.hasEntry(secSelect,laySelect,comSelect))
                     this.canvasHODOEvent.draw(H_WAVE.get(secSelect,
-                                                         layerSelect,
-                                                         componentSelect));
+                                                         laySelect,
+                                                         comSelect));
                 
                 canvasHODOEvent.cd(otherLayerCDIndex);
-                if(H_WAVE.hasEntry(secSelect,otherLayer,componentSelect))
+                if(H_WAVE.hasEntry(secSelect,otherLayer,comSelect))
                     this.canvasHODOEvent.draw(H_WAVE.get(secSelect,
                                                          otherLayer,
-                                                         componentSelect));
+                                                         comSelect));
             }
             
             
             
 	    //============================================================
 	    // Event Tab Selected
-            if      ( tabSelect == 0 ) {
+            if      ( tabSelect == this.tabIndexEvent ) {
 		
                 this.canvasEvent.divide(2, 2);
                 
@@ -1054,10 +953,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// raw fADC pulse
                 canvasEvent.cd(selectedLayerCDIndexLeft);
                 
-                if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                if(H_WAVE.hasEntry(secSelect,laySelect,comSelect)){
                     this.canvasEvent.draw(H_WAVE.get(secSelect,
-                                                     layerSelect,
-                                                     componentSelect));
+                                                     laySelect,
+                                                     comSelect));
                     
                 }
 		//----------------------------------------
@@ -1067,10 +966,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                 
                 if(H_WAVE.hasEntry(secSelect,
                                    otherLayer,
-                                   componentSelect))
+                                   comSelect))
                     this.canvasEvent.draw(H_WAVE.get(secSelect,
                                                      otherLayer,
-                                                     componentSelect));
+                                                     comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
@@ -1078,11 +977,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasEvent.cd(selectedLayerCDIndexRight);
                 
                 if(H_CWAVE.hasEntry(secSelect,
-                                    layerSelect,
-                                    componentSelect))
+                                    laySelect,
+                                    comSelect))
                     this.canvasEvent.draw(H_CWAVE.get(secSelect,
-                                                      layerSelect,
-                                                      componentSelect));
+                                                      laySelect,
+                                                      comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
@@ -1090,27 +989,25 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasEvent.cd(otherLayerCDIndexRight);
                 if(H_CWAVE.hasEntry(secSelect,
                                     otherLayer,
-                                    componentSelect))
+                                    comSelect))
                     this.canvasEvent.draw(H_CWAVE.get(secSelect,
                                                       otherLayer,
-                                                      componentSelect));
+                                                      comSelect));
                 
-            } // end of: if ( tabSelect == 0 ) {....
+            } 
               //============================================================
               // Noise Tab Selected
-            if      ( tabSelect == 1 ) {
-                
-                this.canvasNoise.divide(2, 2);
-                
+            if      ( tabSelect == this.tabIndexNoise ) {
+                		
 		//----------------------------------------
 		// left top (bottom) for thin (thick) layer
 		// calibrated fADC pulse
                 canvasNoise.cd(selectedLayerCDIndexLeft);
                 
-                if(H_CWAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                if(H_CWAVE.hasEntry(secSelect,laySelect,comSelect)){
                     this.canvasNoise.draw(H_CWAVE.get(secSelect,
-                                                      layerSelect,
-                                                      componentSelect));
+                                                      laySelect,
+                                                      comSelect));
                     
                 }
 		//----------------------------------------
@@ -1120,10 +1017,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                 
                 if(H_CWAVE.hasEntry(secSelect,
                                     otherLayer,
-                                    componentSelect))
+                                    comSelect))
                     this.canvasNoise.draw(H_CWAVE.get(secSelect,
                                                       otherLayer,
-                                                      componentSelect));
+                                                      comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
@@ -1131,23 +1028,23 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasNoise.cd(selectedLayerCDIndexRight);
                 
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
-                                           layerSelect,
-                                           componentSelect))
+                                           laySelect,
+                                           comSelect))
                     this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
-                                                             layerSelect,
-                                                             componentSelect));
+                                                             laySelect,
+                                                             comSelect));
                 if(myfunctNoise1.hasEntry(secSelect,
-                                          layerSelect,
-                                          componentSelect))
+                                          laySelect,
+                                          comSelect))
                     this.canvasNoise.draw(myfunctNoise1.get(secSelect,
-                                                            layerSelect,
-                                                            componentSelect),"same");
+                                                            laySelect,
+                                                            comSelect),"same");
                 if(myfunctNoise2.hasEntry(secSelect,
-                                          layerSelect,
-                                          componentSelect))
+                                          laySelect,
+                                          comSelect))
                     this.canvasNoise.draw(myfunctNoise2.get(secSelect,
-                                                            layerSelect,
-                                                            componentSelect),"same");
+                                                            laySelect,
+                                                            comSelect),"same");
                 
                 
 		//----------------------------------------
@@ -1156,141 +1053,139 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasNoise.cd(otherLayerCDIndexRight);
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
                                            otherLayer,
-                                           componentSelect))
+                                           comSelect))
                     this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
                                                              otherLayer,
-                                                             componentSelect));
+                                                             comSelect));
                 if(myfunctNoise1.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
+                                          comSelect))
                     this.canvasNoise.draw(myfunctNoise1.get(secSelect,
                                                             otherLayer,
-                                                            componentSelect),"same");
+                                                            comSelect),"same");
                 if(myfunctNoise2.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
+                                          comSelect))
                     this.canvasNoise.draw(myfunctNoise2.get(secSelect,
                                                             otherLayer,
-                                                            componentSelect),"same");
+                                                            comSelect),"same");
                 
                 
                 
                 
-            } // end of: if ( tabSelect == 1 ) {....
-              //======================================================================
-              // Energy Tab Selected
-            if      ( tabSelect == 2 ) {
+            }
+	    
+	    //======================================================================
+	    // Charge Tab Selected
+            if      ( tabSelect == this.tabIndexCharge ) {
 		
-                this.canvasEnergy.divide(2, 2);
-                
 		//----------------------------------------
 		// left top (bottom) for thin (thick) layer
-                canvasEnergy.cd(selectedLayerCDIndexLeft);
+                canvasCharge.cd(selectedLayerCDIndexLeft);
                 
-                if(H_NOISE_CHARGE.hasEntry(secSelect,layerSelect,componentSelect)){
-                    this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
-                                                              layerSelect,
-                                                              componentSelect));
+                if(H_NOISE_CHARGE.hasEntry(secSelect,laySelect,comSelect)){
+                    this.canvasCharge.draw(H_NOISE_CHARGE.get(secSelect,
+                                                              laySelect,
+                                                              comSelect));
                     if(myfunctNoise1.hasEntry(secSelect,
-                                              layerSelect,
-                                              componentSelect))
-                        this.canvasEnergy.draw(myfunctNoise1.get(secSelect,
-                                                                 layerSelect,
-                                                                 componentSelect),"same");
+                                              laySelect,
+                                              comSelect))
+                        this.canvasCharge.draw(myfunctNoise1.get(secSelect,
+                                                                 laySelect,
+                                                                 comSelect),"same");
                     if(myfunctNoise2.hasEntry(secSelect,
-                                              layerSelect,
-                                              componentSelect))
-                        this.canvasEnergy.draw(myfunctNoise2.get(secSelect,
-                                                                 layerSelect,
-                                                                 componentSelect),"same");
+                                              laySelect,
+                                              comSelect))
+                        this.canvasCharge.draw(myfunctNoise2.get(secSelect,
+                                                                 laySelect,
+                                                                 comSelect),"same");
                     
                 }
 		//----------------------------------------
 		// left top (bottom) for thin (thick) layer
-                canvasEnergy.cd(otherLayerCDIndexLeft);
+                canvasCharge.cd(otherLayerCDIndexLeft);
                 
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
                                            otherLayer,
-                                           componentSelect))
-                    this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+                                           comSelect))
+                    this.canvasCharge.draw(H_NOISE_CHARGE.get(secSelect,
                                                               otherLayer,
-                                                              componentSelect));
+                                                              comSelect));
                 if(myfunctNoise1.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
-                    this.canvasEnergy.draw(myfunctNoise1.get(secSelect,
+                                          comSelect))
+                    this.canvasCharge.draw(myfunctNoise1.get(secSelect,
                                                              otherLayer,
-                                                             componentSelect),"same");
+                                                             comSelect),"same");
                 if(myfunctNoise2.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
-                    this.canvasEnergy.draw(myfunctNoise2.get(secSelect,
+                                          comSelect))
+                    this.canvasCharge.draw(myfunctNoise2.get(secSelect,
                                                              otherLayer,
-                                                             componentSelect),"same");
+                                                             comSelect),"same");
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
-                canvasEnergy.cd(selectedLayerCDIndexRight);
+                canvasCharge.cd(selectedLayerCDIndexRight);
 		
-                // if(H_COSMIC_CHARGE.hasEntry(secSelect,
-                //                             layerSelect,
-                //                             componentSelect)){
-                //     this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
-                //                                                layerSelect,
-                //                                                componentSelect));
-                //     if(myfunctCosmic.hasEntry(secSelect,
-                //                               layerSelect,
-                //                               componentSelect))
-                //         this.canvasEnergy.draw(myfunctCosmic.get(secSelect,
-                //                                                  layerSelect,
-                //                                                  componentSelect),"same");
-                // }
+                if(H_COSMIC_CHARGE.hasEntry(secSelect,
+                                            laySelect,
+                                            comSelect)){
+                    this.canvasCharge.draw(H_COSMIC_CHARGE.get(secSelect,
+                                                               laySelect,
+                                                               comSelect));
+                    if(myfunctCosmic.hasEntry(secSelect,
+                                              laySelect,
+                                              comSelect))
+                        this.canvasCharge.draw(myfunctCosmic.get(secSelect,
+                                                                 laySelect,
+                                                                 comSelect),"same");
+                }
+                
+		//----------------------------------------
+		// right top (bottom) for thin (thick) layer
+                canvasCharge.cd(otherLayerCDIndexRight);
+                if(H_COSMIC_CHARGE.hasEntry(secSelect,
+                                            otherLayer,
+                                            comSelect)){
+                    this.canvasCharge.draw(H_COSMIC_CHARGE.get(secSelect,
+                                                               otherLayer,
+                                                               comSelect));
+                    if(myfunctCosmic.hasEntry(secSelect,
+                                              otherLayer,
+                                              comSelect))
+                        this.canvasCharge.draw(myfunctCosmic.get(secSelect,
+                                                                 otherLayer,
+                                                                 comSelect),"same");
+                }
+
+		// if(H_NPE_INT.hasEntry(secSelect,
+		// 		      laySelect,
+		// 		      comSelect)){
+                //     this.canvasCharge.draw(H_NPE_INT.get(secSelect,
+		// 					 laySelect,
+		// 					 comSelect));
+		    
+		// }
                 
 		// //----------------------------------------
 		// // right top (bottom) for thin (thick) layer
-                // canvasEnergy.cd(otherLayerCDIndexRight);
-                // if(H_COSMIC_CHARGE.hasEntry(secSelect,
-                //                             otherLayer,
-                //                             componentSelect)){
-                //     this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
-                //                                                otherLayer,
-                //                                                componentSelect));
-                //     if(myfunctCosmic.hasEntry(secSelect,
-                //                               otherLayer,
-                //                               componentSelect))
-                //         this.canvasEnergy.draw(myfunctCosmic.get(secSelect,
-                //                                                  otherLayer,
-                //                                                  componentSelect),"same");
+                // canvasCharge.cd(otherLayerCDIndexRight);
+                // if(H_NPE_INT.hasEntry(secSelect,
+		// 		      otherLayer,
+		// 		      comSelect)){
+                //     this.canvasCharge.draw(H_NPE_INT.get(secSelect,
+		// 					 otherLayer,
+		// 					 comSelect));
                 // }
-		if(H_NPE_INT.hasEntry(secSelect,
-				      layerSelect,
-				      componentSelect)){
-                    this.canvasEnergy.draw(H_NPE_INT.get(secSelect,
-							 layerSelect,
-							 componentSelect));
-		    
-		    //!!!! set x axis range
-		    
-		}
                 
-		//----------------------------------------
-		// right top (bottom) for thin (thick) layer
-                canvasEnergy.cd(otherLayerCDIndexRight);
-                if(H_NPE_INT.hasEntry(secSelect,
-				      otherLayer,
-				      componentSelect)){
-                    this.canvasEnergy.draw(H_NPE_INT.get(secSelect,
-							 otherLayer,
-							 componentSelect));
-                }
-                
-            } // end of: if ( tabSelect == 2 ) {....
-            if ( tabSelect == 3 ) {
+            }
+            if ( tabSelect == this.tabIndexMIP ) {
 		
 		int sector2CD[] = {4,0,1,2,5,8,7,6,3};
 			
 		int cd = sector2CD[secSelect];
-		canvasNPE.cd(cd);
+		canvasMIP.cd(cd);
 		
 		int    nComponents[] = {9,20};
 		
@@ -1318,7 +1213,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 		if(evenSecSelect){
 		    for ( int i = 0 ; i < p15EvenI.length ; i++){
-			if( componentSelect == p15EvenI[i] ){
+			if( comSelect == p15EvenI[i] ){
 			    plotP30 = false;
 			    break;
 			}
@@ -1326,7 +1221,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		}
 		else{
 		    for ( int i = 0 ; i < p15OddI.length ; i++){
-			if( componentSelect == p15OddI[i] ){
+			if( comSelect == p15OddI[i] ){
 			    plotP30 = false;
 			    break;
 			}
@@ -1404,13 +1299,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    G_NPE[layerM].setMarkerStyle(layerM+1); // 1 or 2
 		    
 		}
-		canvasNPE.draw(G_NPE[0]);
-		canvasNPE.draw(G_NPE[1],"same");
+		canvasMIP.draw(G_NPE[0]);
+		canvasMIP.draw(G_NPE[1],"same");
 		
 	    }
 	    //======================================================================
 	    // Match Tab Selected
-            if      ( tabSelect == 5 ) {
+            if      ( tabSelect == this.tabIndexMatch ) {
 		
                 this.canvasMatch.divide(2, 2);
                 
@@ -1418,22 +1313,22 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// left top (bottom) for thin (thick) layer
                 canvasMatch.cd(selectedLayerCDIndexLeft);
                 
-                if(H_NOISE_CHARGE.hasEntry(secSelect,layerSelect,componentSelect)){
+                if(H_NOISE_CHARGE.hasEntry(secSelect,laySelect,comSelect)){
                     this.canvasMatch.draw(H_NOISE_CHARGE.get(secSelect,
-							     layerSelect,
-							     componentSelect));
+							     laySelect,
+							     comSelect));
                     if(myfunctNoise1.hasEntry(secSelect,
-                                              layerSelect,
-                                              componentSelect))
+                                              laySelect,
+                                              comSelect))
                         this.canvasMatch.draw(myfunctNoise1.get(secSelect,
-								layerSelect,
-								componentSelect),"same");
+								laySelect,
+								comSelect),"same");
                     if(myfunctNoise2.hasEntry(secSelect,
-                                              layerSelect,
-                                              componentSelect))
+                                              laySelect,
+                                              comSelect))
                         this.canvasMatch.draw(myfunctNoise2.get(secSelect,
-								layerSelect,
-								componentSelect),"same");
+								laySelect,
+								comSelect),"same");
                     
                 }
 		//----------------------------------------
@@ -1442,33 +1337,33 @@ public class FTHODOViewerModule implements IDetectorListener,
                 
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
                                            otherLayer,
-                                           componentSelect))
+                                           comSelect))
                     this.canvasMatch.draw(H_NOISE_CHARGE.get(secSelect,
 							     otherLayer,
-							     componentSelect));
+							     comSelect));
                 if(myfunctNoise1.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
+                                          comSelect))
                     this.canvasMatch.draw(myfunctNoise1.get(secSelect,
 							    otherLayer,
-							    componentSelect),"same");
+							    comSelect),"same");
                 if(myfunctNoise2.hasEntry(secSelect,
                                           otherLayer,
-                                          componentSelect))
+                                          comSelect))
                     this.canvasMatch.draw(myfunctNoise2.get(secSelect,
 							    otherLayer,
-							    componentSelect),"same");
+							    comSelect),"same");
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
                 canvasMatch.cd(selectedLayerCDIndexRight);
 		
 		if(H_NPE_MATCH.hasEntry(secSelect,
-					layerSelect,
-					componentSelect)){
+					laySelect,
+					comSelect)){
                     this.canvasMatch.draw(H_NPE_MATCH.get(secSelect,
-							  layerSelect,
-							  componentSelect));
+							  laySelect,
+							  comSelect));
 		}
                 
 		//----------------------------------------
@@ -1476,10 +1371,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasMatch.cd(otherLayerCDIndexRight);
                 if(H_NPE_MATCH.hasEntry(secSelect,
 					otherLayer,
-					componentSelect)){
+					comSelect)){
                     this.canvasMatch.draw(H_NPE_MATCH.get(secSelect,
 							  otherLayer,
-							  componentSelect));
+							  comSelect));
                 }
                 
             }
@@ -1536,8 +1431,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         if( (signalAlpha-128) < 25)
             noiseAlpha = (signalAlpha-128)*10;
         
-	// Event Viewer
-        if( tabSelect==0 ) {
+	if( tabSelect == tabIndexEvent ) {
             if      ( waveMax > cosmicsThrsh) {
                 shape.setColor(0, 255, 0, signalAlpha);
             }
@@ -1548,8 +1442,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 255, 0);
             }
         }
-	// Noise
-        else if( tabSelect==1 ) {
+	else if( tabSelect == tabIndexNoise ) {
             if      ( waveMax > noiseThrsh) {
                 shape.setColor(255, 255, 0, (256/4)-1);
             }
@@ -1557,8 +1450,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 0, (256/2)-1);
             }
         }
-	// Energy
-        else if(tabSelect==2 ){
+        else if( tabSelect == tabIndexMIP ){
 	    if      (waveMax  > cosmicsThrsh ) {
 		shape.setColor(0, 255, 0, (256/4)-1);
 	    }
@@ -1573,7 +1465,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double getGain(int s, int l, int c){
 	
-	double g = 0.0;
+	double gain = 0.0;
 	
 	if(myfunctNoise1.hasEntry(s, l, c) &&
 	   myfunctNoise2.hasEntry(s, l, c)){
@@ -1586,15 +1478,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 					  l,
 					  c).getParameter(3);
 	    	    
-	    g    = n2 - n1;
+	    gain = n2 - n1;
 	    
 	}
 	
-	if (g < 30.0 || 
-	    g > 70.0)
-	    g = 0.0;
+	if (gain < 30.0 || 
+	    gain > 70.0)
+	    gain = 0.0;
 	
-	return g;
+	return gain;
     }
     
     private double getGainError(int s, int l, int c){
@@ -1737,9 +1629,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                            sourceTabbedPane.getTitleAt(tabSelect) +
                            " with index " + tabSelect);
         
-        if(tabSelect==4)
+        if(tabSelect == tabIndexTable)
             this.updateTable();
-        this.view.repaint();
+        
+	this.view.repaint();
     }
     
     public void initHistograms() {
@@ -2276,12 +2169,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	for (int s = 0; s < 9; s++) {
             for (int l = 0; l < 3; l++) {
                 for ( int c = 0 ; c < 21 ; c++){
-                    this.meanNPE[s][l][c] = 0.0;
-		    this.errNPE[s][l][c]  = 0.0;
-		    this.gain[s][l][c] = 0.0;
-		    this.gain[s][l][c] = 1000.0;
-		    this.errGain[s][l][c] = 0.0;
-
+                    this.meanNPE[s][l][c]  = 0.0;
+		    this.errNPE[s][l][c]   = 0.0;
+		    this.gain[s][l][c]     = 0.0;
+		    this.errGain[s][l][c]  = 0.0;
 		    this.npeEvent[s][l][c] = 0.0;
 		}
 	    }
@@ -2511,17 +2402,17 @@ public class FTHODOViewerModule implements IDetectorListener,
 	//   User chooses which histogram/s to display
         
 	// map [1,2] to [0,1]
-        int selectedLayerCDIndex = layerSelect-1;
+        int selectedLayerCDIndex = laySelect-1;
 	// map [1,2] to [1,0]
-        int otherLayerCDIndex    = layerSelect%2;
+        int otherLayerCDIndex    = laySelect%2;
 	// map [1,2] to [2,1]
-        int otherLayer           = (layerSelect%2)+1;
+        int otherLayer           = (laySelect%2)+1;
         
         boolean skip = false;
         
 	// paddles (calorimeter )
-        if(layerSelect==0) {
-            if(componentSelect < 501) skip = true;
+        if(laySelect==0) {
+            if(comSelect < 501) skip = true;
             selectedLayerCDIndex = 0;
             otherLayerCDIndex    = 1;
             otherLayer = 0;
@@ -2542,7 +2433,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    //============================================================
 	    // Event Tab Selected
             
-            if      ( tabSelect == 0 && (nProcessed%repaintFrequency==0) ) {
+            if      ( tabSelect == tabIndexEvent && (nProcessed%repaintFrequency==0) ) {
                 
                 this.canvasEvent.divide(2, 2);
                 
@@ -2552,10 +2443,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// raw fADC pulse
                 canvasEvent.cd(selectedLayerCDIndexLeft);
                 
-                if(H_WAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                if(H_WAVE.hasEntry(secSelect,laySelect,comSelect)){
                     this.canvasEvent.draw(H_WAVE.get(secSelect,
-                                                     layerSelect,
-                                                     componentSelect));
+                                                     laySelect,
+                                                     comSelect));
                     
                 }
 		//----------------------------------------
@@ -2565,10 +2456,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
                 if(H_WAVE.hasEntry(secSelect,
                                    otherLayer,
-                                   componentSelect))
+                                   comSelect))
                     this.canvasEvent.draw(H_WAVE.get(secSelect,
                                                      otherLayer,
-                                                     componentSelect));
+                                                     comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
@@ -2576,11 +2467,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasEvent.cd(selectedLayerCDIndexRight);
                 
                 if(H_CWAVE.hasEntry(secSelect,
-                                    layerSelect,
-                                    componentSelect))
+                                    laySelect,
+                                    comSelect))
                     this.canvasEvent.draw(H_CWAVE.get(secSelect,
-                                                      layerSelect,
-                                                      componentSelect));
+                                                      laySelect,
+                                                      comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
@@ -2588,15 +2479,16 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasEvent.cd(otherLayerCDIndexRight);
                 if(H_CWAVE.hasEntry(secSelect,
                                     otherLayer,
-                                    componentSelect))
+                                    comSelect))
                     this.canvasEvent.draw(H_CWAVE.get(secSelect,
                                                       otherLayer,
-                                                      componentSelect));
+                                                      comSelect));
                 
-            } // end of: if ( tabSelect == 0 ) {....
-              //======================================================================
-              // Noise Tab Selected
-            if      ( tabSelect == 1 && (nProcessed%(10*repaintFrequency)==0) ) {
+            } 
+	    //======================================================================
+	    // Noise Tab Selected
+            if      ( tabSelect == tabIndexNoise && 
+		      (nProcessed%(10*repaintFrequency)==0) ) {
                 
                 this.canvasNoise.divide(2, 2);
                 
@@ -2604,10 +2496,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// left top (bottom) for thin (thick) layer
                 canvasNoise.cd(selectedLayerCDIndexLeft);
                 
-                if(H_CWAVE.hasEntry(secSelect,layerSelect,componentSelect)){
+                if(H_CWAVE.hasEntry(secSelect,laySelect,comSelect)){
                     this.canvasNoise.draw(H_CWAVE.get(secSelect,
-                                                      layerSelect,
-                                                      componentSelect));
+                                                      laySelect,
+                                                      comSelect));
                     
                 }
 		//----------------------------------------
@@ -2616,99 +2508,100 @@ public class FTHODOViewerModule implements IDetectorListener,
                 
                 if(H_CWAVE.hasEntry(secSelect,
                                     otherLayer,
-                                    componentSelect))
+                                    comSelect))
                     this.canvasNoise.draw(H_CWAVE.get(secSelect,
                                                       otherLayer,
-                                                      componentSelect));
+                                                      comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
                 canvasNoise.cd(selectedLayerCDIndexRight);
                 
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
-                                           layerSelect,
-                                           componentSelect))
+                                           laySelect,
+                                           comSelect))
                     this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
-                                                             layerSelect,
-                                                             componentSelect));
+                                                             laySelect,
+                                                             comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
                 canvasNoise.cd(otherLayerCDIndexRight);
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
                                            otherLayer,
-                                           componentSelect))
+                                           comSelect))
                     this.canvasNoise.draw(H_NOISE_CHARGE.get(secSelect,
                                                              otherLayer,
-                                                             componentSelect));
+                                                             comSelect));
                 
-            } // end of: if ( tabSelect == 1 ) {....
+            } 
               //======================================================================
-              // Energy Tab Selected
-            if      ( tabSelect == 2 && (nProcessed%(10*repaintFrequency)==0) ) {
+              // Charge Tab Selected
+            if      ( tabSelect == tabIndexCharge  &&
+		      (nProcessed%(10*repaintFrequency)==0) ) {
                 
-                this.canvasEnergy.divide(2, 2);
+                this.canvasCharge.divide(2, 2);
                 
 		//----------------------------------------
 		// left top (bottom) for thin (thick) layer
-                canvasEnergy.cd(selectedLayerCDIndexLeft);
+                canvasCharge.cd(selectedLayerCDIndexLeft);
                 
-                if(H_NOISE_CHARGE.hasEntry(secSelect,layerSelect,componentSelect)){
-                    this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
-                                                              layerSelect,
-                                                              componentSelect));
+                if(H_NOISE_CHARGE.hasEntry(secSelect,laySelect,comSelect)){
+                    this.canvasCharge.draw(H_NOISE_CHARGE.get(secSelect,
+                                                              laySelect,
+                                                              comSelect));
                     
                 }
 		//----------------------------------------
 		// left top (bottom) for thin (thick) layer
-                canvasEnergy.cd(otherLayerCDIndexLeft);
+                canvasCharge.cd(otherLayerCDIndexLeft);
                 
                 if(H_NOISE_CHARGE.hasEntry(secSelect,
                                            otherLayer,
-                                           componentSelect))
-                    this.canvasEnergy.draw(H_NOISE_CHARGE.get(secSelect,
+                                           comSelect))
+                    this.canvasCharge.draw(H_NOISE_CHARGE.get(secSelect,
                                                               otherLayer,
-                                                              componentSelect));
+                                                              comSelect));
                 
 		//----------------------------------------
 		// right top (bottom) for thin (thick) layer
-                canvasEnergy.cd(selectedLayerCDIndexRight);
+                canvasCharge.cd(selectedLayerCDIndexRight);
                 
-                // if(H_COSMIC_CHARGE.hasEntry(secSelect,
-                //                             layerSelect,
-                //                             componentSelect))
-                //     this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
-                //                                                layerSelect,
-                //                                                componentSelect));
+                if(H_COSMIC_CHARGE.hasEntry(secSelect,
+                                            laySelect,
+                                            comSelect))
+                    this.canvasCharge.draw(H_COSMIC_CHARGE.get(secSelect,
+                                                               laySelect,
+                                                               comSelect));
+                
+		//----------------------------------------
+		// right top (bottom) for thin (thick) layer
+                canvasCharge.cd(otherLayerCDIndexRight);
+                if(H_COSMIC_CHARGE.hasEntry(secSelect,
+                                            otherLayer,
+                                            comSelect))
+                    this.canvasCharge.draw(H_COSMIC_CHARGE.get(secSelect,
+                                                               otherLayer,
+                                                               comSelect));
+                // if(H_NPE_INT.hasEntry(secSelect,
+		// 		      laySelect,
+		// 		      comSelect))
+                //     this.canvasCharge.draw(H_NPE_INT.get(secSelect,
+		// 					 laySelect,
+		// 					 comSelect));
                 
 		// //----------------------------------------
 		// // right top (bottom) for thin (thick) layer
-                // canvasEnergy.cd(otherLayerCDIndexRight);
-                // if(H_COSMIC_CHARGE.hasEntry(secSelect,
-                //                             otherLayer,
-                //                             componentSelect))
-                //     this.canvasEnergy.draw(H_COSMIC_CHARGE.get(secSelect,
-                //                                                otherLayer,
-                //                                                componentSelect));
-                if(H_NPE_INT.hasEntry(secSelect,
-				      layerSelect,
-				      componentSelect))
-                    this.canvasEnergy.draw(H_NPE_INT.get(secSelect,
-							 layerSelect,
-							 componentSelect));
+                // canvasCharge.cd(otherLayerCDIndexRight);
+                // if(H_NPE_INT.hasEntry(secSelect,
+		// 		      otherLayer,
+		// 		      comSelect))
+                //     this.canvasCharge.draw(H_NPE_INT.get(secSelect,
+		// 					 otherLayer,
+		// 					 comSelect));
                 
-		//----------------------------------------
-		// right top (bottom) for thin (thick) layer
-                canvasEnergy.cd(otherLayerCDIndexRight);
-                if(H_NPE_INT.hasEntry(secSelect,
-				      otherLayer,
-				      componentSelect))
-                    this.canvasEnergy.draw(H_NPE_INT.get(secSelect,
-							 otherLayer,
-							 componentSelect));
-                
-            } // end of: if ( tabSelect == 2 ) {....
-              //======================================================================
+            } 
+	    //======================================================================
             
             if(nProcessed%repaintFrequency==0)
                 this.view.repaint();
@@ -2719,7 +2612,6 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     
     public void hashTableCallback(String string, Long l) {
-	// ToDO
         System.out.println("Selected table row " + string + " " + l);
     }
     

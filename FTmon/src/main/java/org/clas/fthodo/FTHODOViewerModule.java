@@ -676,7 +676,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             }
 	    
             if (f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-
+		
                 H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()).
 		    fit(f1Noise2.get(HP.getS(), HP.getL(), HP.getC()),"NR");
                 
@@ -710,7 +710,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	       f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC())) {
 		
 		if(flag_parnames) {
-                    System.out.println("Index\t Sector\t Layer\t Component\t " +
+                    System.out.println("Ind\t Sec\t Lay\t Comp\t " +
 				       "amp\t mean\t sigma\t " + 
 				       "amp\t mean\t sigma\t " + 
 				       "amp\t mean\t sigma");
@@ -870,12 +870,31 @@ public class FTHODOViewerModule implements IDetectorListener,
 			 int laySel,
 			 int comSel){
 	
+
+	
 	// map [1,2] to [0,1]
         int layCD  = laySel-1;
 	// map [1,2] to [1,0]
         int oppCD  = laySel%2;
 	// map [1,0] to [2,1]
         int oppSel = oppCD+1;
+	
+	// // paddles
+	// if(laySel==0){
+	//     layCD  = 0; 
+	//     oppCD  = 1;
+	//     oppSel = !!!!0;
+	// }
+
+	// if     (component==501)
+	//     layerStr = "Top Long Paddle";
+	// else if(component==502)
+        //             layerStr = "Bottom Long Paddle";
+	// else if(component==503)
+	//     layerStr = "Top Short Paddle";
+	// else if(component==504)
+	//     layerStr = "Bottom Short Paddle";
+
 
 	// map [0,1] to [0,3]
 	int layCDL =  3*layCD;
@@ -891,6 +910,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	int layCDR = layCDL + 2;
 	// map [3,0] to [5,2]
 	int oppCDR = oppCDL + 2;
+	
 	
 	//----------------------------------------
 	// left top (bottom) for thin (thick) layer
@@ -1239,6 +1259,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 		       int comSel
 		       ){
 	
+	if(secSel == 0)
+	    return;
+	
 	int sector2CD[] = {4,0,1,2,5,8,7,6,3};
 	
 	canvasMIP.cd(sector2CD[secSel]);
@@ -1314,7 +1337,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
 	
 	G_NPE    = new GraphErrors[2];
-	
+	String title;
 	for( int layerM = 0 ; layerM < 2 ; layerM++){
 	    
 	    if(plotP30){
@@ -1342,7 +1365,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 						    p15OddERR[layerM]);
 	    }
 	    
-	    G_NPE[layerM].setTitle(" "); 
+	    title = "sector " + secSel;
+	    G_NPE[layerM].setTitle(title); 
 	    G_NPE[layerM].setXTitle("component");
 	    G_NPE[layerM].setYTitle("NPE mean ");
 	    G_NPE[layerM].setMarkerSize(5); 
@@ -1352,6 +1376,99 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
 	canvasMIP.draw(G_NPE[0]);
 	canvasMIP.draw(G_NPE[1],"same");
+    }
+
+    void drawCanvasGain(int secSel,
+			int laySel,
+			int comSel
+			){
+
+	if(secSel == 0)
+	    return;
+	
+	boolean evenSecSelect = true;
+	
+	String sectors[] = new String[8];
+	
+	if(secSel%2==1)
+	    evenSecSelect = false;
+	
+	int sector2CD[] = {4,0,1,2,5,8,7,6,3};
+	
+	canvasGain.cd(sector2CD[secSel]);
+	
+	GraphErrors[] G_Gain = null;
+	
+	
+	int evenI[]    = {1 ,2 ,3 ,4 ,5 ,
+			  6 ,7 ,8 ,9 ,10,
+			  11,12,13,14,15,
+			  16,17,18,19,20};
+	
+	double evenD[] = {1 ,2 ,3 ,4 ,5 ,
+			  6 ,7 ,8 ,9 ,10,
+			  11,12,13,14,15,
+			  16,17,18,19,20};
+	
+	int oddI[]     = {1,2,3,4,5,
+			  6,7,8,9};
+	
+	double oddD[]  = {1,2,3,4,5,
+			  6,7,8,9};
+	
+	double evenE[] = {0,0,0,0,0,
+			  0,0,0,0,0,
+			  0,0,0,0,0,
+			  0,0,0,0,0};
+
+	double oddE[]  = {0,0,0,0,0,
+			  0,0,0,0};
+	
+	double evenGain[][]    = new double[2][20];
+	double evenGainErr[][] = new double[2][20];
+	double oddGain[][]     = new double[2][9];
+	double oddGainErr[][]  = new double[2][9];
+	
+	for( int lM = 0 ; lM < 2 ; lM++){
+	}
+	
+	G_Gain    = new GraphErrors[2];
+	String title; 
+	
+	for( int lM = 0 ; lM < 2 ; lM++){
+	    
+	    for (int c = 0 ; c < evenI.length ; c++){
+		evenGain[lM][c]    = gain[secSel][lM+1][evenI[c]];
+		evenGainErr[lM][c] = errGain[secSel][lM+1][evenI[c]];
+	    }
+	    for (int c = 0 ; c < oddI.length ; c++){
+		oddGain[lM][c]    = gain[secSel][lM+1][oddI[c]];
+		oddGainErr[lM][c] = errGain[secSel][lM+1][oddI[c]];
+	    }
+	    
+	    if(evenSecSelect)
+		G_Gain[lM] = new GraphErrors(evenD,
+					     evenGain[lM],
+					     evenE,
+					     evenGainErr[lM]);
+	    else 
+		G_Gain[lM] = new GraphErrors(oddD,
+					     oddGain[lM],
+					     oddE,
+					     oddGainErr[lM]);
+	    
+	    
+	    title = "sector " + secSel;
+	    G_Gain[lM].setTitle(title); 
+	    G_Gain[lM].setXTitle("component");
+	    G_Gain[lM].setYTitle("gain (pC) ");
+	    G_Gain[lM].setMarkerSize(5); 
+	    G_Gain[lM].setMarkerColor(lM+1); // 0-9 for given palette
+	    G_Gain[lM].setMarkerStyle(lM+1); // 1 or 2
+	    
+	}
+	canvasGain.draw(G_Gain[0]);
+	canvasGain.draw(G_Gain[1],"same");
     }
 	
     
@@ -1462,6 +1579,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    layCDR,
 			    oppCDL,
 			    oppCDR);
+	}
+	else if ( tabSelect == this.tabIndexGain ) {
+	    
+	    drawCanvasGain(secSel,
+			   laySel,
+			   comSel);	    
 	}
 	else if ( tabSelect == this.tabIndexCharge ) {
 	    
@@ -1611,7 +1734,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    double n2Error = f1Noise2.get(s,l,c).getParError(1);
 	    double n1Error = f1Noise1.get(s,l,c).getParError(3);
-	    gainError    = n2Error - n1Error;
+	    gainError    = n2Error*n2Error + n1Error*n1Error;
+	    gainError    = sqrt(gainError);
 	    
 	}
 	

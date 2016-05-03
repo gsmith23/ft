@@ -204,7 +204,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
         HashTableViewer canvasTable = new HashTableViewer(summaryTable);
         canvasTable.addListener(this);
-        
+	
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.add("Event"  ,this.canvasEvent);
         tabbedPane.add("Noise"  ,this.canvasNoise);

@@ -52,8 +52,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     //=================================
     //    PANELS, CANVASES ETC
     //=================================
-    JPanel         detectorPanel;
-    
+    JPanel detectorPanel;
     JPanel canvasPane = new JPanel(new BorderLayout());
     
     EmbeddedCanvas canvasEvent  = new EmbeddedCanvas();
@@ -66,10 +65,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public EmbeddedCanvas canvasHODOEvent  = new EmbeddedCanvas();
     
-    DetectorShapeTabView view = new DetectorShapeTabView();
-    HashTable  summaryTable   = null;
-    ColorPalette      palette = new ColorPalette();
-    
+    DetectorShapeTabView view    = new DetectorShapeTabView();
+    ColorPalette         palette = new ColorPalette();
+    HashTable            summaryTable = null;
+
     //=================================
     //     HISTOGRAMS, GRAPHS
     //=================================
@@ -116,6 +115,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double meanNPE[][][];
     private double errNPE[][][]; 
+    private double sigmaNPE[][][];
+    
     private double gain[][][]; 
     private double errGain[][][];
     
@@ -228,9 +229,9 @@ public class FTHODOViewerModule implements IDetectorListener,
         fitBtn.addActionListener(this);
         buttonPane.add(fitBtn);
         
-        JButton tableBtn = new JButton("Table");
-        tableBtn.addActionListener(this);
-        buttonPane.add(tableBtn);
+        JButton variablesBtn = new JButton("Variables");
+        variablesBtn.addActionListener(this);
+        buttonPane.add(variablesBtn);
         
         ButtonGroup group = new ButtonGroup();
         
@@ -636,12 +637,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
-        
-        if (e.getActionCommand().compareTo("Table") == 0) {
-            updateTable();
+	if (e.getActionCommand().compareTo("Variables") == 0) {
+            updateVariables();
         }
         if (e.getActionCommand().compareTo("Fit") == 0) {
-            //!!!
 	    fitNoiseHistograms();
         }
         
@@ -1461,14 +1460,24 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    title = "sector " + secSel;
 	    G_Gain[lM].setTitle(title); 
 	    G_Gain[lM].setXTitle("component");
-	    G_Gain[lM].setYTitle("gain (pC) ");
+	    G_Gain[lM].setYTitle("gain (pC)");
 	    G_Gain[lM].setMarkerSize(5); 
 	    G_Gain[lM].setMarkerColor(lM+1); // 0-9 for given palette
 	    G_Gain[lM].setMarkerStyle(lM+1); // 1 or 2
 	    
 	}
-	canvasGain.draw(G_Gain[0]);
+	
+	int nXBins[] = {20,9};
+	int nYBins = 100;
+	double[] xLimits = {0.5,(double)nXBins[secSel%2]+0.5};
+	double[] yLimits = {0.0,100.};
+	
+	H1D H1 = new H1D("H1","component","gain (pC)",nXBins[secSel%2],xLimits[0],xLimits[1]);
+	canvasGain.draw(H1);
+	canvasGain.draw(G_Gain[0],"same");
 	canvasGain.draw(G_Gain[1],"same");
+	H1.getYaxis().set(nYBins,yLimits[0],yLimits[1]);
+	canvasGain.draw(H1,"same");
     }
 	
     
@@ -1671,7 +1680,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	int    noiseAlpha  = min((int)(npeWaveMax/20*255),255);
 	
 	
-	
 	if    ( tabSelect == tabIndexEvent ) {
             if      ( waveMax > cosmicsThrsh) {
                 shape.setColor(0, 255, 0, signalAlpha);
@@ -1683,7 +1691,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 255, 0);
             }
         }
-	else if( tabSelect == tabIndexNoise ) {
+	else if( tabSelect == tabIndexNoise ||
+		 tabSelect == tabIndexGain ) {
             if      ( waveMax > noiseThrsh) {
                 shape.setColor(255, 255, 0, (256/4)-1);
             }
@@ -1691,7 +1700,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 0, (256/2)-1);
             }
         }
-        else if( tabSelect == tabIndexMIP ){
+        else if( tabSelect == tabIndexMIP    ||
+		 tabSelect == tabIndexCharge ){
 	    if      (waveMax  > cosmicsThrsh ) {
 		shape.setColor(0, 255, 0, (256/4)-1);
 	    }
@@ -1747,11 +1757,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double qMean = 0.0;
 	
-	if(f1MIP.hasEntry(s, l, c)){
-	    
+	if(f1MIP.hasEntry(s, l, c))
 	    qMean = f1MIP.get(s,l,c).getParameter(1);
-	    
-	}
 	
 	return qMean;
 	
@@ -1761,15 +1768,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double qMeanError = 0.0;
 	
-	if(f1MIP.hasEntry(s, l, c)){
-	    
+	if(f1MIP.hasEntry(s, l, c))
 	    qMeanError = f1MIP.get(s,l,c).getParError(1);
-	    
-	}
 	
 	return qMeanError;
 	
     }
+    
     
     private double getNpeMean(int s, int l, int c){
 	
@@ -1802,8 +1807,19 @@ public class FTHODOViewerModule implements IDetectorListener,
 	return npeError;
 	
     }
+    
+    // private double getNpeStd(int s, int l, int c){
+	
+    // 	double npeMean = 0.0;
+    // 	if( get > 0.0 )
+    // 	    npeMean = getQMean(s,l,c)/getGain(s,l,c);
+	
+    // 	return npeMean;
+	
+    // }
 
-    private void updateTable() {
+
+    private void updateVariables() {
 	
 	for (int s = 1; s < 9; s++) {
             for (int l = 1; l < 3; l++) {
@@ -1823,8 +1839,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    summaryTable.setValueAtAsDouble(1,
 						    errNPE[s][l][c],
 						    s,l,c);
-		    
-    
+		        
 		    summaryTable.setValueAtAsDouble(2,
 						    gain[s][l][c],
 						    s,l,c);
@@ -1865,7 +1880,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// calorimeter
         for (int index = 0; index < 505; index++)
 	    setHistograms(index,'c');
-	
+
         H_WMAX     = new H1D("WMAX", 504, 0, 504);
 	H_NPE_MAX  = new H1D("H_NPE_MAX", 504, 0, 504);
 
@@ -1883,7 +1898,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	H_WAVE.add(HP.getS(),HP.getL(),HP.getC(),
 		   new H1D(DetectorDescriptor.
 			   getName("WAVE",HP.getS(),HP.getL(),HP.getC()),
-			   HP.getTitle(), 100, 0.0, 100.0));
+			   HP.getTitle(),100, 0.0, 100.0));
 	H_WAVE.get(HP.getS(),HP.getL(),HP.getC()).setFillColor(4);
 	H_WAVE.get(HP.getS(),HP.getL(),HP.getC()).setXTitle("fADC Sample");
 	H_WAVE.get(HP.getS(),HP.getL(),HP.getC()).setYTitle("fADC Counts");
@@ -2209,7 +2224,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		gain[sec][opp][com] > 0.0){
 		
 		double npeOtherLayer  = npeEvent[sec][opp][com];
-				
+		
 		double meanNPEOther   = meanNPE[sec][opp][com];
 		double errNPEOther    = errNPE[sec][opp][com];
 		double npeLowLimOther = meanNPEOther - abs(errNPEOther);

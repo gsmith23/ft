@@ -1864,7 +1864,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                            " with index " + tabSelect);
         
         if(tabSelect == tabIndexTable)
-            this.updateTable();
+            this.updateVariables();
         
 	this.view.repaint();
     }

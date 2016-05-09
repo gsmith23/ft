@@ -105,7 +105,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
     
-    H1D H_WMAX       = null;
+    H1D H_W_MAX       = null;
+    H1D H_V_MAX      = null;
     H1D H_NPE_MAX    = null;
     H1D H_CHARGE_MAX = null;
     
@@ -276,7 +277,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.canvasNoise.setTitleFontSize(16);
         this.canvasNoise.setAxisTitleFontSize(14);
         this.canvasNoise.setStatBoxFontSize(8);
-        this.canvasNoise.divide(2,2);
+        this.canvasNoise.divide(3,2);
 	
         this.canvasGain.setGridX(false);
         this.canvasGain.setGridY(false);
@@ -877,23 +878,6 @@ public class FTHODOViewerModule implements IDetectorListener,
         int oppCD  = laySel%2;
 	// map [1,0] to [2,1]
         int oppSel = oppCD+1;
-	
-	// // paddles
-	// if(laySel==0){
-	//     layCD  = 0; 
-	//     oppCD  = 1;
-	//     oppSel = !!!!0;
-	// }
-
-	// if     (component==501)
-	//     layerStr = "Top Long Paddle";
-	// else if(component==502)
-        //             layerStr = "Bottom Long Paddle";
-	// else if(component==503)
-	//     layerStr = "Top Short Paddle";
-	// else if(component==504)
-	//     layerStr = "Bottom Short Paddle";
-
 
 	// map [0,1] to [0,3]
 	int layCDL =  3*layCD;
@@ -909,6 +893,22 @@ public class FTHODOViewerModule implements IDetectorListener,
 	int layCDR = layCDL + 2;
 	// map [3,0] to [5,2]
 	int oppCDR = oppCDL + 2;
+	
+	// // paddles
+	// if(laySel==0){
+	//     layCD  = 0; 
+	//     oppCD  = 1;
+	//     oppSel = 0;
+	// }
+
+	// if     (component==501)
+	//     layerStr = "Top Long Paddle";
+	// else if(component==502)
+        //             layerStr = "Bottom Long Paddle";
+	// else if(component==503)
+	//     layerStr = "Top Short Paddle";
+	// else if(component==504)
+	//     layerStr = "Bottom Short Paddle";
 	
 	
 	//----------------------------------------
@@ -982,14 +982,32 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     void drawCanvasNoise(int secSel,
 			 int laySel,
-			 int comSel,
-			 int oppSel,
-			 int layCDL,
-			 int layCDR,
-			 int oppCDL,
-			 int oppCDR){
+			 int comSel){
+			 
 	
 	
+	// map [1,2] to [0,1]
+        int layCD  = laySel-1;
+	// map [1,2] to [1,0]
+        int oppCD  = laySel%2;
+	// map [1,0] to [2,1]
+        int oppSel = oppCD+1;
+
+	// map [0,1] to [0,3]
+	int layCDL =  3*layCD;
+	// map [1,0] to [3,0]
+	int oppCDL =  3*oppCD;
+        
+	// map [0,3] to [1,4]
+        int layCDM = layCDL + 1;
+	// map [3,0] to [4,1]
+        int oppCDM = oppCDL + 1;
+	
+	// map [0,3] to [2,5]
+	int layCDR = layCDL + 2;
+	// map [3,0] to [5,2]
+	int oppCDR = oppCDL + 2;
+
 	//----------------------------------------
 	// left top (bottom) for thin (thick) layer
 	// calibrated fADC pulse
@@ -1006,36 +1024,59 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// calibrated fADC pulse
 	canvasNoise.cd(oppCDL);
         
-	if(H_CWAVE.hasEntry(secSel,
-			    oppSel,
-			    comSel))
+	if(H_CWAVE.hasEntry(secSel,oppSel,comSel))
 	    this.canvasNoise.draw(H_CWAVE.get(secSel,
 					      oppSel,
 					      comSel));
 	
+	//----------------------------------------
+	// middle top (bottom) for thin (thick) layer
+	// voltage maximum
+	canvasNoise.cd(layCDM);
+        
+        if(H_MAXV.hasEntry(secSel,laySel,comSel)){
+	    this.canvasNoise.draw(H_MAXV.get(secSel,
+					     laySel,
+					     comSel));
+	    
+	}
+	
+	//----------------------------------------
+	// middle top (bottom) for thin (thick) layer
+	// calibrated fADC pulse
+	
+	canvasNoise.cd(oppCDM);
+	
+	if(H_MAXV.hasEntry(secSel,oppSel,comSel)){
+	    this.canvasNoise.draw(H_MAXV.get(secSel,
+					     oppSel,
+					     comSel));
+	    
+	}
+
 	//----------------------------------------
 	// right top (bottom) for thin (thick) layer
 	// accumulated noise charge
 	canvasNoise.cd(layCDR);
         
 	if(H_NOISE_Q.hasEntry(secSel,
-				   laySel,
-				   comSel))
+			      laySel,
+			      comSel))
 	    this.canvasNoise.draw(H_NOISE_Q.get(secSel,
-						     laySel,
-						     comSel));
+						laySel,
+						comSel));
 	if(f1Noise1.hasEntry(secSel,
-				  laySel,
-				  comSel))
+			     laySel,
+			     comSel))
 	    this.canvasNoise.draw(f1Noise1.get(secSel,
-						    laySel,
-						    comSel),"same");
+					       laySel,
+					       comSel),"same");
 	if(f1Noise2.hasEntry(secSel,
-				  laySel,
-				  comSel))
+			     laySel,
+			     comSel))
 	    this.canvasNoise.draw(f1Noise2.get(secSel,
-						    laySel,
-						    comSel),"same");
+					       laySel,
+					       comSel),"same");
 	
         
 	//----------------------------------------
@@ -1043,23 +1084,23 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// calibrated fADC pulse
 	canvasNoise.cd(oppCDR);
 	if(H_NOISE_Q.hasEntry(secSel,
-				   oppSel,
-				   comSel))
+			      oppSel,
+			      comSel))
 	    this.canvasNoise.draw(H_NOISE_Q.get(secSel,
-						     oppSel,
-						     comSel));
+						oppSel,
+						comSel));
 	if(f1Noise1.hasEntry(secSel,
-				  oppSel,
-				  comSel))
+			     oppSel,
+			     comSel))
 	    this.canvasNoise.draw(f1Noise1.get(secSel,
-						    oppSel,
-						    comSel),"same");
+					       oppSel,
+					       comSel),"same");
 	if(f1Noise2.hasEntry(secSel,
-				  oppSel,
-				  comSel))
+			     oppSel,
+			     comSel))
 	    this.canvasNoise.draw(f1Noise2.get(secSel,
-						    oppSel,
-						    comSel),"same");
+					       oppSel,
+					       comSel),"same");
 	
     }
     
@@ -1582,12 +1623,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    drawCanvasNoise(secSel,
 			    laySel,
-			    comSel,
-			    oppSel,
-			    layCDL,
-			    layCDR,
-			    oppCDL,
-			    oppCDR);
+			    comSel);
+			    
 	}
 	else if ( tabSelect == this.tabIndexGain ) {
 	    
@@ -1637,8 +1674,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	Color col = new Color(100,100,100);
         
-        if(H_WMAX.getBinContent(index) > cosmicsThrsh) {
-            col = palette.getColor3D(H_WMAX.getBinContent(index), 4000, true);
+        if(H_W_MAX.getBinContent(index) > cosmicsThrsh) {
+            col = palette.getColor3D(H_W_MAX.getBinContent(index), 4000, true);
         }
         return col;
     }
@@ -1670,7 +1707,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         else
             index = getIndex4SLC(sec,lay,com);
         
-        double waveMax     = H_WMAX.getBinContent(index);
+        double waveMax     = H_W_MAX.getBinContent(index);
 	double npeWaveMax  = H_NPE_MAX.getBinContent(index);
 	
 	// map [0,4095] to [0,255]
@@ -1729,7 +1766,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
 	
 	if (gain < 30.0 || 
-	    gain > 70.0)
+	    gain > 90.0)
 	    gain = 0.0;
 	
 	return gain;
@@ -1881,8 +1918,9 @@ public class FTHODOViewerModule implements IDetectorListener,
         for (int index = 0; index < 505; index++)
 	    setHistograms(index,'c');
 
-        H_WMAX     = new H1D("WMAX", 504, 0, 504);
-	H_NPE_MAX  = new H1D("H_NPE_MAX", 504, 0, 504);
+        H_W_MAX     = new H1D("H_W_MAX", 504, 0, 504);
+	H_V_MAX    = new H1D("H_V_MAX", 504, 0, 2000);
+	H_NPE_MAX  = new H1D("H_NPE_MAX", 500, 0, 50);
 
     }
 
@@ -2124,7 +2162,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         int nPosADC;
         int nNegADC;
 
-	H_WMAX.reset();
+	H_W_MAX.reset();
+	H_V_MAX.reset();
 	H_NPE_MAX.reset();
 
 	//=-=-=-=-=-=-=-=-=-=-=-=-=-        
@@ -2252,9 +2291,12 @@ public class FTHODOViewerModule implements IDetectorListener,
                 H_NOISE.get(sec, lay, com).fill(fadcFitter.getRMS());
             
 	    double waveMax = fadcFitter.getWave_Max()-fadcFitter.getPedestal();
+	    double voltMax = waveMax/voltsPerSPE;
 	    double npeMax  = waveMax/binsPerSPE;
+
 	    
-	    H_WMAX.fill(index,waveMax);
+	    H_W_MAX.fill(index,waveMax);
+	    H_V_MAX.fill(index,voltMax);
 	    H_NPE_MAX.fill(index,npeMax);
 	    	    
 	} // end of: for (DetectorCounter counter : counters) {
@@ -2320,13 +2362,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    drawCanvasNoise(secSel,
 			    laySel,
-			    comSel,
-			    oppSel,
-			    layCDL,
-			    layCDR,
-			    oppCDL,
-			    oppCDR);
-
+			    comSel);
+	    
 	} 
 	else if( tabSelect == tabIndexCharge  &&
 		 (nProcessed%(10*repaintFrequency)==0) ) {

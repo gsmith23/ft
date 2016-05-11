@@ -172,6 +172,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     private int secSel = 0;
     private int laySel = 0;
     
+    // the following indices must correspond 
+    // to the order the canvased are added
+    // to 'tabbedPane'
     final private int tabIndexEvent  = 0;
     final private int tabIndexNoise  = 1;
     final private int tabIndexGain   = 2;
@@ -180,24 +183,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     final private int tabIndexMatch  = 5;
     final private int tabIndexTime   = 6;
     final private int tabIndexTable  = 7;
-        
-    public EventDecoder getDecoder() {
-        return decoder;
-    }
-    
-    public void setDecoder(EventDecoder decoder) {
-        this.decoder = decoder; // decoder sent from FTViewerModule
-    }
-    
-    public JPanel getDetectorPanel() {
-        return detectorPanel;
-    }
-    
-    // argument sent from FTViewerModule
-    public void setDetectorPanel(JPanel detectorPanel) {
-        this.detectorPanel = detectorPanel;
-    }
-    
+
     public void initPanel() {
         
         JSplitPane splitPane = new JSplitPane();
@@ -369,6 +355,23 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.view.addDetectorLayer(viewChannels);
 	
         view.addDetectorListener(this);
+    }
+    
+    public EventDecoder getDecoder() {
+        return decoder;
+    }
+    
+    public void setDecoder(EventDecoder decoder) {
+        this.decoder = decoder; // decoder sent from FTViewerModule
+    }
+    
+    public JPanel getDetectorPanel() {
+        return detectorPanel;
+    }
+    
+    // argument sent from FTViewerModule
+    public void setDetectorPanel(JPanel detectorPanel) {
+        this.detectorPanel = detectorPanel;
     }
     
     public int getComp4ChMez(int ch,

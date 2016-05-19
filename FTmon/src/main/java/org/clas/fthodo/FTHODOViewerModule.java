@@ -1,4 +1,4 @@
-f1Voltage1package org.clas.fthodo;
+package org.clas.fthodo;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -841,10 +841,14 @@ public class FTHODOViewerModule implements IDetectorListener,
         ampl = hvoltagetofit.getBinContent(hvoltagetofit.getMaximumBin());
         mean = hvoltagetofit.getMaximumBin();
         std  = 5.0;
+
+	System.out.println("-----------");
+	System.out.println("ampl = " + ampl);
+	System.out.println("mean = " + mean);
         
         if (hvoltagetofit.getEntries()>100){
             
-            f1Voltage1.add(sec, lay, com, new F1D("exp+ gaus", 10,  mean+25));
+            f1Voltage1.add(sec, lay, com, new F1D("exp+ gaus", 15,  75));
             f1Voltage1.get(sec, lay, com).setParameter(0, ampl/5);
             f1Voltage1.get(sec, lay, com).setParameter(1, -0.001);
             f1Voltage1.get(sec, lay, com).setParameter(2, ampl);
@@ -857,7 +861,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             f1Voltage1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
             
             if (hvoltagetofit.integral(60, 100)>50){
-                f1Voltage2.add(sec, lay, com, new F1D("gaus", mean+20, mean+100));
+                f1Voltage2.add(sec, lay, com, new F1D("gaus", 70, 110));
                 f1Voltage2.get(sec, lay, com).setParameter(0, ampl/5.0);
                 f1Voltage2.get(sec, lay, com).setParameter(1, mean+50);
                 f1Voltage2.get(sec, lay, com).setParameter(2, std);

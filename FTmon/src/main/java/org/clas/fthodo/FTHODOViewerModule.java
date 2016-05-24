@@ -123,6 +123,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double gain[][][];
     private double errGain[][][];
     
+    private double gain_mV[][][];
+    private double errGain_mV[][][];
+    
     private double npeEvent[][][];
     
     //=================================
@@ -314,9 +317,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                                      "NPE:d",
                                      "NPE Error:d",
                                      "Gain:d",
-                                     "Gain Error:d");
+                                     "Gain Error:d",
+                                     "Gain [mV]:d",
+                                     "Gain Error [mV]:d");
         
-        double[] summaryInitialValues = {-1,-1,-1,-1};
+        double[] summaryInitialValues = {-1,-1,-1,-1,-1,-1};
         
         for (int layer = 2; layer > 0; layer--) {
             for (int sector = 1; sector < 9; sector++) {
@@ -333,6 +338,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                     summaryTable.addConstrain(3, 15.0, 1000.0);
 		    // gain
                     summaryTable.addConstrain(5, 40.0, 70.0);
+                    // gain_mV
+                    summaryTable.addConstrain(5, 30.0, 60.0);
                     
                 }
             }
@@ -376,10 +383,39 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.detectorPanel = detectorPanel;
     }
     
+    public int getChan4SLC(int isec,
+                           int ilay,
+                           int icomp){
+        int[][][] chanM = {
+	    //Layer 1
+            {{7,4,6,4,1,5,6,2,4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec1
+	     {0,6,0,1,7,7,0,1,5,7,0,1,7,6,5,6,3,4,7,6},//sec2
+	     {4,2,3,3,1,2,6,5,7,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec3
+	     {3,2,4,5,5,6,4,4,2,5,7,2,6,3,2,4,5,7,6,1},//sec4
+	     {6,0,7,7,6,5,7,5,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec5
+	     {6,3,7,1,0,4,2,1,7,2,0,6,0,1,4,3,1,2,4,3},//sec6
+	     {2,2,1,0,0,3,1,3,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec7
+	     {3,4,5,3,3,3,2,2,5,4,5,4,0,5,6,0,1,1,0,3}},//sec8
+	    //Layer 2
+            {{13,12,14,9,15,12,11,10,8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec1
+	     {14,15,8,9,14,8,9,14,15,10,8,8,11,12,8,9,9,8,12,11},//sec2
+	     {10,11,9,10,9,11,15,8,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec3
+	     {11,11,12,13,12,12,10,13,10,13,13,10,9,11,10,13,12,15,14,14},//sec4
+	     {14,9,15,14,15,12,14,13,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec5
+	     {8,15,15,8,15,12,10,8,9,11,15,14,14,13,11,12,13,14,13,14},//sec6
+	     {15,11,14,9,13,9,8,12,13,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},//sec7
+	     {10,10,11,13,10,10,11,12,12,13,15,11,14,12,11,9,8,8,9,9}}//sec8
+        };
+        
+        int chan = chanM[ilay-1][isec-1][icomp-1];
+        return chan;
+        
+    }
+    
     public int getComp4ChMez(int ch,
                              int mez){
         
-        int compM[][] = {{1 ,5 ,8 ,4 ,2 ,3 ,1 ,9 ,1 ,9 ,2 ,3 ,8 ,4 ,1 ,5 },
+        int[][] compM = {{1 ,5 ,8 ,4 ,2 ,3 ,1 ,9 ,1 ,9 ,2 ,3 ,8 ,4 ,1 ,5 },
 			 {2 ,8 ,7 ,6 ,10,6 ,2 ,5 ,8 ,2 ,6 ,7 ,6 ,10,5 ,2 },
 			 {4 ,7 ,2 ,1 ,2 ,9 ,3 ,1 ,7 ,4 ,1 ,2 ,2 ,1 ,3 ,9 },
 			 {5 ,3 ,1 ,5 ,4 ,9 ,7 ,6 ,6 ,4 ,5 ,7 ,9 ,5 ,3 ,1 },
@@ -404,7 +440,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     public int getSect4ChMez(int ch,
                              int mez){
         
-        int sectM[][] = {{2,1,8,8,8,8,6,6,6,6,8,8,8,8,2,1},
+        int[][] sectM = {{2,1,8,8,8,8,6,6,6,6,8,8,8,8,2,1},
 			 {5,6,8,8,8,1,2,2,6,5,8,8,1,8,2,2},
 			 {7,7,7,8,1,2,1,1,7,7,8,7,1,1,1,2},
 			 {7,7,7,8,1,8,1,2,2,1,8,1,8,7,7,7},
@@ -736,7 +772,10 @@ public class FTHODOViewerModule implements IDetectorListener,
             HP.setAllParameters(index,'h');
             
             if(f1Noise1.hasEntry(HP.getS(), HP.getL(), HP.getC()) &&
-               f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC())) {
+               f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC()) &&
+               f1Voltage1.hasEntry(HP.getS(), HP.getL(), HP.getC()) &&
+               f1Voltage2.hasEntry(HP.getS(), HP.getL(), HP.getC())) 
+                    {
                 
                 if(flag_parnames) {
                     System.out.println("Ind\t Sec\t Lay\t Comp\t " +
@@ -839,34 +878,31 @@ public class FTHODOViewerModule implements IDetectorListener,
         }
         
         ampl = hvoltagetofit.getBinContent(hvoltagetofit.getMaximumBin());
-        mean = hvoltagetofit.getMaximumBin();
+        mean = hvoltagetofit.getMaximumBin() + 20;
         std  = 5.0;
-
-	System.out.println("-----------");
-	System.out.println("ampl = " + ampl);
-	System.out.println("mean = " + mean);
         
         if (hvoltagetofit.getEntries()>100){
             
-            f1Voltage1.add(sec, lay, com, new F1D("exp+ gaus", 15,  75));
-            f1Voltage1.get(sec, lay, com).setParameter(0, ampl/5);
-            f1Voltage1.get(sec, lay, com).setParameter(1, -0.001);
-            f1Voltage1.get(sec, lay, com).setParameter(2, ampl);
-            f1Voltage1.get(sec, lay, com).setParameter(3, mean);
-            f1Voltage1.get(sec, lay, com).setParameter(4, std);
-            f1Voltage1.get(sec, lay, com).setParLimits(0, ampl/4.0, ampl);
-            f1Voltage1.get(sec, lay, com).setParLimits(1, -5, -0.0001);
-            f1Voltage1.get(sec, lay, com).setParLimits(2, ampl/2, ampl*2);
-            f1Voltage1.get(sec, lay, com).setParLimits(3, mean-25, mean+25);
-            f1Voltage1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
+            f1Voltage1.add(sec, lay, com, new F1D("gaus+exp", 25, mean+20));
+            f1Voltage1.get(sec, lay, com).setParameter(0, ampl);
+            f1Voltage1.get(sec, lay, com).setParameter(1, mean);
+            f1Voltage1.get(sec, lay, com).setParameter(2, std);
+            f1Voltage1.get(sec, lay, com).setParameter(3, ampl/5.0);
+            f1Voltage1.get(sec, lay, com).setParameter(4, -0.001);
+                        
+            f1Voltage1.get(sec, lay, com).setParLimits(0, ampl/2, ampl*2);
+            f1Voltage1.get(sec, lay, com).setParLimits(1, mean-15, mean+20);
+            f1Voltage1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
+            f1Voltage1.get(sec, lay, com).setParLimits(3, 0, ampl/2);
+            f1Voltage1.get(sec, lay, com).setParLimits(4, -5, -0.0001);
             
-            if (hvoltagetofit.integral(60, 100)>50){
-                f1Voltage2.add(sec, lay, com, new F1D("gaus", 70, 110));
+            if (hvoltagetofit.integral(20, 70)>50){
+                f1Voltage2.add(sec, lay, com, new F1D("gaus", mean+20, mean+60));
                 f1Voltage2.get(sec, lay, com).setParameter(0, ampl/5.0);
-                f1Voltage2.get(sec, lay, com).setParameter(1, mean+50);
+                f1Voltage2.get(sec, lay, com).setParameter(1, mean+40);
                 f1Voltage2.get(sec, lay, com).setParameter(2, std);
                 f1Voltage2.get(sec, lay, com).setParLimits(0, 1, ampl/2.0);
-                f1Voltage2.get(sec, lay, com).setParLimits(1, mean+20, mean+100);
+                f1Voltage2.get(sec, lay, com).setParLimits(1, mean+20, mean+60);
                 f1Voltage2.get(sec, lay, com).setParLimits(2, 1, std*3.0);
             }
         }
@@ -1891,6 +1927,46 @@ public class FTHODOViewerModule implements IDetectorListener,
         
     }
     
+    //gain calculated from the voltage (H_MAXV) histograms
+    private double getGain_mV(int s, int l, int c){
+        
+        double gain_mV = 0.0 ;
+        
+        if(f1Voltage1.hasEntry(s, l, c) &&
+           f1Voltage2.hasEntry(s, l, c)){
+            
+            double m2 = f1Voltage2.get(s,l,c).getParameter(1);
+            double m1 = f1Voltage1.get(s,l,c).getParameter(1);
+            
+            gain_mV = m2 - m1;
+            
+        }
+        
+        if (gain_mV < 30.0 ||
+            gain_mV > 60.0)
+            gain_mV = 0.0;
+        
+        return gain_mV;
+    }
+    
+    private double getGainError_mV(int s, int l, int c){
+        
+        double gainError_mV = 0.0;
+        
+        if(f1Voltage1.hasEntry(s, l, c) &&
+           f1Voltage2.hasEntry(s, l, c)){
+            
+            double m2Error = f1Voltage2.get(s,l,c).getParError(1);
+            double m1Error = f1Voltage1.get(s,l,c).getParError(1);
+            gainError_mV    =m2Error*m2Error + m1Error*m1Error;
+            gainError_mV    = sqrt(gainError_mV);
+            
+        }
+        
+        return gainError_mV;
+        
+    }
+    
     private double getQMean(int s, int l, int c){
         
         double qMean = 0.0;
@@ -1969,6 +2045,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                     errNPE[s][l][c]  = getNpeError(s,l,c);
                     gain[s][l][c]    = getGain(s,l,c);
                     errGain[s][l][c] = getGainError(s,l,c);
+                    gain_mV[s][l][c]  = getGain_mV(s,l,c);
+                    errGain_mV[s][l][c] = getGainError_mV(s,l,c);
+                  //  System.out.println(" Nick Said " +s+" "+l+" "+c+" "+
+                  //         gain_mV[s][l][c]);
                     
                     summaryTable.setValueAtAsDouble(0,
                                                     meanNPE[s][l][c],
@@ -1984,6 +2064,14 @@ public class FTHODOViewerModule implements IDetectorListener,
                     
                     summaryTable.setValueAtAsDouble(3,
                                                     errGain[s][l][c],
+                                                    s,l,c);
+                    
+                    summaryTable.setValueAtAsDouble(4,
+                                                    gain_mV[s][l][c],
+                                                    s,l,c);
+                    
+                    summaryTable.setValueAtAsDouble(5,
+                                                    errGain_mV[s][l][c],
                                                     s,l,c);
                     
                 }
@@ -2127,8 +2215,9 @@ public class FTHODOViewerModule implements IDetectorListener,
                    new H1D(DetectorDescriptor.
                            getName("WAVEMAX",
                                    HP.getS(),HP.getL(),HP.getC()),
-                           HP.getTitle(), 150, 0.0, 150));
-        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
+                        //   HP.getTitle(), 150, 0.0, 150));
+                            HP.getTitle(), 130, 20.0, 150));
+        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(2);
         H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setXTitle("Waveform Max (mV)");
         H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
         
@@ -2223,7 +2312,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         errNPE   = new double[9][3][21];
         gain     = new double[9][3][21];
         errGain  = new double[9][3][21];
-        
+        gain_mV     = new double[9][3][21];
+        errGain_mV  = new double[9][3][21];
         npeEvent = new double[9][3][21];
         
         for (int s = 0; s < 9; s++) {
@@ -2234,6 +2324,9 @@ public class FTHODOViewerModule implements IDetectorListener,
                     this.gain[s][l][c]     = 0.0;
                     this.errGain[s][l][c]  = 0.0;
                     this.npeEvent[s][l][c] = 0.0;
+                    this.gain_mV[s][l][c]     = 0.0;
+                    this.errGain_mV[s][l][c]  = 0.0;                    
+                    
                 }
             }
         }

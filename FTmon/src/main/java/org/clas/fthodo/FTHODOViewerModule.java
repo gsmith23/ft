@@ -768,7 +768,6 @@ public class FTHODOViewerModule implements IDetectorListener,
         
 	// Print out fit results
         for(int index = 0; index < 232; index++) {
-
             
             HP.setAllParameters(index,'h');
             
@@ -778,7 +777,69 @@ public class FTHODOViewerModule implements IDetectorListener,
                f1Voltage2.hasEntry(HP.getS(), HP.getL(), HP.getC())) 
                     {
                 
-
+                if(flag_parnames) {
+                    System.out.println("Ind\t Sec\t Lay\t Comp\t " +
+                                       "amp\t mean\t sigma\t " +
+                                       "amp\t mean\t sigma\t " +
+                                       "amp\t mean\t sigma");
+                    
+                    flag_parnames=false;
+                }
+                
+                System.out.print(index     + "\t " +
+                                 HP.getS() + "\t " +
+                                 HP.getL() + "\t " +
+                                 HP.getC() + "\t ");
+                
+                if(f1Noise1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
+                    
+                    for(int i=2; i<f1Noise1.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
+                        System.out.format("%.2f\t ",
+                                          f1Noise1.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
+                }
+                else {
+                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
+                }
+                
+                if(f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
+                    
+                    for(int i=0; i<f1Noise2.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
+                        System.out.format("%.2f\t ",
+                                          f1Noise2.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
+                }
+                else {
+                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
+                }
+                
+                if(f1MIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
+                    for(int i=0; i<f1MIP.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
+                        System.out.format("%.2f\t ",f1MIP.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
+                }
+                else {
+                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
+                }
+                
+                if(f1Voltage1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
+                    for(int i=0; i<f1Voltage1.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
+                        System.out.format("%.2f\t ",f1Voltage1.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
+                }
+                else {
+                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
+                }
+                
+                if(f1Voltage2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
+                    for(int i=0; i<f1Voltage2.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
+                        System.out.format("%.2f\t ",f1Voltage2.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
+                }
+                else {
+                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
+                }
+                
+                System.out.format("\n");
+            }
+        } // end of: for(int index = 0; index < 23
+        
+    }
     
     private void initFitNoiseParams(int sec,
                                     int lay,

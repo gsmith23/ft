@@ -386,7 +386,12 @@ public class FTHODOViewerModule implements IDetectorListener,
     public int getChan4SLC(int isec,
                            int ilay,
                            int icomp){
-        int[][][] chanM = {
+        
+	// FT-Cal
+	if(ilay==0)
+	    return -1;
+	
+	int[][][] chanM = {
 	    //Layer 1
             {{7,4,6,4,1,5,6,2,4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec1
 	     {0,6,0,1,7,7,0,1,5,7,0,1,7,6,5,6,3,4,7,6},//sec2
@@ -1698,6 +1703,12 @@ public class FTHODOViewerModule implements IDetectorListener,
                            ", Component = " +
                            comSel);
         
+	
+	System.out.println(" Channel = " +
+                           getChan4SLC(secSel,laySel,comSel) );
+        
+	
+	
 	// only process paddles if cal selected
         if(calSel && comSel < 500){
             return;

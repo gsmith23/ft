@@ -107,6 +107,7 @@ ChangeListener{
     DetectorCollection<F1D> f1Voltage2 = new DetectorCollection<F1D>();
     
     DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
+    boolean testmode=false;
     
     H1D H_W_MAX       = null;
     H1D H_V_MAX      = null;
@@ -715,8 +716,8 @@ ChangeListener{
             if (f1Noise1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
                 
                 H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(f1Noise1.get(HP.getS(), HP.getL(), HP.getC()),"NR");
-                
+                fit(f1Noise1.get(HP.getS(), HP.getL(), HP.getC()),"NRQ");
+                if (testmode)
                 System.out.println("Fitted Noise1 Index = " + index +
                                    " Sector =" + HP.getS() +
                                    " Layer = " + HP.getL() +
@@ -726,8 +727,8 @@ ChangeListener{
             if (f1Noise2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
                 
                 H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(f1Noise2.get(HP.getS(), HP.getL(), HP.getC()),"NR");
-                
+                fit(f1Noise2.get(HP.getS(), HP.getL(), HP.getC()),"NRQ");
+                if (testmode)
                 System.out.println("Fitted Noise Index = " + index +
                                    " Sector = " + HP.getS() +
                                    " Layer = " + HP.getL() +
@@ -737,8 +738,8 @@ ChangeListener{
             if(f1MIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
                 
                 H_MIP_Q.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(f1MIP.get(HP.getS(), HP.getL(), HP.getC()),"NR");
-                
+                fit(f1MIP.get(HP.getS(), HP.getL(), HP.getC()),"NRQ");
+                if (testmode)
                 System.out.println("Fitted Cosminc Index = " + index +
                                    " Sector = " + HP.getS() +
                                    " Layer = " + HP.getL() +
@@ -749,8 +750,8 @@ ChangeListener{
             if(f1Voltage1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
                 
                 H_MAXV.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(f1Voltage1.get(HP.getS(), HP.getL(), HP.getC()),"NR");
-                
+                fit(f1Voltage1.get(HP.getS(), HP.getL(), HP.getC()),"NRQ");
+                if (testmode)
                 System.out.println("Fitted Cosminc Index = " + index +
                                    " Sector = " + HP.getS() +
                                    " Layer = " + HP.getL() +
@@ -760,8 +761,8 @@ ChangeListener{
             if(f1Voltage2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
                 
                 H_MAXV.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(f1Voltage2.get(HP.getS(), HP.getL(), HP.getC()),"NR");
-                
+                fit(f1Voltage2.get(HP.getS(), HP.getL(), HP.getC()),"NRQ");
+                if (testmode)
                 System.out.println("Fitted Cosminc Index = " + index +
                                    " Sector = " + HP.getS() +
                                    " Layer = " + HP.getL() +

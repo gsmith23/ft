@@ -686,7 +686,7 @@ ChangeListener{
             int[] sLC = {HistParam.getSect(),
                 HistParam.getLayer(),
                 HistParam.getComp()};
-            if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2])&& myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])) {
+            if(myfunctNoise1.hasEntry(sLC[0], sLC[1], sLC[2]) && myfunctNoise2.hasEntry(sLC[0], sLC[1], sLC[2])) {
                 if(flag_parnames) {
                     System.out.println("Index\t Sector\t Layer\t Component\t amp\t mean\t sigma\t amp\t mean\t sigma\t amp\t mean\t sigma");
                     flag_parnames=false;}
@@ -726,16 +726,34 @@ ChangeListener{
         double std=5.0;
         
         if (hnoisetofit.getEntries()>200){
-            myfunctNoise1.add(sec, lay, com, new F1D("gaus", mean-20, mean+20));
-            myfunctNoise1.get(sec, lay, com).setParameter(0, ampl);
-            myfunctNoise1.get(sec, lay, com).setParameter(1, mean);
-            myfunctNoise1.get(sec, lay, com).setParameter(2, std);
-            myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/2.0, ampl*2);
-            myfunctNoise1.get(sec, lay, com).setParLimits(1, mean-25, mean+25);
-            myfunctNoise1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
+            myfunctNoise1.add(sec, lay, com, new F1D("exp+gaus", 10,  mean+25));
+           
+            myfunctNoise1.get(sec, lay, com).setParameter(0, ampl/5);
+            myfunctNoise1.get(sec, lay, com).setParameter(1, -0.001);
+
+            myfunctNoise1.get(sec, lay, com).setParameter(2, ampl);
+            myfunctNoise1.get(sec, lay, com).setParameter(3, mean);
+            myfunctNoise1.get(sec, lay, com).setParameter(4, std*3);
             
+            
+            myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/4.0, ampl);
+            myfunctNoise1.get(sec, lay, com).setParLimits(1, -5, -0.0001);
+            
+            myfunctNoise1.get(sec, lay, com).setParLimits(2, ampl/2, ampl*2);
+            myfunctNoise1.get(sec, lay, com).setParLimits(3, mean-25, mean+25);
+            myfunctNoise1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
+            
+            
+//            myfunctNoise1.add(sec, lay, com, new F1D("gaus", mean-20, mean+20));
+//            myfunctNoise1.get(sec, lay, com).setParameter(0, ampl);
+//            myfunctNoise1.get(sec, lay, com).setParameter(1, mean);
+//            myfunctNoise1.get(sec, lay, com).setParameter(2, std);
+//            myfunctNoise1.get(sec, lay, com).setParLimits(0, ampl/2.0, ampl*2);
+//            myfunctNoise1.get(sec, lay, com).setParLimits(1, mean-25, mean+25);
+//            myfunctNoise1.get(sec, lay, com).setParLimits(2, 1, std*3.0);
+//            
             if (hnoisetofit.integral(23, 45)>100){
-                myfunctNoise2.add(sec, lay, com, new F1D("gaus", mean+20, mean+100));
+                myfunctNoise2.add(sec, lay, com, new F1D("gaus", mean+25, mean+100));
                 myfunctNoise2.get(sec, lay, com).setParameter(0, ampl/5.0);
                 myfunctNoise2.get(sec, lay, com).setParameter(1, mean+50);
                 myfunctNoise2.get(sec, lay, com).setParameter(2, std);

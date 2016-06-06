@@ -130,9 +130,12 @@ ChangeListener{
     
     private double npeEvent[][][];
     
-        //=================================
-        //           CONSTANTS
-        //=================================
+    //=================================
+    //           CONSTANTS
+    //=================================
+    
+    // extract from file name
+    int    runNumber = 709;
     
     int    fADCBins      = 4096;
     double voltageMax    = 2000;
@@ -160,7 +163,8 @@ ChangeListener{
     
     final int NBinsCosmic = 50;
     
-    final int CosmicQXMin[]  = {0,200,300};
+    //final int CosmicQXMin[]  = {0,200,300};
+    final int CosmicQXMin[]  = {0,0,0};
     final int CosmicQXMax[]  = {10000,5200,5300};
     
     final int CosmicNPEXMin[]  = {0,3,5};
@@ -339,9 +343,9 @@ ChangeListener{
                         // npe
                     summaryTable.addConstrain(3, 15.0, 1000.0);
                         // gain
-                    summaryTable.addConstrain(5, 40.0, 70.0);
+                    summaryTable.addConstrain(5, 20.0, 100.0);
                         // gain_mV
-                    summaryTable.addConstrain(5, 30.0, 60.0);
+                    summaryTable.addConstrain(5, 5.0, 70.0);
                     
                 }
             }
@@ -771,7 +775,7 @@ ChangeListener{
             
         } // end of : for (int index = 0; index < 232; index++) {
         
-        boolean flag_parnames = true;
+        boolean flag_parnames = false;
         
             // Print out fit results
         for(int index = 0; index < 232; index++) {
@@ -1915,7 +1919,7 @@ ChangeListener{
             
         }
         
-        if (gain < 30.0 ||
+        if (gain < 5.0 ||
             gain > 90.0)
             gain = 0.0;
         
@@ -1955,8 +1959,8 @@ ChangeListener{
             
         }
         
-        if (gain_mV < 30.0 ||
-            gain_mV > 60.0)
+        if (gain_mV < 15.0 ||
+            gain_mV > 65.0)
             gain_mV = 0.0;
         
         return gain_mV;
@@ -2050,18 +2054,19 @@ ChangeListener{
         
         for (int s = 1; s < 9; s++) {
             for (int l = 1; l < 3; l++) {
-                for ( int c = 1 ; c < 21 ; c++){
+                for (int c = 1 ; c < 21 ; c++){
                     
                     if(s%2==1 && c > 9 ) continue;
                     
-                    meanNPE[s][l][c] = getNpeMean(s,l,c);
+                    //!!
+		    meanNPE[s][l][c] = getNpeMean(s,l,c);
                     errNPE[s][l][c]  = getNpeError(s,l,c);
                     gain[s][l][c]    = getGain(s,l,c);
                     errGain[s][l][c] = getGainError(s,l,c);
                     gain_mV[s][l][c]  = getGain_mV(s,l,c);
                     errGain_mV[s][l][c] = getGainError_mV(s,l,c);
-                        //  System.out.println(" Nick Said " +s+" "+l+" "+c+" "+
-                        //         gain_mV[s][l][c]);
+		    //  System.out.println(" Nick Said " +s+" "+l+" "+c+" "+
+		    //         gain_mV[s][l][c]);
                     
                     summaryTable.setValueAtAsDouble(0,
                                                     meanNPE[s][l][c],
@@ -2229,7 +2234,9 @@ ChangeListener{
                            getName("WAVEMAX",
                                    HP.getS(),HP.getL(),HP.getC()),
                            //   HP.getTitle(), 150, 0.0, 150));
-                           HP.getTitle(), 130, gain_mV[HP.getS()][HP.getL()][HP.getC()]/2, gain_mV[HP.getS()][HP.getL()][HP.getC()]/2+130));
+                           HP.getTitle(), 130,
+			   gain_mV[HP.getS()][HP.getL()][HP.getC()]/2,
+			   gain_mV[HP.getS()][HP.getL()][HP.getC()]/2+130));
         H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(2);
         H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setXTitle("Waveform Max (mV)");
         H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
@@ -2478,38 +2485,129 @@ ChangeListener{
         for (int s = 0; s < 9; s++) {
             for (int l = 0; l < 3; l++) {
                 for ( int c = 0 ; c < 21 ; c++){
-                    this.meanNPE[s][l][c]  = 0.0;
-                    this.errNPE[s][l][c]   = 0.0;
-                    this.gain[s][l][c]     = 0.0;
-                    this.errGain[s][l][c]  = 0.0;
-                    this.npeEvent[s][l][c] = 0.0;
-                    this.gain_mV[s][l][c]     = 38.0;
-                    this.errGain_mV[s][l][c]  = 0.0;
-                    if ((s==6&&l==1&&c==5)||
-                        (s==6&&l==1&&c==4)||
-                        (s==4&&l==1&&c==2)||
-                        (s==7&&l==1&&c==6)||
-                        (s==4&&l==1&&c==7)||
-                        (s==4&&l==1&&c==5)||
-                        (s==3&&l==1&&c==7)||
-                        (s==4&&l==1&&c==11)){
-                        this.gain_mV[s][l][c]     = 40;
-                    }else if((s==6&&l==2&&c==4)||
-                             (s==7&&l==2&&c==6)||
-                             (s==4&&l==2&&c==7)||
-                             (s==4&&l==2&&c==2)||
-                             (s==4&&l==2&&c==5)||
-                             (s==4&&l==2&&c==11)||
-                             (s==3&&l==2&&c==7)||
-                             (s==2&&l==2&&c==8)){
-                        this.gain_mV[s][l][c]     = 20;}
-                }
-            }
-        }
-        
-        
+                    
+		    this.meanNPE[s][l][c]    = 0.0;
+                    this.errNPE[s][l][c]     = 0.0;
+                    this.gain[s][l][c]       = 0.0;
+                    this.errGain[s][l][c]    = 0.0;
+                    this.npeEvent[s][l][c]   = 0.0;
+                    this.gain_mV[s][l][c]    = 38.0;
+                    this.errGain_mV[s][l][c] = 0.0;
+                    
+		    if     ( // mezz 14 top 
+			    (s==6&&l==1&&c==5)||
+			    (s==6&&l==1&&c==4)||
+			    (s==4&&l==1&&c==2)||
+			    (s==7&&l==1&&c==6)||
+			    (s==4&&l==1&&c==7)||
+			    (s==4&&l==1&&c==5)||
+			    (s==3&&l==1&&c==7)||
+			    (s==4&&l==1&&c==11)
+			     ){
+			if    ( runNumber > 695 ){
+			    // new SiPMs with 2.5 V over V_Br
+			    this.gain_mV[s][l][c] = 45;
+			}
+		    }
+		    else if( // mezz 14 bottom
+			    (s==6&&l==2&&c==4)||
+			    (s==7&&l==2&&c==6)||
+			    (s==4&&l==2&&c==7)||
+			    (s==4&&l==2&&c==2)||
+			    (s==4&&l==2&&c==5)||
+			    (s==4&&l==2&&c==11)||
+			    (s==2&&l==2&&c==8)||
+			    (s==3&&l==2&&c==7)
+			     ){
+			
+			if     ( runNumber == 696 ||
+				 runNumber == 705 ){
+			    // new mezz 150 gain
+			    this.gain_mV[s][l][c]     = 20;
+			}
+			else if( runNumber > 705 ){
+			    // new mezz 300 gain?
+			    this.gain_mV[s][l][c]     = 40;
+			}
+		    }
+		    else if( // mezz 13 top 
+			    (s==2&&l==1&&c==3)||
+			    (s==2&&l==1&&c==8)||
+			    (s==3&&l==1&&c==2)||
+			    (s==3&&l==1&&c==3)||
+			    (s==3&&l==1&&c==1)||
+			    (s==4&&l==1&&c==4)||
+			    (s==4&&l==1&&c==6)||
+			    (s==5&&l==1&&c==4)
+			     ){
+			
+			if     ( runNumber == 696 ){
+			    // old mezz 450 gain
+			    this.gain_mV[s][l][c]     = 40;
+			}
+			else if( runNumber > 705 ){
+			    // new mezz 450 gain
+			    this.gain_mV[s][l][c]     = 60;
+			}
+		    }
+		    else if( // mezz 13 bottom
+			    (s==2&&l==2&&c==3)||
+			    (s==3&&l==2&&c==3)||
+			    (s==3&&l==2&&c==1)||
+			    (s==3&&l==2&&c==2)||
+			    (s==4&&l==2&&c==6)||
+			    (s==4&&l==2&&c==4)||
+			    (s==5&&l==2&&c==4)||
+			    (s==6&&l==2&&c==5)
+			     ){
+			if     ( runNumber == 696 ){
+			    // old mezz 300 gain
+			    this.gain_mV[s][l][c]     = 30;
+			}
+			else if(runNumber == 705 ){
+			    // new mezz 150 gain
+			    this.gain_mV[s][l][c]     = 20;
+			}
+		    }
+		    else if( // mezz 10 top 
+			    (s==5&&l==1&&c==9)||
+			    (s==4&&l==1&&c==20)||
+			    (s==4&&l==1&&c==9)||
+			    (s==2&&l==1&&c==17)||
+			    (s==2&&l==1&&c==18)||
+			    (s==4&&l==1&&c==10)||
+			    (s==2&&l==1&&c==20)||
+			    (s==2&&l==1&&c==19)
+			     ){
+			
+			if     ( runNumber > 705 ){
+			    // new mezz 450 gain
+			    this.gain_mV[s][l][c]     = 50;
+			}
+		    }
+		    else if( // mezz 10 bottom
+			    (s==2&&l==2&&c==18)||
+			    (s==2&&l==2&&c==17)||
+			    (s==4&&l==2&&c==9)||
+			    (s==2&&l==2&&c==20)||
+			    (s==2&&l==2&&c==19)||
+			    (s==4&&l==2&&c==10)||
+			    (s==4&&l==2&&c==20)||
+			    (s==5&&l==2&&c==9)
+			     ){
+			if     ( runNumber > 705 ){
+			    // old mezz 300 gain
+			    this.gain_mV[s][l][c]     = 20;
+			}
+		    }
+		    
+		}
+	    }
+	}
+	
+	
     }
-    
+
     
     
     public void processDecodedEvent(int repaintFrequency, int detType) {

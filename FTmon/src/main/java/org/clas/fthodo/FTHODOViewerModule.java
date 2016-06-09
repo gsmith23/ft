@@ -45,9 +45,9 @@ import org.root.histogram.Axis;
 import org.root.basic.EmbeddedCanvas;
 
 public class FTHODOViewerModule implements IDetectorListener,
-IHashTableListener,
-ActionListener,
-ChangeListener{
+					   IHashTableListener,
+					   ActionListener,
+					   ChangeListener{
     EventDecoder decoder;
     
         //=================================
@@ -388,7 +388,38 @@ ChangeListener{
     public void setDetectorPanel(JPanel detectorPanel) {
         this.detectorPanel = detectorPanel;
     }
-    
+    public int getMezz4SLC(int isec,
+			  int ilay,
+			  int icomp){
+	// FT-Cal
+        if(ilay==0)
+            return -1;
+        int[][][] Mezzan = {
+	    //Layer 1
+            {{3,3,3,4,1,2,4,6,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec1
+	     {1,2,13,15,2,4,12,13,3,5,11,12,6,6,5,5,10,10,10,10}, //sec2
+	     {13,13,13,12,11,12,14,9,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec3
+	     {15,14,15,13,14,13,14,12,10,10,14,11,9,8,8,8,8,8,8,10}, //sec4
+	     {11,2,11,13,12,12,12,11,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec5
+	     {1,9,7,14,14,9,7,2,1,9,5,15,9,9,11,11,5,5,7,7}, //sec6
+	     {4,3,4,3,4,14,3,5,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec7
+	     {3,1,1,1,4,2,2,1,4,2,6,5,6,7,7,7,7,8,8,6}}, //sec8
+	    //Layer 2
+            {{3,3,3,4,1,2,4,6,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec1
+	     {1,2,13,15,2,4,12,14,3,5,11,12,6,6,5,5,10,10,10,10}, //sec2
+	     {13,13,13,12,11,12,14,9,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec3
+	     {15,14,15,13,14,13,14,12,10,10,14,11,9,8,8,8,8,8,8,10}, //sec4
+	     {11,2,11,13,12,12,12,11,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec5
+	     {1,9,7,14,13,9,7,2,1,9,5,15,9,9,11,11,5,5,7,7}, //sec6
+	     {4,3,4,3,4,14,3,5,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, //sec7
+	     {3,1,1,1,4,2,2,1,4,2,6,5,6,7,7,7,7,8,8,6}} //sec8
+        };
+        
+        int mezzanine = Mezzan[ilay-1][isec-1][icomp-1];
+        // convention to agree with controller electronics [0,14]
+	return (mezzanine-1);
+    }
+
     public int getChan4SLC(int isec,
                            int ilay,
                            int icomp){
@@ -1712,7 +1743,10 @@ ChangeListener{
         
         System.out.println(" Channel = " +
                            getChan4SLC(secSel,laySel,comSel) );
-        
+	
+        System.out.println(" Mezzanine = " +
+                           getMezz4SLC(secSel,laySel,comSel) );
+	
         
         
             // only process paddles if cal selected

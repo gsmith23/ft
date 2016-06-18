@@ -43,7 +43,7 @@ public class FTViewerModule implements IDetectorProcessor,
 
     
     FTHODOViewerModule moduleFTHODO = new FTHODOViewerModule();
-    //FTCALViewerModule  moduleFTCAL  = new FTCALViewerModule();
+    //!!FTCALViewerModule  moduleFTCAL  = new FTCALViewerModule();
     
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
     
@@ -79,7 +79,7 @@ public class FTViewerModule implements IDetectorProcessor,
     
     public FTViewerModule() {
 	
-	//	moduleFTCAL.setDecoder(decoder); 
+	//!!moduleFTCAL.setDecoder(decoder); 
         moduleFTHODO.setDecoder(decoder);
         
         this.initRawDataDecoder();
@@ -114,10 +114,10 @@ public class FTViewerModule implements IDetectorProcessor,
         this.detectorPanel.add(tabbedPane, BorderLayout.CENTER);
         this.detectorPanel.add(this.evPane, BorderLayout.PAGE_END);
         
-	//moduleFTCAL.setDetectorPanel(this.FTCALPanel);
+	//!!moduleFTCAL.setDetectorPanel(this.FTCALPanel);
         moduleFTHODO.setDetectorPanel(this.FTHODOPanel);
 	
-	//moduleFTCAL.initPanel();
+	//!!moduleFTCAL.initPanel();
         moduleFTHODO.initPanel();
 
 	FTviewEventsContainer.add(FTviewEvents,BorderLayout.CENTER);
@@ -148,7 +148,8 @@ public class FTViewerModule implements IDetectorProcessor,
 	
 	// RHS of FTviewMaster will be the histograms view	
 	this.FTviewEvents.setTopComponent(moduleFTHODO.canvasHODOEvent);
-	//this.FTviewEvents.setBottomComponent(moduleFTCAL.canvasCALEvent);
+	//!!this.FTviewEvents.setBottomComponent(moduleFTCAL.canvasCALEvent);
+	
 	this.FTviewEvents.setDividerLocation(250);
 	
 	this.FTviewMaster.setLeftComponent(this.FTviewDetectors);
@@ -159,28 +160,28 @@ public class FTViewerModule implements IDetectorProcessor,
 
     private void initDetector() {
         
-	//moduleFTCAL.initDetector();
+	//!!moduleFTCAL.initDetector();
         moduleFTHODO.initDetector();
-	//this.FTviewCAL.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
+	//!!this.FTviewCAL.addDetectorLayer(moduleFTCAL.drawDetector(-10., 0));
         this.FTviewHODO.addDetectorLayer(moduleFTHODO.drawDetector(+10.,0.));
-        //this.FTviewCAL.addDetectorListener(this);
+        //!!this.FTviewCAL.addDetectorListener(this);
         this.FTviewHODO.addDetectorListener(this);
     }
 
     private void initRawDataDecoder() {
-	//moduleFTCAL.initDecoder();
+	//!!moduleFTCAL.initDecoder();
         moduleFTHODO.initDecoder();
     }
 
     private void initHistograms() {
             
-	//moduleFTCAL.initHistograms();
+	//!!moduleFTCAL.initHistograms();
         moduleFTHODO.initHistograms();
     }
 
     private void resetHistograms() {
        
-	//moduleFTCAL.resetHistograms();
+	//!!moduleFTCAL.resetHistograms();
         moduleFTHODO.resetHistograms();
     }
 
@@ -194,7 +195,7 @@ public class FTViewerModule implements IDetectorProcessor,
         decoder.decode(event);
         nProcessed++;
 	
-	//moduleFTCAL.processDecodedEvent();        
+	//!!moduleFTCAL.processDecodedEvent();        
         moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
 	moduleFTHODO.processDecodedEvent(this.repaintFrequency,1);
 
@@ -210,8 +211,8 @@ public class FTViewerModule implements IDetectorProcessor,
         int layer = shape.getDescriptor().getLayer();
         int paddle = shape.getDescriptor().getComponent();
         if(shape.getDescriptor().getType() == DetectorType.FTCAL) {
-	    //	    Color col = moduleFTCAL.getComponentStatus(paddle);
-            //shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
+	    //!!Color col = moduleFTCAL.getComponentStatus(paddle);
+            //!!shape.setColor(col.getRed(),col.getGreen(),col.getBlue());
         }
         else {
             Color col = moduleFTHODO.getComponentStatus(sector,layer,paddle);
@@ -276,7 +277,7 @@ public class FTViewerModule implements IDetectorProcessor,
             repaintFrequency = 10000;
 	    System.out.println("Updating every Blue Moon ");
         }
-	// moduleFTCAL.setRepaintFrequency(repaintFrequency);
+	//!!moduleFTCAL.setRepaintFrequency(repaintFrequency);
 
     }
     
@@ -286,7 +287,7 @@ public class FTViewerModule implements IDetectorProcessor,
 	secSelect = dd.getSector();
 	layerSelect = dd.getLayer();
 	
-	//moduleFTCAL.detectorSelected(dd);
+	//!!moduleFTCAL.detectorSelected(dd);
 	moduleFTHODO.detectorSelected(dd);
 	
     }

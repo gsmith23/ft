@@ -743,12 +743,13 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
             this.canvas.draw(H_WAVE.get(0, 0, keySelect));            
         }
 	if((nProcessed%this.repaintFrequency)==0){
-	    this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect)); 
+	    //this.canvasEvent.draw(H_WAVE.get(0, 0, keySelect)); 
+	    this.canvasCALEvent.draw(H_WAVE.get(0, 0, keySelect)); 
 	    //this.dcHits.show();	
 	    this.view.repaint();
 	}
 
-
+	
     }
     
     public Color getComponentStatus(int key) {

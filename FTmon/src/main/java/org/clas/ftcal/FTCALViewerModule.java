@@ -93,7 +93,6 @@ public class FTCALViewerModule implements IDetectorListener,IHashTableListener,A
         this.decoder = decoder;
     }
 
-
     // analysis parameters
     int threshold = 12; // 10 fADC value <-> ~ 5mV
     int ped_i1 = 4;

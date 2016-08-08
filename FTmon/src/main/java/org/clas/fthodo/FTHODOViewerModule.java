@@ -85,6 +85,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     // Event-by-Event
     // raw pulse
     DetectorCollection<H1D> H_FADC = new DetectorCollection<H1D>();
+    DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
+    
     // baseline subtracted pulse calibrated to voltage and time
     DetectorCollection<H1D> H_VT = new DetectorCollection<H1D>();
     // '' calibrated to no. photoelectrons and time
@@ -106,8 +108,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_NPE_MATCH = new DetectorCollection<H1D>();
     
-    DetectorCollection<H1D> H_TIME_MODE1 = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_DT_MODE1   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_TIME_MODE3 = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_DT_MODE3   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_DT_MODE7   = new DetectorCollection<H1D>();
     
     // 2D
     DetectorCollection<H2D> H_MAXV_VS_T = new DetectorCollection<H2D>();
@@ -190,6 +193,18 @@ public class FTHODOViewerModule implements IDetectorListener,
     double cosmicsThrsh  = thrshVolts/LSB;
     double noiseThrsh    = noiseThrshV/LSB;
     
+
+    //==================
+    int threshold = 50; // 10 fADC value <-> ~ 5mV
+    //     int ped_i1 = 1;
+    //     int ped_i2 = 20;
+    //     int pul_i1 = 21;
+    //     int pul_i2 = 60;
+    double nsPerSample=4;
+    //    double LSB = 0.4884;
+    //    double crystal_size = 15;
+    //=================
+
     int ped_i1 = 4;
     int ped_i2 = 24;
     int pul_i1 = 30;
@@ -224,7 +239,6 @@ public class FTHODOViewerModule implements IDetectorListener,
     private int laySel = 2;
     private int comSel = 1;    
 
-    // !! change to radio button
     private boolean drawByElec = true;
     private boolean useGain_mV = true;
     
@@ -311,8 +325,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	rBGainPeak.setSelected(true);
 	rBGainPeak.addActionListener(this);
 
-//	System.out.println("rBGainPeak.isSelected() = " +
-// 			   rBGainPeak.isSelected());
+	// System.out.println("rBGainPeak.isSelected() = " +
+	//  rBGainPeak.isSelected());
 	    
 	group.add(rBGainChrg);
 	rBPane.add(rBGainChrg);
@@ -498,13 +512,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 
         DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
         this.view.addDetectorLayer(viewFTHODO);
-        //!!!
-        //viewFTHODO.addActionListener(this);
-        
-//         DetectorShapeView2D viewPaddles = this.drawPaddles(0.0, 0.0);
-//         this.view.addDetectorLayer(viewPaddles);
-        
 
+	// Gagik to implement
+        // viewFTHODO.addActionListener(this);
+	
+	// DetectorShapeView2D viewPaddles = this.drawPaddles(0.0, 0.0);
+	// this.view.addDetectorLayer(viewPaddles);
+	
         // required to view plots
         view.addDetectorListener(this);
     }
@@ -943,7 +957,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         
 	// Do the fitting for all components
         for (int index = 0; index < 232; index++) {
-            
+	    
             HP.setAllParameters(index,'h');
 	    
 	    initFitParams(HP.getS(), HP.getL(), HP.getC(), 
@@ -1066,7 +1080,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             
             HP.setAllParameters(index,'h');
             
-            if(fPed.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
+            if(fPed.hasEntry(HP.getS(), HP.getL(), HP.getC())  &&
 	       fQ1.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
                fQ2.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
                fV1.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
@@ -1163,13 +1177,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 			       H1D H_VLow,
 			       H1D H_V) {
         
-        double ampl = H_QLow.getBinContent(H_QLow.getMaximumBin());
+        
+	// Threshold function
+	fThr.add(sec, lay, com, 
+		 new F1D("p0",0,100));
+	
+	fThr.get(sec, lay, com).setParameter(0, threshold);
+
+	double ampl = H_QLow.getBinContent(H_QLow.getMaximumBin());
         
 	double mean = H_QLow.getMaximumBin();
 	mean = mean * H_QLow.getAxis().getBinWidth(2);
 	mean = mean + H_QLow.getAxis().min();
         
 	double std  = 5.0;
+
         
 	// create first charge fit function if 
 	// sufficient statistics exist then
@@ -1373,11 +1395,11 @@ public class FTHODOViewerModule implements IDetectorListener,
                 canvasHODOEvent.cd(ipaddle);
                 
                 if(H_FADC.hasEntry(secSel,laySel,501+ipaddle))
-                    
+		    
                     this.canvasHODOEvent.draw(H_FADC.get(secSel,
                                                          laySel,
                                                          501+ipaddle));
-            }
+	    }
             
         }
         else{
@@ -1453,23 +1475,40 @@ public class FTHODOViewerModule implements IDetectorListener,
             this.canvasEvent.draw(H_FADC.get(secSel,
                                              laySel,
                                              comSel));
-            
+	    
+	    
+
+	    if(fThr.hasEntry(secSel,
+			     laySel,
+			     comSel))
+                this.canvasEvent.draw(fThr.get(secSel,
+					       laySel,
+					       comSel));
+	    
         }
-            //----------------------------------------
-            // left top (bottom) for thin (thick) layer
-            // raw fADC pulse
+	//----------------------------------------
+	// left top (bottom) for thin (thick) layer
+	// raw fADC pulse
         canvasEvent.cd(oppCDL);
         
         if(H_FADC.hasEntry(secSel,
                            oppSel,
-                           comSel))
+                           comSel)){
             this.canvasEvent.draw(H_FADC.get(secSel,
                                              oppSel,
                                              comSel));
         
-            //----------------------------------------
-            // middle top (bottom) for thin (thick) layer
-            // calibrated fADC pulse
+	    if(fThr.hasEntry(secSel,
+			     oppSel,
+			     comSel))
+                this.canvasEvent.draw(fThr.get(secSel,
+					       oppSel,
+					       comSel),"same");
+	    
+        }
+	//----------------------------------------
+	// middle top (bottom) for thin (thick) layer
+	// calibrated fADC pulse
         canvasEvent.cd(layCDM);
         
         if(H_VT.hasEntry(secSel,
@@ -1784,17 +1823,17 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// right top 
         canvasTime.cd(1);
 	
-	if(H_DT_MODE1.hasEntry(secSel,
+	if(H_DT_MODE3.hasEntry(secSel,
 			       laySel,
 			       comSel) ){
-            this.canvasTime.draw(H_DT_MODE1.get(secSel,
+            this.canvasTime.draw(H_DT_MODE3.get(secSel,
 						laySel,
 						comSel));
 	}
-	else if(H_DT_MODE1.hasEntry(secSel,
+	else if(H_DT_MODE3.hasEntry(secSel,
 				    oppSel,
 				    comSel)){
-            this.canvasTime.draw(H_DT_MODE1.get(secSel,
+            this.canvasTime.draw(H_DT_MODE3.get(secSel,
 						oppSel,
 						comSel));
 	}
@@ -1804,20 +1843,35 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// right bottom
         canvasTime.cd(3);
 	
-	if(H_T1_T2.hasEntry(secSel,
+	if(H_DT_MODE7.hasEntry(secSel,
 			       laySel,
 			       comSel) ){
-            this.canvasTime.draw(H_T1_T2.get(secSel,
+            this.canvasTime.draw(H_DT_MODE7.get(secSel,
 						laySel,
 						comSel));
 	}
-	else if(H_T1_T2.hasEntry(secSel,
+	else if(H_DT_MODE7.hasEntry(secSel,
 				    oppSel,
 				    comSel)){
-            this.canvasTime.draw(H_T1_T2.get(secSel,
-					     oppSel,
-					     comSel));
+            this.canvasTime.draw(H_DT_MODE7.get(secSel,
+						oppSel,
+						comSel));
 	}
+
+	// if(H_T1_T2.hasEntry(secSel,
+// 			       laySel,
+// 			       comSel) ){
+//             this.canvasTime.draw(H_T1_T2.get(secSel,
+// 						laySel,
+// 						comSel));
+// 	}
+// 	else if(H_T1_T2.hasEntry(secSel,
+// 				    oppSel,
+// 				    comSel)){
+//             this.canvasTime.draw(H_T1_T2.get(secSel,
+// 					     oppSel,
+// 					     comSel));
+// 	}
 	
 
     
@@ -3229,9 +3283,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void stateChanged(ChangeEvent e) {
         JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
 	
-	//!! sourceDetTabPane = () e.getSource();
 	tabSelect = sourceTabbedPane.getSelectedIndex();
-	// detTabSel = sourceDetTabPane.getSelectedIndex();
         
 	if ( tabSelect == this.tabIndexGain ||
 	     tabSelect == this.tabIndexMIP )
@@ -3465,17 +3517,17 @@ public class FTHODOViewerModule implements IDetectorListener,
 	H_MIP_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setYTitle("Counts");
         
-        H_TIME_MODE1.add(HP.getS(),HP.getL(), HP.getC(),
+        H_TIME_MODE3.add(HP.getS(),HP.getL(), HP.getC(),
                          new H1D(DetectorDescriptor.
-                                 getName("H_TIME_MODE1",
+                                 getName("H_TIME_MODE3",
                                          HP.getS(),HP.getL(),HP.getC()),
                                  HP.getTitle(), 100, 0.0, 400));
         
-        H_TIME_MODE1.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
-        H_TIME_MODE1.get(HP.getS(),
+        H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
+        H_TIME_MODE3.get(HP.getS(),
 			 HP.getL(), 
 			 HP.getC()).setXTitle("Mode 1 Time (ns)");
-        H_TIME_MODE1.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
+        H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
         
 	H_MAXV_VS_T.add(HP.getS(),
 			HP.getL(), 
@@ -3487,7 +3539,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				32,125.,275.,
 				32,0.,2000.));
 	
-	//H_TIME_MODE1.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
+	//H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
         
 	H_MAXV_VS_T.get(HP.getS(),
 			HP.getL(), 
@@ -3496,19 +3548,34 @@ public class FTHODOViewerModule implements IDetectorListener,
 			HP.getC()).setYTitle("Peak Voltage (mV)");
         
 	if (HP.getL()==1){
-            H_DT_MODE1.add(HP.getS(),
+            H_DT_MODE3.add(HP.getS(),
 			   HP.getL(), 
 			   HP.getC(),
 			   new H1D(DetectorDescriptor.
-				   getName("H_DT_MODE1",
+				   getName("H_DT_MODE3",
 					   HP.getS(),HP.getL(),HP.getC()),
-				   HP.getTitle(), 56, -28, 28));
-            H_DT_MODE1.get(HP.getS(),HP.getL(), 
+				   HP.getTitle(), 32, -16, 16));
+            H_DT_MODE3.get(HP.getS(),HP.getL(), 
 			   HP.getC()).setFillColor(4);
-            H_DT_MODE1.get(HP.getS(),
+            H_DT_MODE3.get(HP.getS(),
 			   HP.getL(), 
-			   HP.getC()).setXTitle("Mode One #Delta T (ns) [thick - thin]");
-            H_DT_MODE1.get(HP.getS(),HP.getL(), 
+			   HP.getC()).setXTitle("Mode Three #Delta T (ns) [thick - thin]");
+            H_DT_MODE3.get(HP.getS(),HP.getL(), 
+			   HP.getC()).setYTitle("Counts");
+	    
+	    H_DT_MODE7.add(HP.getS(),
+			   HP.getL(), 
+			   HP.getC(),
+			   new H1D(DetectorDescriptor.
+				   getName("H_DT_MODE7",
+					   HP.getS(),HP.getL(),HP.getC()),
+				   HP.getTitle(), 64, -16, 16));
+            H_DT_MODE7.get(HP.getS(),HP.getL(), 
+			   HP.getC()).setFillColor(4);
+            H_DT_MODE7.get(HP.getS(),
+			   HP.getL(), 
+			   HP.getC()).setXTitle("Mode Seven #Delta T (ns) [thick - thin]");
+            H_DT_MODE7.get(HP.getS(),HP.getL(), 
 			   HP.getC()).setYTitle("Counts");
 	    
 	    H_T1_T2.add(HP.getS(),
@@ -3518,14 +3585,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 				   getName("H_T1_T2",
 					   HP.getS(),HP.getL(),HP.getC()),
 				   HP.getTitle(), 
-				   32, 125., 275.,
-				   32, 125., 275.));
+				   256, 125., 275.,
+				   256, 125., 275.));
             
             H_T1_T2.get(HP.getS(),
 			HP.getL(), 
-			HP.getC()).setXTitle("Mode One Time (ns) [thin layer]");
+			HP.getC()).setXTitle("Mode Seven Time (ns) [thin layer]");
             H_T1_T2.get(HP.getS(),HP.getL(), 
-			HP.getC()).setYTitle("Mode One Time (ns) [thick layer]");
+			HP.getC()).setYTitle("Mode Seven Time (ns) [thick layer]");
 	    
 	
 	}
@@ -3863,8 +3930,10 @@ public class FTHODOViewerModule implements IDetectorListener,
         FTHODOViewerModule.MyADCFitter fadcFitter;
         fadcFitter = new FTHODOViewerModule.MyADCFitter();
         
-        int[][][]  time_M1 = new int[8][2][20];
-	int[][]    dT      = new int[8][20];
+        double[][][] time_M3 = new double[8][2][20];
+	double[][][] time_M7 = new double[8][2][20];
+	double[][]   dT_M3      = new double[8][20];
+	double[][]   dT_M7      = new double[8][20];
         
         int nPosADC;
         int nNegADC;
@@ -4004,54 +4073,28 @@ public class FTHODOViewerModule implements IDetectorListener,
             H_V_MAX.fill(index,voltMax);
             H_NPE_MAX.fill(index,npeMax);
             
-	    
-//             if ( voltMax > 10 )
-		
-// 		//!!!!!
-// 		if( voltMax > 700. && 
-// 		    detType == 1   && 
-// 		    (
-// 		     getMezz4SLC(sec,lay,com) > 1 
-// 		     )
-// 		    ){
-		    
-// 		    System.out.println(" =========================== " );
-// 		    System.out.println(" voltMax = " + voltMax );
-		    
-// 		    System.out.println(" sector  = " + sec  );
-// 		    System.out.println(" layer   = " + lay  );
-// 		    System.out.println(" comp    = " + com  );
-		    
-		
-// 		    System.out.println(" Channel = " +
-// 				       getChan4SLC(sec,lay,com) );
-		    
-// 		    System.out.println(" Mezzanine = " +
-// 				       getMezz4SLC(sec,lay,com) );
-		    
-
-// 		}
-	    
 	    H_MAXV.get(sec, lay, com).
 		fill(voltMax);
 	    
 	    if( lay > 0 &&
 		voltMax > vMax[sec][lay][com])
 		vMax[sec][lay][com] = voltMax;
+
+	    if (lay > 0   && 
+		fadcFitter.getTime(3) > 10){
+		
+		time_M3[sec-1][lay-1][com-1] = fadcFitter.getTime(3);
+		time_M7[sec-1][lay-1][com-1] = fadcFitter.getTime(7);
 	    
-            if (lay > 0 && fadcFitter.getADCtime() > 10){
-		
-		time_M1[sec-1][lay-1][com-1] = fadcFitter.getADCtime()*4;
-		
-		H_TIME_MODE1.get(sec, 
+		H_TIME_MODE3.get(sec, 
 				 lay, 
-				 com).fill(time_M1[sec-1][lay-1][com-1]);
+				 com).fill(time_M3[sec-1][lay-1][com-1]);
 		
 		H_MAXV_VS_T.get(sec,
 				lay,
-				com).fill(time_M1[sec-1][lay-1][com-1],
+				com).fill(time_M3[sec-1][lay-1][com-1],
 					  voltMax);
-            }
+	    }
 	    
 	    
 	    if( detType == 1 )
@@ -4067,19 +4110,29 @@ public class FTHODOViewerModule implements IDetectorListener,
 		if ((secM+1)%2==1 && comM > 8)
                     continue;
 		
-                if (time_M1[secM][1][comM] > 0 &&
-                    time_M1[secM][0][comM] > 0){
+                if (time_M3[secM][1][comM] > 0 &&
+                    time_M3[secM][0][comM] > 0){
 		    
-		    dT[secM][comM] =  - time_M1[secM][1][comM];
-		    dT[secM][comM] += time_M1[secM][0][comM];
-					       
-		    H_DT_MODE1.get(secM+1, 1, comM+1).
-			fill(dT[secM][comM]);
+		    dT_M3[secM][comM] =  - time_M3[secM][1][comM];
+		    dT_M3[secM][comM] += time_M3[secM][0][comM];
 		    
-		    H_T1_T2.get(secM+1, 1, comM+1).
-			fill(time_M1[secM][0][comM],
-			     time_M1[secM][1][comM]);
+		    H_DT_MODE3.get(secM+1, 1, comM+1).
+			fill(dT_M3[secM][comM]);
 		    
+		    if (time_M7[secM][1][comM] > 0 &&
+			time_M7[secM][0][comM] > 0){
+			
+			dT_M7[secM][comM] = - time_M7[secM][1][comM];
+			dT_M7[secM][comM] +=  time_M7[secM][0][comM];
+			
+			H_DT_MODE7.get(secM+1, 1, comM+1).
+			fill(dT_M7[secM][comM]);
+			
+			H_T1_T2.get(secM+1, 1, comM+1).
+			    fill(time_M7[secM][0][comM],
+				 time_M7[secM][1][comM]);
+			
+		    }
 		}
 	    }
 	}
@@ -4119,11 +4172,12 @@ public class FTHODOViewerModule implements IDetectorListener,
         // Event Tab Selected
         
         if     ( tabSelect == tabIndexEvent &&
-                (nProcessed%repaintFrequency==0) ) {
-            
-            drawCanvasEvent(secSel,
-			    laySel,
-			    comSel);
+		 (nProcessed%repaintFrequency==0) ) {
+	    
+	    if(fadcFitter.getWave_Max() > threshold)
+	       drawCanvasEvent(secSel,
+			       laySel,
+			       comSel);
         }
         else if( tabSelect == tabIndexNoise &&
                 (nProcessed%(10*repaintFrequency)==0) ) {
@@ -4275,87 +4329,221 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public class MyADCFitter implements IFADCFitter {
         
-        double rms = 0;
-        double pedestal = 0;
-        double wave_max=0;
-        int    fadctime=0;
+//         double rms = 0;
+//         double pedestal = 0;
+//         double wave_max=0;
+	int    fadctime=0;
         
+//         public double getPedestal() {
+//             return pedestal;
+//         }
+        
+//         public double getRMS() {
+//             return rms;
+//         }
+        
+//         public double getWave_Max() {
+//             return wave_max;
+//         }
+	public int getADCtime() {
+	    return fadctime;
+	}
+	
+	//============================================================
+
+        private double rms = 0;
+        private double pedestal = 0;
+        private double wave_max=0;
+        private double pulse_max=0;
+        private double half_max=0;
+        private int    thresholdCrossing=0;
+        private int    pulsePosition=0;
+        private double time_3 = 0;
+        private double time_7 = 0;
+        private double time_f = 0;
+        private double width = 0;
+
         public double getPedestal() {
             return pedestal;
         }
-        
+
         public double getRMS() {
             return rms;
         }
-        
+
         public double getWave_Max() {
             return wave_max;
         }
-        public int getADCtime() {
-            return fadctime;
+
+        public double getPulse_Max() {
+            return pulse_max;
         }
+
+        public double getHalf_Max() {
+            return half_max;
+        }
+
+        public int getThresholdCrossing() {
+            return thresholdCrossing;
+        }
+
+        public int getPulsePosition() {
+            return pulsePosition;
+        }
+        
+        public double getTime(int mode) {
+            double time=0;
+            if(mode==3)       time = time_3;
+            else if(mode==7){  
+		time = time_7;
+	    }
+            else System.out.println(" Unknown mode for time calculation, check...");
+            return time;
+        }
+
+        public double getTimeF() {
+            return time_f;
+        }
+
+        public double getFWHM() {
+            return width;
+        }		    
+
+	//===========================================================
         
         public void fit(DetectorChannel dc) {
             short[] pulse = dc.getPulse();
 	    
-	    // pedestal calculated using bins ped_i1, ped_i2
-	    double pedlow = 0.0;
-	    // pedestal calculated using bins ped_j1, ped_j2
-            double pedhigh = 0.0;
+// 	    // pedestal calculated using bins ped_i1, ped_i2
+// 	    double pedlow = 0.0;
+// 	    // pedestal calculated using bins ped_j1, ped_j2
+//             double pedhigh = 0.0;
                         
-	    double noise = 0;
+// 	    double noise = 0;
             
-	    double wmax = 0;
+// 	    double wmax = 0;
 	    
-            for (int bin = ped_i1; bin < ped_i2; bin++) {
-                pedlow += pulse[bin];
-                noise  += pulse[bin] * pulse[bin];
-            }
+//             for (int bin = ped_i1; bin < ped_i2; bin++) {
+//                 pedlow += pulse[bin];
+//                 noise  += pulse[bin] * pulse[bin];
+//             }
             
-            for (int bin = ped_j1; bin < ped_j2; bin++) {
-                pedhigh += pulse[bin];
-            }
+//             for (int bin = ped_j1; bin < ped_j2; bin++) {
+//                 pedhigh += pulse[bin];
+//             }
 	    
-	    // find pedestal average
-            if (pedlow < pedhigh)
-                pedestal = pedlow / (ped_i2 - ped_i1);
-            else
-                pedestal = pedhigh / (ped_j2 - ped_j1);
+// 	    // find pedestal average
+//             if (pedlow < pedhigh)
+//                 pedestal = pedlow / (ped_i2 - ped_i1);
+//             else
+//                 pedestal = pedhigh / (ped_j2 - ped_j1);
 
-	    // find pulse maximum
-            for (int bin = 0 ; bin < pulse.length ; bin++)
-		if( pulse[bin] > wmax ) 
-		    wmax = pulse[bin];
+// 	    // find pulse maximum
+//             for (int bin = 0 ; bin < pulse.length ; bin++)
+// 		if( pulse[bin] > wmax ) 
+// 		    wmax = pulse[bin];
 	    
-	    int timeAt100 = 0;
+// 	    int timeAt100 = 0;
 	    
-	    // record time when signal goes above
-	    // pedestal plus 100 bins
-	    // if pulse maximum is greater than threshold 
+// 	    // record time when signal goes above
+// 	    // pedestal plus 100 bins
+// 	    // if pulse maximum is greater than threshold 
 	    
-	    for (int bin = 0; bin < pulse.length ; bin++) {
+// 	    for (int bin = 0; bin < pulse.length ; bin++) {
                 
-		if( ( ( pulse[bin] - pedestal ) > 100 )  &&
-		    ( ( wmax - pedestal ) > cosmicsThrsh ) ){
+// 		if( ( ( pulse[bin] - pedestal ) > 100 )  &&
+// 		    ( ( wmax - pedestal ) > cosmicsThrsh ) ){
                     
-		    if ( timeAt100 == 0 )
-			timeAt100 = bin;
+// 		    if ( timeAt100 == 0 )
+// 			timeAt100 = bin;
 
-		}
+// 		}
             
-	    }
+// 	    }
 	    
-	    // Returns the smallest pedestal value.
-	    // Works better if peak is close to the 
-	    // beginning of the histogram.
+// 	    // Returns the smallest pedestal value.
+// 	    // Works better if peak is close to the 
+// 	    // beginning of the histogram.
 	    
-            rms = LSB * sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
-            wave_max = wmax;
-            fadctime = timeAt100;
+//             rms = LSB * sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
+//             wave_max = wmax;
+//             fadctime = timeAt100;
        
 	    //==================================================
-	    
-	    
+	    double ped    = 0.0;
+            double noise  = 0;
+            double wmax   = 0;
+            double pmax   = 0;
+            int    tcross = 0; 
+            int    ppos   = 0;
+            // calculate pedestal means and noise
+            for (int bin = ped_i1; bin < ped_i2; bin++) {
+                ped   += pulse[bin];
+                noise += pulse[bin] * pulse[bin];
+            }
+            pedestal = ped / (ped_i2 - ped_i1);
+            rms = LSB * Math.sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
+            // determine waveform max
+            for (int bin=0; bin<pulse.length; bin++) {
+                if(pulse[bin]>wmax) wmax=pulse[bin];
+            }
+            wave_max=wmax;
+            // find threshold crossing in pulse region: this determines mode-3 time (4 ns resolution)
+            for (int bin=pul_i1; bin<pul_i2; bin++) {
+                if(pulse[bin]>pedestal+threshold) {
+                    tcross=bin;
+                    break;
+                }
+            }
+            thresholdCrossing=tcross;
+            time_3=tcross*nsPerSample;
+	    //System.out.println("time_3 = " + time_3 );
+
+	    // find pulse max
+            for (int bin=thresholdCrossing; bin<pulse.length; bin++) { 
+                if (pulse[bin+1]<pulse[bin]){ 
+                    pmax=pulse[bin];
+                    ppos=bin;
+                    break; 
+                }
+            }
+            pulse_max=pmax;
+            pulsePosition=ppos;
+            // calculating high resolution time    
+            double halfMax = (pmax+pedestal)/2;
+            half_max = halfMax;
+            time_7 = time_3;
+            int t0 = -1;
+            int t1 = -1;
+            if(tcross>0) { 
+                for (int bin=tcross-1; bin<pul_i2; bin++) {
+                    if (pulse[bin]<=halfMax && pulse[bin+1]>halfMax) {
+                        t0 = bin;
+                        break;
+                    }
+                }
+                for (int bin=ppos; bin<pul_i2; bin++) {
+                    if (pulse[bin]>halfMax && pulse[bin+1]<=halfMax) {
+                        t1 = bin;
+                        break;
+                    }
+                }
+                if(t0>-1) { 
+		    // int t1 = t0 + 1;
+                    int a0 = pulse[t0];
+                    int a1 = pulse[t0+1];
+		    //final double slope = (a1 - a0); // units = ADC/sample
+		    //final double yint = a1 - slope * t1;  // units = ADC 
+                    time_7 = ((halfMax - a0)/(a1-a0) + t0)* nsPerSample;
+
+		}
+                if(t1>-1 && t0>-1) {
+                    int a0 = pulse[t1];
+                    int a1 = pulse[t1+1];
+                    time_f = t1*nsPerSample;//((halfMax - a0)/(a1-a0) + t1)* nsPerSample;
+                    width  = time_f - time_7;
+                }
+            }
 	    //==================================================
 	    
 	}	

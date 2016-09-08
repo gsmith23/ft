@@ -44,8 +44,6 @@ import org.root.histogram.H1D;
 import org.root.histogram.H2D;
 
 import org.root.basic.EmbeddedCanvas;
-
-// ANOTHER COMMENT 
 public class FTHODOViewerModule implements IDetectorListener,
 					   IHashTableListener,
 					   ActionListener,

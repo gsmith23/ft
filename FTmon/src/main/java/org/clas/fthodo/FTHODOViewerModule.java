@@ -45,7 +45,6 @@ import org.root.histogram.H2D;
 
 import org.root.basic.EmbeddedCanvas;
 
-// ANOTHER COMMENT 
 public class FTHODOViewerModule implements IDetectorListener,
 					   IHashTableListener,
 					   ActionListener,
@@ -141,6 +140,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     //           ARRAYS
     //=================================
     
+    private double ped[][][];
+
     private double pedMean[][][];
     private double vMax[][][];
     
@@ -262,8 +263,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public void initPanel() {
 
-	System.out.println(" LSB = " + LSB );
-            
+	//System.out.println(" LSB = " + LSB );
+	
         JSplitPane splitPane = new JSplitPane();
         
         this.initTable();
@@ -1481,10 +1482,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 
 	    if(fThr.hasEntry(secSel,
 			     laySel,
-			     comSel))
-                this.canvasEvent.draw(fThr.get(secSel,
+			     comSel)){
+		this.canvasEvent.draw(fThr.get(secSel,
 					       laySel,
-					       comSel));
+					       comSel),"same");
+	    }
 	    
         }
 	//----------------------------------------
@@ -3777,6 +3779,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public void initArrays() {
         
+	ped      = new double[9][3][21];
+	
 	pedMean  = new double[9][3][21];
 	vMax     = new double[9][3][21];
 	
@@ -3801,6 +3805,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             for (int l = 0; l < 3; l++) {
                 for ( int c = 0 ; c < 21 ; c++){
                     
+		    this.ped[s][l][c]        = 0.0;
+		    
 		    this.pedMean[s][l][c]    = 0.0;
 		    this.vMax[s][l][c]       = 0.0;
 		    

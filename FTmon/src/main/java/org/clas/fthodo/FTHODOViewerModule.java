@@ -4507,7 +4507,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    //System.out.println("time_3 = " + time_3 );
 
 	    // find pulse max
-            for (int bin=thresholdCrossing; bin<pulse.length; bin++) { 
+            for (int bin=thresholdCrossing; bin<(pulse.length-1); bin++) { 
                 if (pulse[bin+1]<pulse[bin]){ 
                     pmax=pulse[bin];
                     ppos=bin;

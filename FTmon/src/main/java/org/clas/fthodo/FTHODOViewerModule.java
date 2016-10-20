@@ -50,7 +50,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 					   ActionListener,
 					   ChangeListener{
     EventDecoder decoder;
-    
+   
     //=================================
     //    PANELS, CANVASES ETC
     //=================================
@@ -86,6 +86,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     // raw pulse
     DetectorCollection<H1D> H_FADC = new DetectorCollection<H1D>();
     DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fVThr  = new DetectorCollection<F1D>();
     
     // baseline subtracted pulse calibrated to voltage and time
     DetectorCollection<H1D> H_VT = new DetectorCollection<H1D>();
@@ -143,6 +144,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double ped[][][];
 
     private double pedMean[][][];
+    
     private double vMax[][][];
     
     private double meanNPE[][][];
@@ -167,7 +169,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     private double npeEvent[][][];
         
-    boolean testMode = false;
+    boolean testMode = true;
 
     double nGain    = gainNew;
     double nGain_mV = gainNew_mV;
@@ -240,7 +242,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     private int secSel = 5;
     private int laySel = 2;
     private int comSel = 1;    
-
+    private int indexSel = 0;
+    
     private boolean drawByElec = true;
     private boolean useGain_mV = true;
     
@@ -268,7 +271,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         JSplitPane splitPane = new JSplitPane();
         
         this.initTable();
-        
+        this.initConstants();
+	
         HashTableViewer canvasTable = new HashTableViewer(summaryTable);
         canvasTable.addListener(this);
         
@@ -297,7 +301,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         fitBtn.addActionListener(this);
         buttonPane.add(fitBtn);
         
-        JButton variablesBtn = new JButton("Variables");
+        JButton variablesBtn = new JButton("Constants");
         variablesBtn.addActionListener(this);
         buttonPane.add(variablesBtn);
 
@@ -369,7 +373,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.canvasEvent.setTitleFontSize(16);
         this.canvasEvent.setAxisTitleFontSize(14);
         this.canvasEvent.setStatBoxFontSize(8);
-        this.canvasEvent.divide(3,2);
+        this.canvasEvent.divide(2,2);
 	
 	drawCanvasEvent(secSel,laySel,comSel);
         
@@ -452,6 +456,25 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.canvasTime.divide(2,2);
         
 	drawCanvasTime(secSel,laySel,comSel);
+	
+    }
+    
+    private void initConstants(){
+	
+	int s,l,c;
+	
+	HistPara HP =  new HistPara();
+	
+	for (int index = 0; index < 232; index++) {
+	    HP.setAllParameters(index,'h');
+	    
+	    s = HP.getS();
+	    l = HP.getL();
+	    c = HP.getC();
+	
+	    initThresholdParameters(s,l,c);
+	
+	}
 	
     }
     
@@ -927,8 +950,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         if (e.getActionCommand().compareTo("Reset") == 0) {
             resetHistograms();
         }
-        if (e.getActionCommand().compareTo("Variables") == 0) {
-            updateVariables();
+        if (e.getActionCommand().compareTo("Constants") == 0) {
+            updateConstants();
         }
         if (e.getActionCommand().compareTo("Fit") == 0) {
             fitHistograms();
@@ -948,436 +971,346 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
-    private void fitHistograms() {
-        
-        int    binNmax = 0;
-        double maxCont = 0;
+    private boolean initFitPedestalParameters(int s,int l,int c,H1D H1){
 	
-	String fitOption = "NRQ";
-        
-        HistPara HP =  new HistPara();
-        
-	// Do the fitting for all components
-        for (int index = 0; index < 232; index++) {
+	if (H1.integral() > 100 ){
+	    fPed.add(s,l,c, new F1D("gaus",0,400));
+	    fPed.get(s,l,c).setParameter(0,H1.getBinContent(H1.getMaximumBin()));
+	    fPed.get(s,l,c).setParameter(1,H1.getMean());
+	    fPed.get(s,l,c).setParameter(2,H1.getRMS());
 	    
-            HP.setAllParameters(index,'h');
+	    fPed.get(s,l,c).setParLimits(0, 0, 2*H1.getBinContent(H1.getMaximumBin()));
+	    fPed.get(s,l,c).setParLimits(0, 0, 400);
+	    fPed.get(s,l,c).setParLimits(0, 0, 5*H1.getRMS());
 	    
-	    initFitParams(HP.getS(), HP.getL(), HP.getC(), 
-			  H_PED.get(HP.getS(), HP.getL(), HP.getC()),
-			  H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()),
-			  H_MIP_Q.get(HP.getS(), HP.getL(), HP.getC()),
-			  H_MAXV.get(HP.getS(), HP.getL(), HP.getC()),
-			  H_MIP_V.get(HP.getS(), HP.getL(), HP.getC()));
-	    
-	    // fit pedestal
-            if (fPed.hasEntry(HP.getS(),HP.getL(),HP.getC())){
-		
-                H_PED.get(HP.getS(), HP.getL(), HP.getC()).
-		    fit(fPed.get(HP.getS(), HP.getL(), HP.getC()),
-			fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Noise1 Index = " + index +
-				       " Sector =" + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component="+ HP.getC());
-		}
-            }
-
-	    // fit first charge peak
-            if (fQ1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                
-                H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()).
-		    fit(fQ1.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Noise1 Index = " + index +
-				       " Sector =" + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component="+ HP.getC());
-		}
-            }
-	    
-	    // fit second charge peak
-            if (fQ2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                
-                H_NOISE_Q.get(HP.getS(), HP.getL(), HP.getC()).
-		    fit(fQ2.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-		
-		if (testMode){
-		    System.out.println("Fitted Noise Index = " + index +
-				       " Sector = " + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component="+ HP.getC());
-		}
-            }
-
-            if(fQMIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                
-                H_MIP_Q.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(fQMIP.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Cosmic Index = " + index +
-				       " Sector = " + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component = " + HP.getC());
-		}
-            }
-	    
-	    if(fVMIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-		
-                H_MIP_V.get(HP.getS(), HP.getL(), HP.getC()).
-		    fit(fVMIP.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Cosmic Index = " + index +
-				       " Sector = " + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component = " + HP.getC());
-		}
-            }
-	    
-            if(fV1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                
-                H_MAXV.get(HP.getS(), HP.getL(), HP.getC()).
-                fit(fV1.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Cosmic Index = " + index +
-				       " Sector = " + HP.getS()  +
-				       " Layer = " + HP.getL()   +
-				       " Component = " + HP.getC());
-		}
-            }
-            
-	    if(fV2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-		
-		if(!H_MAXV.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-		
-		    System.out.println(" No H_MAXV entry " + index +
-				       " Sector = " + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component = " + HP.getC());
-		}
-		    
-                H_MAXV.get(HP.getS(), HP.getL(), HP.getC()).
-		    fit(fV2.get(HP.getS(), HP.getL(), HP.getC()),fitOption);
-                
-		if (testMode){
-		    System.out.println("Fitted Cosmic Index = " + index +
-				       " Sector = " + HP.getS() +
-				       " Layer = " + HP.getL() +
-				       " Component = " + HP.getC());
-		}
-            }
-            
-        } // end of : for (int index = 0; index < 232; index++) {
-
-	boolean flag_parnames = false;
-        
-	System.out.println(" Printing Fit Results: ");
-	// Print out fit results
-        for(int index = 0; index < 232; index++) {
-            
-            HP.setAllParameters(index,'h');
-            
-            if(fPed.hasEntry(HP.getS(), HP.getL(), HP.getC())  &&
-	       fQ1.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
-               fQ2.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
-               fV1.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
-               fV2.hasEntry(HP.getS(), HP.getL(), HP.getC())   &&
-               fQMIP.hasEntry(HP.getS(), HP.getL(), HP.getC()) &&
-               fVMIP.hasEntry(HP.getS(), HP.getL(), HP.getC())) 
-            {
-                
-                if(flag_parnames) {
-                    System.out.println("Ind\t Sec\t Lay\t Comp\t " +
-                                       "amp\t mean\t sigma\t " +
-                                       "amp\t mean\t sigma\t " +
-                                       "amp\t mean\t sigma");
-                    
-                    flag_parnames=false;
-                }
-                
-                System.out.print(index     + "\t " +
-                                 HP.getS() + "\t " +
-                                 HP.getL() + "\t " +
-                                 HP.getC() + "\t ");
-                
-                if(fQ1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    
-                    for(int i = 2; 
-			i<fQ1.get(HP.getS(), 
-				  HP.getL(), 
-				  HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",
-                                          fQ1.get(HP.getS(), 
-						  HP.getL(), 
-						  HP.getC()).
-					  getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                if(fQ2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    
-                    for(int i=0; i<fQ2.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",
-                                          fQ2.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                if(fQMIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    for(int i=0; i<fQMIP.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",fQMIP.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                if(fVMIP.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    for(int i=0; i<fVMIP.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",fVMIP.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                if(fV1.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    for(int i=0; i<fV1.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",fV1.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                if(fV2.hasEntry(HP.getS(), HP.getL(), HP.getC())){
-                    for(int i=0; i<fV2.get(HP.getS(), HP.getL(), HP.getC()).getNParams(); i++)
-                        System.out.format("%.2f\t ",fV2.get(HP.getS(), HP.getL(), HP.getC()).getParameter(i));
-                }
-                else {
-                    System.out.print(0 + "\t" + 0 + "\t " +0+ "\t");
-                }
-                
-                System.out.format("\n");
-            }
-        } // end of: for(int index = 0; index < 23
-	
-	System.out.println(" Fitting Histograms complete");
+	    return true;
+	}
+	else
+	    return false;
     }
-    
-    private void initFitParams(int sec,
-			       int lay,
-			       int com,
-			       H1D H_P,
-			       H1D H_QLow,
-			       H1D H_Q,
-			       H1D H_VLow,
-			       H1D H_V) {
-        
-        
-	// Threshold function
-	fThr.add(sec, lay, com, 
-		 new F1D("p0",0,100));
+
+    private void fitPedestals(int s,int l,int c,String fitOption){
 	
-	fThr.get(sec, lay, com).setParameter(0, threshold);
+	System.out.println(" Fitting Pedestal (S,L,C) = (" + 
+			   s  + "," + l + "," + c + ")");
 
-	double ampl = H_QLow.getBinContent(H_QLow.getMaximumBin());
-        
-	double mean = H_QLow.getMaximumBin();
-	mean = mean * H_QLow.getAxis().getBinWidth(2);
-	mean = mean + H_QLow.getAxis().min();
-        
+	if (initFitPedestalParameters(s,l,c,H_PED.get(s,l,c))){
+	    H_PED.get(s,l,c).fit(fPed.get(s,l,c),fitOption);
+	    if (testMode)
+		System.out.println(" Fitted Pedestal (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+	}
+	else
+	    if (testMode)
+		System.out.println(" No Pedestal Fit (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+    }
+    private boolean initFitQNoiseParameters(int s,int l,int c,H1D H1){
+	
+			   
+	double ampl = H1.getBinContent(H1.getMaximumBin());
+	double mean = H1.getMaximumBin();
+	mean = mean * H1.getAxis().getBinWidth(2);
+	mean = mean + H1.getAxis().min();
 	double std  = 5.0;
-
-        
-	// create first charge fit function if 
-	// sufficient statistics exist then
-	// initialise parameters and limits
-        if (H_QLow.getEntries() > 250){
+	
+        if (H1.getEntries() > 500){
 	    
-            fQ1.add(sec, lay, com, 
-			 new F1D("exp+gaus", 
-				 H_QLow.getAxis().min(),  
-				 nGain*1.5));
+            fQ1.add(s,l,c,new F1D("exp+gaus", 
+				  H1.getAxis().min(),  
+				  nGain*1.5));
 	    
 	    // exponential
-	    fQ1.get(sec, lay, com).setParameter(0, ampl/5.);
-            fQ1.get(sec, lay, com).setParameter(1, -0.001);
+	    fQ1.get(s,l,c).setParameter(0, ampl/5.);
+            fQ1.get(s,l,c).setParameter(1, -0.001);
         
 	    // gaus 1
-	    fQ1.get(sec, lay, com).setParameter(2, ampl);
-            fQ1.get(sec, lay, com).setParameter(3, nGain);
-            fQ1.get(sec, lay, com).setParameter(4, std);
+	    fQ1.get(s,l,c).setParameter(2, ampl);
+            fQ1.get(s,l,c).setParameter(3, nGain);
+            fQ1.get(s,l,c).setParameter(4, std);
             
 	    // exponential
-	    fQ1.get(sec, lay, com).setParLimits(0, ampl/10.0, ampl);
-            fQ1.get(sec, lay, com).setParLimits(1, -5, -0.0001);
+	    fQ1.get(s,l,c).setParLimits(0, ampl/10.0, ampl);
+            fQ1.get(s,l,c).setParLimits(1, -5, -0.0001);
             
 	    // gaus 1
-	    fQ1.get(sec, lay, com).setParLimits(2, ampl/2, ampl*2);
-            fQ1.get(sec, lay, com).setParLimits(3, 0.5*nGain, 1.5*nGain);
-            fQ1.get(sec, lay, com).setParLimits(4, 1, std*3.0);
+	    fQ1.get(s,l,c).setParLimits(2, ampl/2, ampl*2);
+            fQ1.get(s,l,c).setParLimits(3, 0.5*nGain, 1.5*nGain);
+            fQ1.get(s,l,c).setParLimits(4, 1, std*3.0);
         
-	    // create second charge fit function and
-	    // initialise parameters and limits
-	    
-	    fQ2.add(sec, lay, com, 
+	    fQ2.add(s,l,c, 
 		    new F1D("gaus", 1.5*nGain, 2.5*nGain));
 	    
-	    fQ2.get(sec, lay, com).setParameter(0, ampl/5.0);
-	    fQ2.get(sec, lay, com).setParameter(1, 2.0*nGain);
-	    fQ2.get(sec, lay, com).setParameter(2, std);
+	    fQ2.get(s,l,c).setParameter(0, ampl/5.0);
+	    fQ2.get(s,l,c).setParameter(1, 2.0*nGain);
+	    fQ2.get(s,l,c).setParameter(2, std);
             
-	    fQ2.get(sec, lay, com).setParLimits(0, 0, ampl/2.0);
-	    fQ2.get(sec, lay, com).setParLimits(1, mean+20, mean+100);
-	    fQ2.get(sec, lay, com).setParLimits(2, 1, std*3.0);
-        }
-        
-        ampl = H_VLow.getBinContent(H_VLow.getMaximumBin());
-	
-        mean = H_VLow.getMaximumBin();
-	mean = mean * H_VLow.getAxis().getBinWidth(2);
-	mean = mean + H_VLow.getAxis().min();
-	
-	std  = 0.5;
-	
-        if (H_VLow.getEntries() > 250){
-        
-	    // fit function for first peak
-            fV1.add(sec, lay, com, new F1D("gaus+exp", 
-					   H_VLow.getAxis().min(), 
-					   1.5*nGain_mV));
-            
-	    fV1.get(sec, lay, com).setParameter(0, ampl);
-            fV1.get(sec, lay, com).setParameter(1, nGain_mV);
-            fV1.get(sec, lay, com).setParameter(2, std);
-            fV1.get(sec, lay, com).setParameter(3, ampl/5.0);
-            fV1.get(sec, lay, com).setParameter(4, -0.001);
-            
-            fV1.get(sec, lay, com).setParLimits(0, ampl/2, ampl*2);
-            fV1.get(sec, lay, com).setParLimits(1, 
-						H_VLow.getAxis().min(), 
-						2*nGain_mV);
-            fV1.get(sec, lay, com).setParLimits(2, 0, std*4.0);
-            fV1.get(sec, lay, com).setParLimits(3, 0, ampl*5.);
-            fV1.get(sec, lay, com).setParLimits(4, -5, -0.0001);
-            
-	    if(testMode){
-		System.out.println("H_VLow.getAxis()." +
-				   "getBin(3.0/2.0*mean) = " + 
-				   H_VLow.getAxis().
-				   getBin(3.0/2.0*mean) );
-		
-		System.out.println("H_VLow.getAxis()." +
-				   "getNBins()-1) = " +
-				   H_VLow.getAxis().
-				   getNBins());
-		
-		System.out.println("mean = " + mean );
-	    }
+	    fQ2.get(s,l,c).setParLimits(0, 0, ampl/2.0);
+	    fQ2.get(s,l,c).setParLimits(1, mean+20, mean+100);
+	    fQ2.get(s,l,c).setParLimits(2, 1, std*3.0);
 	    
-	    // fit function for second peak
-	    fV2.add(sec, lay, com, new F1D("gaus",
-					   1.5*nGain_mV, 
-					   3.0*nGain_mV));
+	    return true;
 	    
-	    fV2.get(sec, lay, com).
+	}
+	else
+	    return false;
+
+    }
+
+    private void fitQNoise(int s,int l,int c,String fitOption){
+
+	System.out.println(" Fitting Q Noise(S,L,C) = (" +
+			   s  + "," + l + "," + c + ")"); 
+	
+	if (initFitQNoiseParameters(s,l,c,H_NOISE_Q.get(s,l,c))){
+	    
+	    H_NOISE_Q.get(s,l,c).
+		fit(fQ1.get(s,l,c),fitOption);
+	    
+	    H_NOISE_Q.get(s,l,c).
+		fit(fQ2.get(s,l,c),fitOption);
+		
+	    if (testMode)
+		System.out.println(" Fitted Q Noise 1 & 2 (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+	}
+	else
+	    if (testMode)
+		System.out.println(" No Q Noise 1 & 2 Fits (S,L,C) = (" +
+				   s  + "," + l + "," + c + ")");
+    }
+	
+    private boolean initFitVNoiseParameters(int s,int l,int c,H1D H1){
+        
+	double ampl = H1.getBinContent(H1.getMaximumBin());
+	double mean = H1.getMaximumBin();
+	mean = mean * H1.getAxis().getBinWidth(2);
+	mean = mean + H1.getAxis().min();
+	double std  = 0.5;
+	
+        if (H1.getEntries() > 200){
+	    
+            fV1.add(s,l,c, new F1D("gaus+exp", 
+				   H1.getAxis().min(), 
+				   1.5*nGain_mV));
+            
+	    fV1.get(s,l,c).setParameter(0, ampl);
+            fV1.get(s,l,c).setParameter(1, nGain_mV);
+            fV1.get(s,l,c).setParameter(2, std);
+            fV1.get(s,l,c).setParameter(3, ampl/5.0);
+            fV1.get(s,l,c).setParameter(4, -0.001);
+            
+            fV1.get(s,l,c).setParLimits(0, ampl/2, ampl*2);
+            fV1.get(s,l,c).setParLimits(1, 
+					H1.getAxis().min(), 
+					2*nGain_mV);
+            fV1.get(s,l,c).setParLimits(2, 0, std*4.0);
+            fV1.get(s,l,c).setParLimits(3, 0, ampl*5.);
+            fV1.get(s,l,c).setParLimits(4, -5, -0.0001);
+            
+	    fV2.add(s,l,c, new F1D("gaus",
+				   1.5*nGain_mV, 
+				   3.0*nGain_mV));
+	    
+	    fV2.get(s,l,c).
 		setParameter(0, ampl/3.0);
-	    fV2.get(sec, lay, com).
+	    fV2.get(s,l,c).
 		setParameter(1, 2.0*nGain_mV);
-	    fV2.get(sec, lay, com).
+	    fV2.get(s,l,c).
 		setParameter(2, std);
 	    
-	    fV2.get(sec, lay, com).
+	    fV2.get(s,l,c).
 		setParLimits(0, 0, ampl);
-	    fV2.get(sec, lay, com).
+	    fV2.get(s,l,c).
 		setParLimits(1,
 			     1.5*nGain_mV,
 			     2.5*nGain_mV);
-	    fV2.get(sec, lay, com).
+	    fV2.get(s,l,c).
 		setParLimits(2, 0., std*4.0);
 	    
+	    return true;
         }
-        
-        int integralLowBin  = (500 - (int)CosmicQXMin[lay])*NBinsCosmic;
-        integralLowBin  = integralLowBin/((int)CosmicQXMax[lay]-(int)CosmicQXMin[lay]);
+	else
+	    return false;
+	
+    }
+
+    private void fitVNoise(int s,int l,int c,String fitOption){
+
+	System.out.println(" Fitting V Noise(S,L,C) = (" +
+			   s  + "," + l + "," + c + ")"); 
+	
+	if (initFitVNoiseParameters(s,l,c,H_MAXV.get(s,l,c))){
+	    
+	    H_MAXV.get(s,l,c).
+		fit(fV1.get(s,l,c),fitOption);
+	    
+	    H_MAXV.get(s,l,c).
+		fit(fV2.get(s,l,c),fitOption);
+		
+	    if (testMode)
+		System.out.println(" Fitted V Noise 1 & 2 (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+	}
+	else
+	    if (testMode)
+		System.out.println(" No V Noise 1 & 2 Fits (S,L,C) = (" +
+				   s  + "," + l + "," + c + ")");
+    }
+
+    private boolean initFitQMIPParameters(int s,int l,int c,H1D H1){
+	
+	int integralLowBin  = (500 - (int)CosmicQXMin[l])*NBinsCosmic;
+        integralLowBin  = integralLowBin/((int)CosmicQXMax[l]-(int)CosmicQXMin[l]);
         
         int integralHighBin = NBinsCosmic-1;
         
-        if (H_Q.integral(integralLowBin,
-			 integralHighBin ) > 25){
-            ampl = 0;
-            mean = 0;
+        if (H1.integral(integralLowBin,
+			integralHighBin ) > 25){
+            double ampl = 0;
+            double mean = 0;
 	    
 	    for (int i = integralLowBin; 
 		 i < integralHighBin; 
 		 i++){
 		
-		if (H_Q.getBinContent(i) > ampl){
-                    ampl = H_Q.getBinContent(i);
-                    mean = i * (CosmicQXMax[lay] - CosmicQXMin[lay]);
-                    mean = mean/NBinsCosmic + CosmicQXMin[lay];
+		if (H1.getBinContent(i) > ampl){
+                    ampl = H1.getBinContent(i);
+                    mean = i * (CosmicQXMax[l] - CosmicQXMin[l]);
+                    mean = mean/NBinsCosmic + CosmicQXMin[l];
                 }
             }
 	    
-            fQMIP.add(sec, lay, com, new F1D("landau", 500, 4500));
-            fQMIP.get(sec, lay, com).setParameter(0, ampl);
-            fQMIP.get(sec, lay, com).setParameter(1, mean);
-            fQMIP.get(sec, lay, com).setParameter(2, 150);
-            fQMIP.get(sec, lay, com).setParLimits(0, 0, ampl*2.0);
-            fQMIP.get(sec, lay, com).setParLimits(1, mean-400, mean+400);
-            fQMIP.get(sec, lay, com).setParLimits(2, 50, 1500);
-        }
+            fQMIP.add(s,l,c, new F1D("landau", 500, 4500));
+            fQMIP.get(s,l,c).setParameter(0, ampl);
+            fQMIP.get(s,l,c).setParameter(1, mean);
+            fQMIP.get(s,l,c).setParameter(2, 150);
+            fQMIP.get(s,l,c).setParLimits(0, 0, ampl*2.0);
+            fQMIP.get(s,l,c).setParLimits(1, mean-400, mean+400);
+            fQMIP.get(s,l,c).setParLimits(2, 50, 1500);
         
-	// fitting of charge [mV] histograms
-	ampl = H_V.getBinContent(H_V.getMaximumBin());
-	//mean = H_V.getMaximumBin()*45 + 250;
-	mean = 600.;
-	std  = 5.0;
-	
-	if (H_V.integral() > 10 ){
-	    
-	    fVMIP.add(sec, lay, com, new F1D("landau", 250, 1500));
-		
-	    fVMIP.get(sec, lay, com).setParameter(0, ampl);
-	    fVMIP.get(sec, lay, com).setParameter(1, mean);
-	    fVMIP.get(sec, lay, com).setParameter(2, 200);
-	    
-	    // fVMIP.get(sec, lay, com).setParameter(0, 0);
-	    // fVMIP.get(sec, lay, com).setParameter(1, 0);
-	    // fVMIP.get(sec, lay, com).setParameter(2, 0);
-	    
- 	    fVMIP.get(sec, lay, com).setParLimits(0, ampl*0.5, ampl*2.5);
-	    fVMIP.get(sec, lay, com).setParLimits(1, 0, 1500);
-	    fVMIP.get(sec, lay, com).setParLimits(2, 50, 100);
+	    return true;
 	}
-            
-	// fitting of pedestal
-	ampl = H_P.getBinContent(H_P.getMaximumBin());
-	mean = H_P.getMean();
-	std  = H_P.getRMS();
+	else
+	    return false;
 	
-	if (H_P.integral() > 100 ){
-	    
-	    fPed.add(sec, lay, com, new F1D("gaus"));
-	    
-	    fPed.get(sec, lay, com).setParameter(0, ampl);
-	    fPed.get(sec, lay, com).setParameter(1, mean);
-	    fPed.get(sec, lay, com).setParameter(2, std);
-	    
- 	    // fVMIP.get(sec, lay, com).setParLimits(0, ampl*0.5, ampl*2.5);
-	    // fVMIP.get(sec, lay, com).setParLimits(1, 0, mean+600);
-	    // fVMIP.get(sec, lay, com).setParLimits(2, 50, 1500);
+    }
+
+    private void fitQMIP(int s,int l,int c,String fitOption){
+	
+	System.out.println(" Fitting Q MIP (S,L,C) = (" +
+			   s  + "," + l + "," + c + ")"); 
+	
+	if(initFitQMIPParameters(s,l,c,H_MIP_Q.get(s,l,c))){
+	
+	    H_MIP_Q.get(s,l,c).
+		fit(fQMIP.get(s,l,c),fitOption);
+	
+	if (testMode)
+	    System.out.println(" Fitted Q MIP (S,L,C) = (" + 
+			       s  + "," + l + "," + c + ")");
+	
 	}
-        
+	else{
+	    if (testMode)
+		System.out.println(" No Q MIP Fit (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+	}
     }
     
+    private boolean initFitVMIPParameters(int s,int l,int c,H1D H1){
+	
+	double ampl = H1.getBinContent(H1.getMaximumBin());
+	//mean = H1.getMaximumBin()*45 + 250;
+	double mean = 600.;
+	double std  = 5.0;
+	
+	if (H1.integral() > 10 ){
+	    
+	    fVMIP.add(s,l,c, new F1D("landau", 250, 1500));
+		
+	    fVMIP.get(s,l,c).setParameter(0, ampl);
+	    fVMIP.get(s,l,c).setParameter(1, mean);
+	    fVMIP.get(s,l,c).setParameter(2, 200);
+		    
+ 	    fVMIP.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2.5);
+	    fVMIP.get(s,l,c).setParLimits(1, 0, 1500);
+	    fVMIP.get(s,l,c).setParLimits(2, 50, 100);
+	
+	    return true;
+	}
+	else
+	    return false;
+	
+    }
+
+    private void fitVMIP(int s,int l,int c,String fitOption){
+	
+	System.out.println(" Fitting V MIP (S,L,C) = (" +
+			   s  + "," + l + "," + c + ")"); 
+
+	if(initFitVMIPParameters(s,l,c,H_MIP_V.get(s,l,c))){
+	
+	    H_MIP_V.get(s,l,c).
+		fit(fVMIP.get(s,l,c),fitOption);
+	
+	if (testMode)
+	    System.out.println(" Fitted V MIP (S,L,C) = (" + 
+			       s  + "," + l + "," + c + ")");
+	
+	}
+	else{
+	    if (testMode)
+		System.out.println(" No V MIP Fit (S,L,C) = (" + 
+				   s  + "," + l + "," + c + ")");
+	}
+    }
     
+    private void initThresholdParameters(int s,int l,int c) {
+	
+	fThr.add(s,l,c, new F1D("p0",0,100));
+	fThr.get(s,l,c).setParameter(0, threshold);
+	fThr.get(s,l,c).setLineColor(2);
+	
+	double vTh = threshold*LSB;
+	
+	fVThr.add(s,l,c, new F1D("p0",0,400));
+	fVThr.get(s,l,c).setParameter(0,vTh);
+	fVThr.get(s,l,c).setLineColor(2);
+	
+    }
+    
+    private void fitHistograms() {
+
+	System.out.println(" Fitting Histograms");
+	
+	String fitOption = "NRQ";
+	        
+        HistPara HP =  new HistPara();
+        
+	int s, l, c;
+	
+	// Do the fitting for all components
+        for (int index = 0; index < 232; index++) {
+	    
+            HP.setAllParameters(index,'h');
+	    
+	    s = HP.getS();
+	    l = HP.getL();
+	    c = HP.getC();
+
+	    fitPedestals(s,l,c,fitOption);
+	    fitVNoise(s,l,c,fitOption);
+	    fitVMIP(s,l,c,fitOption);
+	    fitQNoise(s,l,c,fitOption);
+	    fitQMIP(s,l,c,fitOption);
+	    
+	    
+	} // end of : for (int index = 0; index < 232; index++) {
+	
+	System.out.println(" Fitting Histograms complete");
+    
+    }// end of: private void fitHistograms() {
     
     void drawCanvasHODOEvent(boolean calSel,
 			    int secSel,
@@ -1427,31 +1360,20 @@ public class FTHODOViewerModule implements IDetectorListener,
                          int laySel,
                          int comSel){
         
-        
-        
-	// map [1,2] to [0,1]
-        int layCD  = laySel-1;
+
+        int layCD = laySel-1;
 	// map [1,2] to [1,0]
-        int oppCD  = laySel%2;
-	// map [1,0] to [2,1]
-        int oppSel = oppCD+1;
+        int oppCD = laySel%2;
+	// map [1,2] to [2,1]
+        int oppSel   = (laySel%2)+1;
+	
+	int layCDL =  2*layCD;
+        int oppCDL =  2*oppCD;
         
-	// map [0,1] to [0,3]
-        int layCDL =  3*layCD;
-	// map [1,0] to [3,0]
-        int oppCDL =  3*oppCD;
-        
-	// map [0,3] to [1,4]
-        int layCDM = layCDL + 1;
-	// map [3,0] to [4,1]
-        int oppCDM = oppCDL + 1;
-        
-	// map [0,3] to [2,5]
-        int layCDR = layCDL + 2;
-	// map [3,0] to [5,2]
-        int oppCDR = oppCDL + 2;
-        
-	// // paddles
+        int layCDR = layCDL + 1;
+        int oppCDR = oppCDL + 1;
+	
+        // paddles
 	// if(laySel==0){
 	//     layCD  = 0;
 	//     oppCD  = 1;
@@ -1510,49 +1432,41 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
         }
 	//----------------------------------------
-	// middle top (bottom) for thin (thick) layer
-	// calibrated fADC pulse
-        canvasEvent.cd(layCDM);
-        
-        if(H_VT.hasEntry(secSel,
-                            laySel,
-                            comSel))
-            this.canvasEvent.draw(H_VT.get(secSel,
-                                              laySel,
-                                              comSel));
-        
-            //----------------------------------------
-            // right top (bottom) for thin (thick) layer
-            // calibrated fADC pulse
-        canvasEvent.cd(oppCDM);
-        if(H_VT.hasEntry(secSel,
-                            oppSel,
-                            comSel))
-            this.canvasEvent.draw(H_VT.get(secSel,
-                                              oppSel,
-                                              comSel));
-            //----------------------------------------
-            // right top (bottom) for thin (thick) layer
-            // calibrated fADC pulse
+	// right top (bottom) for thin (thick) layer
         canvasEvent.cd(layCDR);
         
-        if(H_NPE.hasEntry(secSel,
-                          laySel,
-                          comSel))
-            this.canvasEvent.draw(H_NPE.get(secSel,
-                                            laySel,
-                                            comSel));
-        
-            //----------------------------------------
-            // right top (bottom) for thin (thick) layer
-            // calibrated fADC pulse
+        if(H_VT.hasEntry(secSel,
+			 laySel,
+			 comSel)){
+            this.canvasEvent.draw(H_VT.get(secSel,
+					   laySel,
+					   comSel));
+	    
+	    if(fVThr.hasEntry(secSel,
+			      laySel,
+			      comSel)){
+		this.canvasEvent.draw(fVThr.get(secSel,
+						laySel,
+						comSel),"same");
+		
+	    }
+	}
+	//----------------------------------------
+	// right top (bottom) for thin (thick) layer
         canvasEvent.cd(oppCDR);
-        if(H_NPE.hasEntry(secSel,
-                          oppSel,
-                          comSel))
-            this.canvasEvent.draw(H_NPE.get(secSel,
-                                            oppSel,
-                                            comSel));
+        if(H_VT.hasEntry(secSel,
+			 oppSel,
+			 comSel)){
+            this.canvasEvent.draw(H_VT.get(secSel,
+					   oppSel,
+					   comSel));
+	    if(fVThr.hasEntry(secSel,
+			      oppSel,
+			      comSel))
+                this.canvasEvent.draw(fVThr.get(secSel,
+						oppSel,
+						comSel),"same");
+	}
     }
     
     void drawCanvasPed(int secSel,
@@ -2214,7 +2128,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         if(secSel%2==1)
             evenSecSelect = false;
-        
+	
         if(evenSecSelect){
             for ( int i = 0 ; i < p15EvenI.length ; i++){
                 if( comSel == p15EvenI[i] ){
@@ -2374,6 +2288,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 		npeArr[chan] = meanNPE_mV[sect][laye][comp];
 		npeErr[chan] = errNPE_mV[sect][laye][comp];
+		
+		
 	    }
 	}
 	else{
@@ -2384,6 +2300,19 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 		npeArr[chan] = meanNPE[sect][laye][comp] ;
 		npeErr[chan] = errNPE[sect][laye][comp];
+	    }
+	}
+	
+	for (int chan = 0 ; chan < 16 ; chan++ ){
+	    if(npeErr[chan] > 20.0 ||
+	       npeArr[chan] < 20.0){
+		
+		npeErr[chan] = 20.0;
+		
+		if(chan < 8)
+		    npeArr[chan] = 40.0;
+		else
+		    npeArr[chan] = 60.0;
 	    }
 	}
 	
@@ -2549,6 +2478,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    int laySel,
 			    int comSel
 			    ){
+
 	if(secSel == 0 || laySel == 0)
             return;
 
@@ -2558,11 +2488,6 @@ public class FTHODOViewerModule implements IDetectorListener,
         double[] gainErrArr = new double[16];
         double[] chanArr    = new double[16];
         double[] chanErrArr = new double[16];
-
-// 	double[] gainArr    = new double[240];
-//      double[] gainErrArr = new double[240];
-//      double[] chanArr    = new double[240];
-//      double[] chanErrArr = new double[240];
 	
 	int sectI;
 	int compI;
@@ -2571,7 +2496,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	int mezz = getMezz4SLC(secSel,laySel,comSel);
 	
-	//	for( int mezz = 0 ; mezz < 15 ; mezz++){
 	for (int chan = 0 ; chan < 16 ; chan++){
 	    
 	    sectI  = getSect4ChMez(chan,mezz);
@@ -2581,31 +2505,31 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    if(!useGain_mV){
 		gainArr[ii]    = gain[sectI][layeI][compI] ;
 		gainErrArr[ii] = errGain[sectI][layeI][compI];
+	    
+		if(gainErrArr[ii] > 5.0 ||
+		   gainArr[ii]    < 15.0){
+		    gainArr[ii]    = 20.0;
+		    gainErrArr[ii] =  5.0; 
+		}
+		
+		
 	    }
 	    else {
 		gainArr[ii]    = gain_mV[sectI][layeI][compI];
 		gainErrArr[ii] = errGain_mV[sectI][layeI][compI];
+	    
+		if(gainErrArr[ii] > 2.0 ||
+		   gainArr[ii]    < 8.0){
+		    gainArr[ii]    = 10.0;
+		    gainErrArr[ii] =  2.0; 
+		}
+		
 	    }
-	    //gainArr[ii] = gainArr[ii] + (double)mezz*100.;
 	    
 	    chanArr[ii] = chan;
 	    chanErrArr[ii] = 0;
-
-// 	    System.out.println(" gain_mV["+
-// 			       sectI +"]["+
-// 			       layeI +"]["+
-// 			       compI +"] = " + 
-// 			       gain_mV[sectI][layeI][compI]);
-	    
-// 	    System.out.println(" Channel =" + chan ); 
-	    
-// 		System.out.println(" gainArr[ii] = " +  gainArr[ii] +
-// 				   ",chanArr[ii] = " +  chanArr[ii] +
-// 				   ",         ii = " +  ii);
-	    
 	    ii++;
 	}
-	//    }
 	
 	String title;        
 	title = "mezzanine" + mezz;
@@ -2631,8 +2555,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
 	
 	G_Gain.setTitle(title);
-	G_Gain.setXTitle(titleHY);
-	G_Gain.setYTitle("Channel");
+	G_Gain.setXTitle("Channel");
+	G_Gain.setYTitle(titleHY);
 	G_Gain.setMarkerSize(5);
 	G_Gain.setMarkerColor(1); // 0-9 for given palette
 	G_Gain.setMarkerStyle(laySel); // 1 or 2
@@ -2665,6 +2589,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         laySel = desc.getLayer();
         comSel = desc.getComponent();
         
+	indexSel = getIndex4SLC(secSel,laySel,comSel);
+	
         String  detector;
         boolean calSel = false;
         boolean hodSelect = false;
@@ -2747,11 +2673,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// FTHODOViewer
 	
         if      ( tabSelect == this.tabIndexEvent ) {
-	    
-	    System.out.println(" (S,L,C) = (" + 
-			       secSel + ","   +
-			       laySel + ","   +
-			       comSel + ")"   );
 	    
 	    drawCanvasEvent(secSel,
                             laySel,
@@ -3038,54 +2959,64 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double getGain_mV(int s, int l, int c){
 	
         double thisGain_mV = 0.0;
-	
-//         if(fV1.hasEntry(s, l, c) &&
-//     	   fV2.hasEntry(s, l, c)){
 
-// 	    // note that the functions were added in the other
-// 	    // order to the charge fits
-// 	    double m2 = fV2.get(s,l,c).getParameter(1);
-//             double m1 = fV1.get(s,l,c).getParameter(1);
-            
-//             thisGain_mV = m2 - m1;
+	int option = 1;
+	
+	if(option==1){
+	    if(fV1.hasEntry(s, l, c)){
+		double m1 = fV1.get(s,l,c).getParameter(1);
+		thisGain_mV =  m1;
+	    }
 	    
-//         }
-        
-	if(fV1.hasEntry(s, l, c)){
-	    double m1 = fV1.get(s,l,c).getParameter(1);
-	    thisGain_mV =  m1;
+	    if (thisGain_mV < 0.5*nGain_mV ||
+		thisGain_mV > 1.5*nGain_mV)
+		thisGain_mV = 0.0;
+	    
 	}
-        
-	if (thisGain_mV < 0.5*nGain_mV ||
-	    thisGain_mV > 1.5*nGain_mV)
-	    thisGain_mV = 0.0;
-	
+	else if(option == 2){
+	    if(fV1.hasEntry(s, l, c) &&
+	       fV2.hasEntry(s, l, c)){
+		
+		// note that the functions were added in the other
+		// order compared to the charge fits
+		double m2 = fV2.get(s,l,c).getParameter(1);
+		double m1 = fV1.get(s,l,c).getParameter(1);
+		
+		thisGain_mV = m2 - m1;
+		
+	    }
+        }
         return thisGain_mV;
-	
     }
     
     private double getGainErr_mV(int s, int l, int c){
 	    
         double gainErr_mV = 0.0;
+
+	int option = 1;
 	
-        if(fV1.hasEntry(s,l,c) &&
-	   getGain_mV(s,l,c) > 0.0 ){
-	    double m1Error = fV1.get(s,l,c).getParError(1);
-            gainErr_mV = m1Error;
-        }
+	if(option==1){
+	    if(fV1.hasEntry(s,l,c) &&
+	       getGain_mV(s,l,c) > 0.0 ){
+		double m1Error = fV1.get(s,l,c).getParError(1);
+		gainErr_mV = m1Error;
+	    }
+	}
+	else if (option==2){
+	    
+	    if(fV1.hasEntry(s, l, c) &&
+	       fV2.hasEntry(s, l, c)){
+		
+		// note that the functions were added in the other
+		// order to the charge fits
+		double m2Error = fV2.get(s,l,c).getParError(1);
+		double m1Error = fV1.get(s,l,c).getParError(1);
+		gainErr_mV   = m2Error*m2Error + m1Error*m1Error;
+		gainErr_mV   = sqrt(gainErr_mV);
+		
+	    }
+	}
 	
-// 	if(fV1.hasEntry(s, l, c) &&
-//            fV2.hasEntry(s, l, c)){
-	    
-// 	    // note that the functions were added in the other
-// 	    // order to the charge fits
-//             double m2Error = fV2.get(s,l,c).getParError(1);
-//             double m1Error = fV1.get(s,l,c).getParError(1);
-//             gainErr_mV   = m2Error*m2Error + m1Error*m1Error;
-//             gainErr_mV   = sqrt(gainErr_mV);
-	    
-//         }
-	    
         return gainErr_mV;
         
     }
@@ -3210,18 +3141,17 @@ public class FTHODOViewerModule implements IDetectorListener,
         
     }
     
-        // private double getNPEStd(int s, int l, int c){
+    // private double getNPEStd(int s, int l, int c){
     
-        // 	double npeMean = 0.0;
-        // 	if( get > 0.0 )
-        // 	    npeMean = getQMean(s,l,c)/getGain(s,l,c);
+    // 	double npeMean = 0.0;
+    // 	if( get > 0.0 )
+    // 	    npeMean = getQMean(s,l,c)/getGain(s,l,c);
     
-        // 	return npeMean;
+    // 	return npeMean;
     
-        // }
+    // }
     
-    
-    private void updateVariables() {
+    private void updateConstants() {
         
 	int index;
         
@@ -3247,9 +3177,6 @@ public class FTHODOViewerModule implements IDetectorListener,
                     errNPE_mV[s][l][c]  = getNPEErr_mV(s,l,c);
                     gain_mV[s][l][c]    = getGain_mV(s,l,c);
                     errGain_mV[s][l][c] = getGainErr_mV(s,l,c);
-		    
-		    //  System.out.println(" Nick Said " +s+" "+l+" "+c+" "+
-		    //         gain_mV[s][l][c]);
                     
                     summaryTable.setValueAtAsDouble(0,
                                                     meanNPE[s][l][c],
@@ -3302,7 +3229,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                            " with index " + tabSelect);
         
         if(tabSelect == tabIndexTable)
-            this.updateVariables();
+            this.updateConstants();
         
 	previousTabSelect = tabSelect;
 	
@@ -3952,7 +3879,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         //=-=-=-=-=-=-=-=-=-=-=-=-=-
         // Loop One
         for (DetectorCounter counter : counters) {
-            
+	    
             if(counter.getDescriptor().getType() != (DetectorType.FTHODO))
                 break;
             
@@ -3969,11 +3896,12 @@ public class FTHODOViewerModule implements IDetectorListener,
             double calibratedWave;
             double baselineSubRaw;
             
-                // reset non-accumulating histograms
+	    // reset non-accumulating histograms
             H_FADC.get(sec, lay, com).reset();
             H_VT.get(sec, lay, com).reset();
             H_NPE.get(sec, lay, com).reset();
-            
+	    
+
             
 	    //===============================
 	    // npe for this event only
@@ -3981,14 +3909,25 @@ public class FTHODOViewerModule implements IDetectorListener,
             npeEvent[sec][lay][com] = 0.0;
             
             if(gain[sec][lay][com] > 0.0){
-                
+		
                 npeEvent[sec][lay][com] = counter.getChannels().
                 get(0).getADC().get(0)*LSB*4.0/50./gain[sec][lay][com];
                 
                 H_NPE_INT.get(sec, lay, com).fill(npeEvent[sec][lay][com]);
                 
             }
-		    
+	    
+	    double thrAddPed = threshold;
+	    thrAddPed = thrAddPed + fadcFitter.getPedestal();
+	    
+	    fThr.get(sec,lay,com).setParameter(0,thrAddPed);
+	    
+	    double thVAddPed = thrAddPed * LSB;
+	    double vOffset   = 5.0;
+	    thVAddPed = thVAddPed + vOffset;
+	    
+	    fVThr.get(sec,lay,com).setParameter(0,thVAddPed);
+	    
             H_PED.get(sec,lay,com).fill(fadcFitter.getPedestal());
 	    
 	    // Loop through fADC bins filling event-by-event histograms
@@ -3996,14 +3935,13 @@ public class FTHODOViewerModule implements IDetectorListener,
                  i < min(pulse.length,
                          H_fADC.get(sec,lay,com).getAxis().getNBins());
                  i++) {
-                
-                
+                                
                 H_FADC.get(sec,lay,com).fill(i, pulse[i]);
                 
                 baselineSubRaw = pulse[i] - fadcFitter.getPedestal() + 10.0;
                 H_fADC.get(sec,lay,com).fill(i,baselineSubRaw);
                 
-                calibratedWave = (pulse[i]-fadcFitter.getPedestal())*LSB + 5.0;
+                calibratedWave = (pulse[i]-fadcFitter.getPedestal())*LSB + vOffset;
                 H_VT.get(sec,lay,com).fill(i*4,calibratedWave);
                 
                 npeWave = (pulse[i] - fadcFitter.getPedestal())*LSB/voltsPerSPE;
@@ -4014,8 +3952,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         }
         
         
-            //=-=-=-=-=-=-=-=-=-=-=-=-=-
-            // Loop Two
+	//=-=-=-=-=-=-=-=-=-=-=-=-=-
+	// Loop Two
         for (DetectorCounter counter : counters) {
             
             fadcFitter.fit(counter.getChannels().get(0));
@@ -4039,7 +3977,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             }
             
             H_MIP_Q.get(sec, lay, com)
-            .fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
+		.fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
             
             H_NOISE_Q.get(sec, lay, com)
             .fill(counter.getChannels().get(0).getADC().get(0)*LSB*4.0/50);
@@ -4175,24 +4113,30 @@ public class FTHODOViewerModule implements IDetectorListener,
         if( laySel == 0 )
             return;
         
+	
+	
         //============================================================
         // Event Tab Selected
         
         if     ( tabSelect == tabIndexEvent &&
 		 (nProcessed%repaintFrequency==0) ) {
 	    
-	    if(fadcFitter.getWave_Max() > threshold)
-	       drawCanvasEvent(secSel,
-			       laySel,
-			       comSel);
+	    if(H_W_MAX.getBinContent(indexSel) > threshold){
+		
+		drawCanvasEvent(secSel,
+				laySel,
+				comSel);
+		
+	    }
         }
         else if( tabSelect == tabIndexNoise &&
                 (nProcessed%(10*repaintFrequency)==0) ) {
-            
-            drawCanvasNoise(secSel,
-			    laySel,
-			    comSel);
-            
+	    
+	    if(H_W_MAX.getBinContent(indexSel) > threshold){
+		drawCanvasNoise(secSel,
+				laySel,
+				comSel);
+	    }
         }
         else if( tabSelect == tabIndexPed &&
 		 (nProcessed%(10*repaintFrequency)==0) ) {
@@ -4259,16 +4203,16 @@ public class FTHODOViewerModule implements IDetectorListener,
                 else
                     layerStr = "Thick";
                 
-                    // (map indices in both layers to [0,115])
-                    // /map indices to quadrants [0,3]
+		// (map indices in both layers to [0,115])
+		// /map indices to quadrants [0,3]
                 quadrant = (index-(layer-1)*116) / 29;
                 
-                    // map indices to [0,28]
+		// map indices to [0,28]
                 element = index - quadrant * 29 -(layer-1)*116;
                 
-                    // map quadrant to sectors [1,8]
-                    // map element to tiles [1,9] or
-                    // map element to tiles [1,20]
+		// map quadrant to sectors [1,8]
+		// map element to tiles [1,9] or
+		// map element to tiles [1,20]
                 
                 if (element < 9) {
                     sector    = quadrant*2 + 1;
@@ -4420,62 +4364,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         public void fit(DetectorChannel dc) {
             short[] pulse = dc.getPulse();
-	    
-// 	    // pedestal calculated using bins ped_i1, ped_i2
-// 	    double pedlow = 0.0;
-// 	    // pedestal calculated using bins ped_j1, ped_j2
-//             double pedhigh = 0.0;
-                        
-// 	    double noise = 0;
-            
-// 	    double wmax = 0;
-	    
-//             for (int bin = ped_i1; bin < ped_i2; bin++) {
-//                 pedlow += pulse[bin];
-//                 noise  += pulse[bin] * pulse[bin];
-//             }
-            
-//             for (int bin = ped_j1; bin < ped_j2; bin++) {
-//                 pedhigh += pulse[bin];
-//             }
-	    
-// 	    // find pedestal average
-//             if (pedlow < pedhigh)
-//                 pedestal = pedlow / (ped_i2 - ped_i1);
-//             else
-//                 pedestal = pedhigh / (ped_j2 - ped_j1);
 
-// 	    // find pulse maximum
-//             for (int bin = 0 ; bin < pulse.length ; bin++)
-// 		if( pulse[bin] > wmax ) 
-// 		    wmax = pulse[bin];
-	    
-// 	    int timeAt100 = 0;
-	    
-// 	    // record time when signal goes above
-// 	    // pedestal plus 100 bins
-// 	    // if pulse maximum is greater than threshold 
-	    
-// 	    for (int bin = 0; bin < pulse.length ; bin++) {
-                
-// 		if( ( ( pulse[bin] - pedestal ) > 100 )  &&
-// 		    ( ( wmax - pedestal ) > cosmicsThrsh ) ){
-                    
-// 		    if ( timeAt100 == 0 )
-// 			timeAt100 = bin;
-
-// 		}
-            
-// 	    }
-	    
-// 	    // Returns the smallest pedestal value.
-// 	    // Works better if peak is close to the 
-// 	    // beginning of the histogram.
-	    
-//             rms = LSB * sqrt(noise / (ped_i2 - ped_i1) - pedestal * pedestal);
-//             wave_max = wmax;
-//             fadctime = timeAt100;
-       
 	    //==================================================
 	    double ped    = 0.0;
             double noise  = 0;
@@ -4551,6 +4440,9 @@ public class FTHODOViewerModule implements IDetectorListener,
                     width  = time_f - time_7;
                 }
             }
+	    
+	    
+	    
 	    //==================================================
 	    
 	}	

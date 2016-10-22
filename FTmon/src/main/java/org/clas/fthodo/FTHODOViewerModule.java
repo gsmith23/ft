@@ -991,8 +991,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     private void fitPedestals(int s,int l,int c,String fitOption){
 	
-	System.out.println(" Fitting Pedestal (S,L,C) = (" + 
-			   s  + "," + l + "," + c + ")");
+	if (testMode)
+	    System.out.println(" Fitting Pedestal (S,L,C) = (" + 
+			       s  + "," + l + "," + c + ")");
 
 	if (initFitPedestalParameters(s,l,c,H_PED.get(s,l,c))){
 	    H_PED.get(s,l,c).fit(fPed.get(s,l,c),fitOption);
@@ -1005,18 +1006,28 @@ public class FTHODOViewerModule implements IDetectorListener,
 		System.out.println(" No Pedestal Fit (S,L,C) = (" + 
 				   s  + "," + l + "," + c + ")");
     }
+
     private boolean initFitQNoiseParameters(int s,int l,int c,H1D H1){
 	
-			   
+	if(testMode)
+	    System.out.println(" initFitQNoiseParameters start ") ;
+	
 	double ampl = H1.getBinContent(H1.getMaximumBin());
 	double mean = H1.getMaximumBin();
 	mean = mean * H1.getAxis().getBinWidth(2);
 	mean = mean + H1.getAxis().min();
 	double std  = 5.0;
 	
+	if(testMode)
+	    System.out.println(" initFitQNoiseParameters variables initialised ") ;
+		
         if (H1.getEntries() > 500){
+
+	    if(testMode)
+		System.out.println(" initFitQNoiseParameters setting fQ1 parameters ") ;
 	    
-            fQ1.add(s,l,c,new F1D("exp+gaus", 
+	    
+	    fQ1.add(s,l,c,new F1D("exp+gaus", 
 				  H1.getAxis().min(),  
 				  nGain*1.5));
 	    
@@ -1028,7 +1039,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fQ1.get(s,l,c).setParameter(2, ampl);
             fQ1.get(s,l,c).setParameter(3, nGain);
             fQ1.get(s,l,c).setParameter(4, std);
-            
+
+	    if(testMode)
+		System.out.println(" initFitQNoiseParameters setting fQ1 limits ") ;
+	    
 	    // exponential
 	    fQ1.get(s,l,c).setParLimits(0, ampl/10.0, ampl);
             fQ1.get(s,l,c).setParLimits(1, -5, -0.0001);
@@ -1037,7 +1051,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fQ1.get(s,l,c).setParLimits(2, ampl/2, ampl*2);
             fQ1.get(s,l,c).setParLimits(3, 0.5*nGain, 1.5*nGain);
             fQ1.get(s,l,c).setParLimits(4, 1, std*3.0);
-        
+
+	    if(testMode)
+		System.out.println(" initFitQNoiseParameters setting fQ2 parameters ") ;
+
 	    fQ2.add(s,l,c, 
 		    new F1D("gaus", 1.5*nGain, 2.5*nGain));
 	    
@@ -1045,6 +1062,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fQ2.get(s,l,c).setParameter(1, 2.0*nGain);
 	    fQ2.get(s,l,c).setParameter(2, std);
             
+	    if(testMode)
+		System.out.println(" initFitQNoiseParameters setting fQ2 limits ") ;
+		    
 	    fQ2.get(s,l,c).setParLimits(0, 0, ampl/2.0);
 	    fQ2.get(s,l,c).setParLimits(1, mean+20, mean+100);
 	    fQ2.get(s,l,c).setParLimits(2, 1, std*3.0);
@@ -1052,15 +1072,20 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    return true;
 	    
 	}
-	else
+	else{
+	    if(testMode)
+		System.out.println(" initFitQNoiseParameters insufficient entries ") ;
+	    
 	    return false;
-
+	
+	}
     }
 
     private void fitQNoise(int s,int l,int c,String fitOption){
 
-	System.out.println(" Fitting Q Noise(S,L,C) = (" +
-			   s  + "," + l + "," + c + ")"); 
+	if (testMode)
+	    System.out.println(" Fitting Q Noise(S,L,C) = (" +
+			       s  + "," + l + "," + c + ")"); 
 	
 	if (initFitQNoiseParameters(s,l,c,H_NOISE_Q.get(s,l,c))){
 	    
@@ -1081,14 +1106,24 @@ public class FTHODOViewerModule implements IDetectorListener,
     }
 	
     private boolean initFitVNoiseParameters(int s,int l,int c,H1D H1){
-        
+	
+	if(testMode)
+	    System.out.println(" initFitVNoiseParameters start ") ;
+	
 	double ampl = H1.getBinContent(H1.getMaximumBin());
 	double mean = H1.getMaximumBin();
 	mean = mean * H1.getAxis().getBinWidth(2);
 	mean = mean + H1.getAxis().min();
 	double std  = 0.5;
 	
-        if (H1.getEntries() > 200){
+	if(testMode)
+	    System.out.println(" initFitVNoiseParameters variables initialised ") ;
+
+        //if (H1.getEntries() > 200){
+	if (H1.getEntries() > 200){
+	    
+	    if(testMode)
+		System.out.println(" initFitVNoiseParameters setting fV1 parameters ") ;
 	    
             fV1.add(s,l,c, new F1D("gaus+exp", 
 				   H1.getAxis().min(), 
@@ -1099,6 +1134,10 @@ public class FTHODOViewerModule implements IDetectorListener,
             fV1.get(s,l,c).setParameter(2, std);
             fV1.get(s,l,c).setParameter(3, ampl/5.0);
             fV1.get(s,l,c).setParameter(4, -0.001);
+
+	    if(testMode)
+		System.out.println(" initFitVNoiseParameters setting fV1 limits ") ;
+	    
             
             fV1.get(s,l,c).setParLimits(0, ampl/2, ampl*2);
             fV1.get(s,l,c).setParLimits(1, 
@@ -1107,6 +1146,9 @@ public class FTHODOViewerModule implements IDetectorListener,
             fV1.get(s,l,c).setParLimits(2, 0, std*4.0);
             fV1.get(s,l,c).setParLimits(3, 0, ampl*5.);
             fV1.get(s,l,c).setParLimits(4, -5, -0.0001);
+
+	    if(testMode)
+		System.out.println(" initFitVNoiseParameters setting fV2 parameters ") ;
             
 	    fV2.add(s,l,c, new F1D("gaus",
 				   1.5*nGain_mV, 
@@ -1119,6 +1161,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fV2.get(s,l,c).
 		setParameter(2, std);
 	    
+	    if(testMode)
+		System.out.println(" initFitVNoiseParameters setting fV2 limits ") ;
+	    
 	    fV2.get(s,l,c).
 		setParLimits(0, 0, ampl);
 	    fV2.get(s,l,c).
@@ -1130,24 +1175,46 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    return true;
         }
-	else
+	else{
+	    if(testMode)
+		System.out.println(" initFitVNoiseParameters insufficient entries ") ;
+	    
 	    return false;
+	
+	}
 	
     }
 
     private void fitVNoise(int s,int l,int c,String fitOption){
 
-	System.out.println(" Fitting V Noise(S,L,C) = (" +
-			   s  + "," + l + "," + c + ")"); 
+	if (testMode)
+	    System.out.println(" Fitting V Noise (S,L,C) = (" +
+			       s  + "," + l + "," + c + ")"); 
+	
+	boolean fitTwoPeaks = false;
 	
 	if (initFitVNoiseParameters(s,l,c,H_MAXV.get(s,l,c))){
+	    
+	    if (testMode)
+		System.out.println(" Fitting fV1 ");
 	    
 	    H_MAXV.get(s,l,c).
 		fit(fV1.get(s,l,c),fitOption);
 	    
-	    H_MAXV.get(s,l,c).
-		fit(fV2.get(s,l,c),fitOption);
+	    if( fitTwoPeaks ){
 		
+		if (testMode)
+		    System.out.println(" Fitting fV2 ");
+		
+		H_MAXV.get(s,l,c).
+		    fit(fV2.get(s,l,c),fitOption);
+	    }
+	    else{
+		if (testMode)
+		    System.out.println(" Skipping fV2 Fit ");
+		
+	    }
+	    
 	    if (testMode)
 		System.out.println(" Fitted V Noise 1 & 2 (S,L,C) = (" + 
 				   s  + "," + l + "," + c + ")");
@@ -1198,8 +1265,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     private void fitQMIP(int s,int l,int c,String fitOption){
 	
-	System.out.println(" Fitting Q MIP (S,L,C) = (" +
-			   s  + "," + l + "," + c + ")"); 
+	if (testMode)
+	    System.out.println(" Fitting Q MIP (S,L,C) = (" +
+			       s  + "," + l + "," + c + ")"); 
 	
 	if(initFitQMIPParameters(s,l,c,H_MIP_Q.get(s,l,c))){
 	
@@ -1246,8 +1314,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     private void fitVMIP(int s,int l,int c,String fitOption){
 	
-	System.out.println(" Fitting V MIP (S,L,C) = (" +
-			   s  + "," + l + "," + c + ")"); 
+	if (testMode)
+	    System.out.println(" Fitting V MIP (S,L,C) = (" +
+			       s  + "," + l + "," + c + ")"); 
 
 	if(initFitVMIPParameters(s,l,c,H_MIP_V.get(s,l,c))){
 	
@@ -2912,33 +2981,41 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double getGain(int s, int l, int c){
         
         double thisGain = 0.0;
-        
-        if(fQ1.hasEntry(s, l, c) &&
-           fQ2.hasEntry(s, l, c)){
-            
-            double n2 = fQ2.get(s,l,c).getParameter(1);
-            double n1 = fQ1.get(s,l,c).getParameter(3);
-            
-            thisGain = n2 - n1;
-            
-        }
-        
-        if (thisGain < 15.0 ||
-            thisGain > 25.0)
-            thisGain = 0.0;
+
+	int option = 2;
 	
-        return thisGain;
+	if ( option == 1 ){
+	    
+	    if(fQ1.hasEntry(s, l, c)){
+		
+		double n1 = fQ1.get(s,l,c).getParameter(3);		
+		thisGain  =  n1;
+		
+	    }
+	    
+	}
+	else if( option == 2 ){
+	    
+	    if(fQ1.hasEntry(s, l, c) &&
+	       fQ2.hasEntry(s, l, c)){
+		
+		double n2 = fQ2.get(s,l,c).getParameter(1);
+		double n1 = fQ1.get(s,l,c).getParameter(3);		
+		thisGain = n2 - n1;
+		
+	    }
+	}
+	
+	if (thisGain < 15.0 ||
+	    thisGain > 25.0)
+	    thisGain = 0.0;
+	
+	return thisGain;
     }
     
-//     private void setGainToZero(int s, int l, int c){
-	
-// 	gain[s][l][c] = 0.0;
-	
-//     }
-    
     private double getGainError(int s, int l, int c){
-        
-        double gainError = 0.0;
+	
+	double gainError = 0.0;
         
         if(fQ1.hasEntry(s,l,c) &&
            fQ2.hasEntry(s,l,c) &&
@@ -3205,7 +3282,8 @@ public class FTHODOViewerModule implements IDetectorListener,
                 }
             }
         }
-        summaryTable.show();
+        if(testMode)
+	    summaryTable.show();
         this.view.repaint();
         
     } // end of: private void updateTable() {
@@ -3689,18 +3767,27 @@ public class FTHODOViewerModule implements IDetectorListener,
                    HP.getL(),
                    HP.getC()).reset();
         
-        H_COSMIC_fADC.get(HP.getS(),
-                          HP.getL(),
-                          HP.getC()).reset();
-        
         H_MAXV.get(HP.getS(),
 		   HP.getL(),
 		   HP.getC()).reset();
 	
-        H_MIP_V.get(HP.getS(),
-		    HP.getL(),
-		    HP.getC()).reset();
-        
+	
+	    
+	if(detector=='h'){
+	
+	    H_PED.get(HP.getS(),
+		      HP.getL(),
+		      HP.getC()).reset();
+	    
+	    H_COSMIC_fADC.get(HP.getS(),
+			      HP.getL(),
+			      HP.getC()).reset();
+	    H_MIP_V.get(HP.getS(),
+			HP.getL(),
+			HP.getC()).reset();
+	    
+	}
+	
     }
     
     

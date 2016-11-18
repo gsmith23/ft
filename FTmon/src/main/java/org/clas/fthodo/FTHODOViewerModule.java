@@ -189,7 +189,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     double voltageMax    = 2000.;
     double LSB           = voltageMax/fADCBins;
     
-    double thrshNPE      = 3.;
+    double thrshNPE      = 2.5;
     double thrshNoiseNPE = 0.5;
     
     double voltsPerSPE   = 10.;
@@ -206,7 +206,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     //int threshold = 50; // 10 fADC value <-> ~ 5mV
 
     // greater than 3 p.e.
-    double threshD   = 3.0 * 10.0 / LSB; // (pe * v/pe * bins /v 
+    double threshD   = thrshNPE * 10.0 / LSB; // (pe * v/pe * bins /v 
     int    threshold;
     
     //     int ped_i1 = 1;
@@ -272,6 +272,20 @@ public class FTHODOViewerModule implements IDetectorListener,
     final private int tabIndexMatch   = 7;
     final private int tabIndexTime    = 8;
     final private int tabIndexTable   = 9;
+    
+    final private int mipEnCCDB  = 0;
+    final private int mipChCCDB  = 1;
+    final private int npeThCCDB  = 2;
+    final private int pedCCDB    = 3;
+    final private int pedRMSCCDB = 4;
+    final private int gainPCCCDB = 5;
+    final private int gainMVCCDB = 6;
+    final private int t0CCDB     = 7;
+    final private int t1CCDB     = 8;
+    final private int t2CCDB     = 9;
+    final private int tOffCCDB   = 10;
+    final private int tResCCDB   = 11;
+    final private int statCCDB   = 12;
     
     public void initPanel() {
 
@@ -487,17 +501,27 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
+
+    @SuppressWarnings("empty-statement")
     private void initTable() {
         ccdbTable = new HashTable(3,
-				  "MIP Energy",         // 3
-				  "NPE:d",              // 4 
-				  "NPE Error:d",        // 5
-				  "Gain:d",             // 6
-				  "Gain Error:d",       // 7
-				  "Gain [mV]:d",        // 8
-				  "Gain Error [mV]:d"); // 9
+				  "MIPS_ENERGY:d",     // 3
+				  "MIPS_CHARGE:d",     // 4
+				  "NPE_THRESHOLD:d",   // 5 
+				  "PEDESTAL:d",        // 6
+				  "PEDESTAL_RMS:d",    // 7
+				  "GAIN_PC:d",         // 8
+				  "GAIN_MV:d",         // 9
+				  "TDC_T0:d",          // 10
+				  "TDC_T1:d",          // 11
+				  "TDC_T2:d",          // 12
+				  "TIME_OFFSET:d",     // 13
+				  "TIME_RESOLUTION:d", // 14
+				  "STATUS:d");         // 15
         
-        double[] tableInitialValues = {-1,-1,-1,-1,-1,-1,-1};
+	double[] tableInitialValues = {1.4,700,2.5,200,10,20,10, 0,
+				       0.05,0 , 0,1.,0};
+
         
         for (int layer = 2; layer > 0; layer--) {
             for (int sector = 1; sector < 9; sector++) {
@@ -510,19 +534,28 @@ public class FTHODOViewerModule implements IDetectorListener,
 				     layer,
 				     component);
                     
-		    // npe
-                    ccdbTable.addConstrain(4, 15.0, 150.0);
-		    // npe error
-		    ccdbTable.addConstrain(5, 1.0, 1.0);
-		    // gain
-                    ccdbTable.addConstrain(6, 15.0, 25.0);
-		    // gain error
-                    ccdbTable.addConstrain(7, -1.0, 1.0);
-		    // gain_mV
-                    ccdbTable.addConstrain(8, 5.0, 15.0);
+		    ccdbTable.addConstrain(mipEnCCDB+3, 1.0, 4.0);
+		    ccdbTable.addConstrain(mipChCCDB+3, 500, 3000);
+                    ccdbTable.addConstrain(npeThCCDB+3, 2.0, 3.0);
+		    ccdbTable.addConstrain(pedCCDB+3, 100.0, 400.0);
+		    ccdbTable.addConstrain(pedRMSCCDB+3, 1.0, 100.0);
+                    ccdbTable.addConstrain(gainPCCCDB+3, 10.0, 30.0);
+
+                    //ccdbTable.addConstrain(, -1.0, 1.0);
+
+                    ccdbTable.addConstrain(gainMVCCDB+3, 5.0, 15.0);
                     // gain_mV error
-                    ccdbTable.addConstrain(9, -1.0, 1.0);
+                    //ccdbTable.addConstrain(9, -1.0, 1.0);
                     
+		    ccdbTable.addConstrain(t0CCDB+3, -1.0, 1.0);
+		    ccdbTable.addConstrain(t1CCDB+3, -1.0, 1.0);
+		    ccdbTable.addConstrain(t2CCDB+3, -1.0, 1.0);
+		    
+		    ccdbTable.addConstrain(tOffCCDB+3, -1.0, 1.0);
+		    ccdbTable.addConstrain(tResCCDB+3, -5.0, 5.0);
+		    
+		    ccdbTable.addConstrain(statCCDB+3, -0.5, 0.5);
+		    
                 }
             }
         }
@@ -3260,7 +3293,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     private void updateConstants() {
         
 	int index;
-        
+	
+	double mipE = 0.0;
+	double mipC = 0.0;
+	
 	for (int s = 1; s < 9; s++) {
             for (int l = 1; l < 3; l++) {
                 for (int c = 1 ; c < 21 ; c++){
@@ -3283,29 +3319,51 @@ public class FTHODOViewerModule implements IDetectorListener,
                     gain_mV[s][l][c]    = getGain_mV(s,l,c);
                     errGain_mV[s][l][c] = getGainErr_mV(s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(0,
-                                                    meanNPE[s][l][c],
-                                                    s,l,c);
+		    mipE = 2.0;
+		    mipC = 1000.0;
+		    
+		    if      (l==1){
+			mipE = mipE*0.7;
+			mipC = mipC*0.7;
+			
+		    }
+		    else if (l==2){
+			mipE = mipE*1.5;
+			mipC = mipC*1.5;
+		    }
+		    
+		    ccdbTable.setValueAtAsDouble(mipEnCCDB,
+						 mipE,
+						 s,l,c);
+		    
+		    ccdbTable.setValueAtAsDouble(mipChCCDB,
+						 mipC,
+						 s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(1,
-                                                    errNPE[s][l][c],
-                                                    s,l,c);
+// 		    ccdbTable.setValueAtAsDouble(npeThCCDB,
+// 						 meanNPE[s][l][c],
+// 						 s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(2,
-                                                    gain[s][l][c],
-                                                    s,l,c);
+		    
+//                     ccdbTable.setValueAtAsDouble(,
+// 						 errNPE[s][l][c],
+		    // s,l,c);
+		
+// 		    ccdbTable.setValueAtAsDouble(gainPCCCDB,
+// 						 gain[s][l][c],
+// 						 s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(3,
-                                                    errGain[s][l][c],
-                                                    s,l,c);
+//                     ccdbTable.setValueAtAsDouble(,
+// 						 errGain[s][l][c],
+// 						 s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(4,
-                                                    gain_mV[s][l][c],
-                                                    s,l,c);
+//                     ccdbTable.setValueAtAsDouble(gainMVCCDB,
+// 						 gain_mV[s][l][c],
+// 						 s,l,c);
                     
-                    ccdbTable.setValueAtAsDouble(5,
-                                                    errGain_mV[s][l][c],
-                                                    s,l,c);
+//                     ccdbTable.setValueAtAsDouble(6,
+// 						 errGain_mV[s][l][c],
+// 						 s,l,c);
                     
                 }
             }

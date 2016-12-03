@@ -16,6 +16,12 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JButton;
 
+//import org.clas.ftcal.FTCALCosmic;
+//import org.clas.ftcal.FTHODODetector;
+import org.clas.ftcal.FTCALDetector;
+import org.clas.fthodo.FTHODOSimulatedData;
+import org.jlab.clas.detector.DetectorCollection;
+
 import org.clas.fthodo.FTHODOViewerModule;
 import org.clas.ftcal.FTCALViewerModule;
 import org.jlab.clas.detector.DetectorDescriptor;
@@ -50,6 +56,11 @@ public class FTViewerModule implements IDetectorProcessor,
     DetectorEventProcessorPane evPane = new DetectorEventProcessorPane();
     
     EventDecoder decoder = new EventDecoder();
+    
+    //FTHODODetector viewFTHODO = new FTHODODetector("FTHODO"); 
+    FTCALDetector viewFTCAL = new FTCALDetector("FTCAL"); 
+    FTHODOSimulatedData simulation = new FTHODOSimulatedData(viewFTCAL);
+
     int          nProcessed = 0;
     
     // frequency by which panels are repainted
@@ -212,25 +223,39 @@ public class FTViewerModule implements IDetectorProcessor,
         
 	moduleFTHODO.resetHistograms();
     }
-
-    
-    
-    
     
     public void processEvent(DataEvent de) {
         EvioDataEvent event = (EvioDataEvent) de;
         
+	// Simulated Data
+	if(event.hasBank("FTHODO::dgtz")){
+	    
+	    // EXTRACT AND DECODE THE BANK 
+	    simulation.eventBankDecoder(event,"FTHODO::dgtz");
+            DetectorCollection<Double> adc = this.simulation.getSimAdc();
+	    DetectorCollection<Double> tdc = this.simulation.getSimTdc();
+	    
+	    // the event is processed 
+	    moduleFTHODO.processDecodedSimEvent(adc,tdc);
+        
+	}// Real Data
+	else{
+	    
         decoder.decode(event);
         nProcessed++;
 	
 	//!!moduleFTCAL.processDecodedEvent();        
-        moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
+        //moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
 	moduleFTHODO.processDecodedEvent(this.repaintFrequency,1);
+	
+	}
+	
+	// if(nProcessed%repaintFrequency==0)
+	// this.FTviewMaster.repaint();
+	
+	if((nProcessed%5000)==0)
+	    System.out.println(" nProcessed = " + nProcessed );
 
-	
-        if(nProcessed%repaintFrequency==0)
-	    this.FTviewMaster.repaint();
-	
     }
 
     public void update(DetectorShape2D shape) {

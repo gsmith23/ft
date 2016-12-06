@@ -242,7 +242,7 @@ public class FTViewerModule implements IDetectorProcessor,
 	else{
 	    
         decoder.decode(event);
-        nProcessed++;
+        
 	
 	//!!moduleFTCAL.processDecodedEvent();        
         //moduleFTHODO.processDecodedEvent(this.repaintFrequency,0);
@@ -253,8 +253,9 @@ public class FTViewerModule implements IDetectorProcessor,
 	// if(nProcessed%repaintFrequency==0)
 	// this.FTviewMaster.repaint();
 	
+	nProcessed++;
 	if((nProcessed%5000)==0)
-	    System.out.println(" nProcessed = " + nProcessed );
+	System.out.println(" nProcessed = " + nProcessed );
 
     }
 

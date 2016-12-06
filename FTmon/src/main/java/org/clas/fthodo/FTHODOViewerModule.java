@@ -81,20 +81,22 @@ public class FTHODOViewerModule implements IDetectorListener,
     //=================================
     //     HISTOGRAMS, GRAPHS
     //=================================
+
+    // Functions
+    DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fVThr  = new DetectorCollection<F1D>();
     
     //---------------
     // Event-by-Event
     // raw pulse
     DetectorCollection<H1D> H_FADC = new DetectorCollection<H1D>();
-    DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
-    DetectorCollection<F1D> fVThr  = new DetectorCollection<F1D>();
     
     // baseline subtracted pulse calibrated to voltage and time
     DetectorCollection<H1D> H_VT = new DetectorCollection<H1D>();
     // '' calibrated to no. photoelectrons and time
     DetectorCollection<H1D> H_NPE = new DetectorCollection<H1D>();
         
-    //Semi Accumulated
+    // Semi Accumulated
     DetectorCollection<H1D> H_PED_TEMP = new DetectorCollection<H1D>();
     
     // Accumulated
@@ -103,11 +105,11 @@ public class FTHODOViewerModule implements IDetectorListener,
     DetectorCollection<GraphErrors> H_PED_VS_EVENT = new DetectorCollection<GraphErrors>();
     DetectorCollection<GraphErrors> H_PED_INDEX;
     
-    DetectorCollection<H1D> H_MAXV = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_MIP_V = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_NOISE_V = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_MIP_V   = new DetectorCollection<H1D>();
     
     DetectorCollection<H1D> H_NOISE_Q = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_MIP_Q = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_MIP_Q   = new DetectorCollection<H1D>();
         
     DetectorCollection<H1D> H_NPE_INT   = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
@@ -174,7 +176,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double npeEvent[][][];
         
     boolean testMode = false;
-
+    boolean debugging_mode = false;
+    
     double nGain    = gainNew;
     double nGain_mV = gainNew_mV;
     
@@ -243,9 +246,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     double NoiseQXMin[] = {0.  ,10., 10.};
     double NoiseQXMax[] = {310.,310.,310.};
     
-    final int NBinsPed = 1050; //pedestal number of bins
-    double[] PedQX={50, 400}; //pedestal min and max bin values for histogram
-    double PedBinWidth=(PedQX[1]-PedQX[0])/(1.0*NBinsPed);   //Pedestal bin width
+    final int NBinsPed = 1050; 
+    //pedestal min and max bin values for histogram
+    double[] PedQX = {50, 400}; 
+    double PedBinWidth=(PedQX[1]-PedQX[0])/(1.0*NBinsPed);
     
     // number of points in pedestal vs event index 
     final int      nPointsPed = 200;  
@@ -259,7 +263,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     //=================================
     
     double   tile_size = 15;
-    int      nProcessed = 0;
+    int      nDecodedProcessed = 0;
     
     private int tabSelect = 0;
 
@@ -307,8 +311,6 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public void initPanel() {
 
-	//System.out.println(" LSB = " + LSB );
-	
         JSplitPane splitPane = new JSplitPane();
         
         this.initTable();
@@ -371,8 +373,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	rBPane.add(rBGainPeak);
 	rBGainPeak.setSelected(true);
 	rBGainPeak.addActionListener(this);
-
-	// System.out.println("rBGainPeak.isSelected() = " +
 	//  rBGainPeak.isSelected());
 	    
 	group.add(rBGainChrg);
@@ -1075,6 +1075,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 
 	if (initFitPedestalParameters(s,l,c,H_PED.get(s,l,c))){
 	    H_PED.get(s,l,c).fit(fPed.get(s,l,c),fitOption);
+	    
 	    if (testMode)
 		System.out.println(" Fitted Pedestal (S,L,C) = (" + 
 				   s  + "," + l + "," + c + ")");
@@ -1164,8 +1165,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	if (testMode)
 	    System.out.println(" Fitting Q Noise(S,L,C) = (" +
 			       s  + "," + l + "," + c + ")"); 
-		
-
 	
 	if (initFitQNoiseParameters(s,l,c,H_NOISE_Q.get(s,l,c))){
 	    
@@ -1199,13 +1198,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double std  = 0.5;
 	
 	if(testMode)
-	    System.out.println(" initFitVNoiseParameters variables initialised ") ;
+	    System.out.println(" initFitVNoiseParameters variables" +
+			       " initialised ") ;
 
-        //if (H1.getEntries() > 200){
 	if (H1.getEntries() > 200){
 	    
 	    if(testMode)
-		System.out.println(" initFitVNoiseParameters setting fV1 parameters ") ;
+		System.out.println(" initFitVNoiseParameters " +
+				   " setting fV1 parameters ") ;
 	    
             fV1.add(s,l,c, new F1D("gaus+exp", 
 				   H1.getAxis().min(), 
@@ -1218,7 +1218,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             fV1.get(s,l,c).setParameter(4, -0.001);
 
 	    if(testMode)
-		System.out.println(" initFitVNoiseParameters setting fV1 limits ") ;
+		System.out.println(" initFitVNoiseParameters setting " +
+				   " fV1 limits ") ;
 	    
             
             fV1.get(s,l,c).setParLimits(0, ampl/2, ampl*2);
@@ -1230,7 +1231,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             fV1.get(s,l,c).setParLimits(4, -5, -0.0001);
 
 	    if(testMode)
-		System.out.println(" initFitVNoiseParameters setting fV2 parameters ") ;
+		System.out.println(" initFitVNoiseParameters setting " +
+				   " fV2 parameters ") ;
             
 	    fV2.add(s,l,c, new F1D("gaus",
 				   1.5*nGain_mV, 
@@ -1244,7 +1246,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 		setParameter(2, std);
 	    
 	    if(testMode)
-		System.out.println(" initFitVNoiseParameters setting fV2 limits ") ;
+		System.out.println(" initFitVNoiseParameters setting" +
+				   " fV2 limits ") ;
 	    
 	    fV2.get(s,l,c).
 		setParLimits(0, 0, ampl);
@@ -1259,7 +1262,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         }
 	else{
 	    if(testMode)
-		System.out.println(" initFitVNoiseParameters insufficient entries ") ;
+		System.out.println(" initFitVNoiseParameters insufficient"+
+				   " entries ") ;
 	    
 	    return false;
 	
@@ -1273,12 +1277,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    System.out.println(" Fitting V Noise (S,L,C) = (" +
 			       s  + "," + l + "," + c + ")"); 
 	
-	if (initFitVNoiseParameters(s,l,c,H_MAXV.get(s,l,c))){
+	if (initFitVNoiseParameters(s,l,c,H_NOISE_V.get(s,l,c))){
 	    
 	    if (testMode)
 		System.out.println(" Fitting fV1 ");
 	    
-	    H_MAXV.get(s,l,c).
+	    H_NOISE_V.get(s,l,c).
 		fit(fV1.get(s,l,c),fitOption);
 	    
 	    if( this.fitTwoPeaksV ){
@@ -1286,7 +1290,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		if (testMode)
 		    System.out.println(" Fitting fV2 ");
 		
-		H_MAXV.get(s,l,c).
+		H_NOISE_V.get(s,l,c).
 		    fit(fV2.get(s,l,c),fitOption);
 	    }
 	    else{
@@ -1307,13 +1311,18 @@ public class FTHODOViewerModule implements IDetectorListener,
 
     private boolean initFitQMIPParameters(int s,int l,int c,H1D H1){
 	
-	int integralLowBin  = (500 - (int)CosmicQXMin[l])*NBinsCosmic;
+	double[] rangeLow  = {0.0, 200.,  500};
+	double[] rangeHigh = {0.0, 2500., 4000};
+        	
+	int integralLowBin  = (int)(rangeLow[l] - CosmicQXMin[l])*NBinsCosmic;
         integralLowBin  = integralLowBin/((int)CosmicQXMax[l]-(int)CosmicQXMin[l]);
-        
+	
         int integralHighBin = NBinsCosmic-1;
-        
+	
+	
         if (H1.integral(integralLowBin,
 			integralHighBin ) > 25){
+	    
             double ampl = 0;
             double mean = 0;
 	    
@@ -1328,7 +1337,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                 }
             }
 	    
-            fQMIP.add(s,l,c, new F1D("landau", 500, 4500));
+            fQMIP.add(s,l,c, new F1D("landau",
+				     rangeLow[l],
+				     rangeHigh[l]));
+	    
             fQMIP.get(s,l,c).setParameter(0, ampl);
             fQMIP.get(s,l,c).setParameter(1, mean);
             fQMIP.get(s,l,c).setParameter(2, 150);
@@ -1370,15 +1382,18 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double ampl = H1.getBinContent(H1.getMaximumBin());
 	//mean = H1.getMaximumBin()*45 + 250;
-	double mean = 600.;
+	double mean[] = {0.,300.,600.};
 	double std  = 5.0;
 	
+	double[] rangeLow  = {0.0, 100.,  250};
+	double[] rangeHigh = {0.0, 1250., 2000};
+        	
 	if (H1.integral() > 10 ){
 	    
 	    fVMIP.add(s,l,c, new F1D("landau", 250, 1500));
 		
 	    fVMIP.get(s,l,c).setParameter(0, ampl);
-	    fVMIP.get(s,l,c).setParameter(1, mean);
+	    fVMIP.get(s,l,c).setParameter(1, mean[l]);
 	    fVMIP.get(s,l,c).setParameter(2, 200);
 		    
  	    fVMIP.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2.5);
@@ -1786,8 +1801,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// voltage maximum
         canvasNoise.cd(layCDM);
         
-        if(H_MAXV.hasEntry(secSel,laySel,comSel)){
-            this.canvasNoise.draw(H_MAXV.get(secSel,
+        if(H_NOISE_V.hasEntry(secSel,laySel,comSel)){
+            this.canvasNoise.draw(H_NOISE_V.get(secSel,
                                              laySel,
                                              comSel));
             if(fV1.hasEntry(secSel,
@@ -1812,8 +1827,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         canvasNoise.cd(oppCDM);
 	
-	if(H_MAXV.hasEntry(secSel,oppSel,comSel)){
-            this.canvasNoise.draw(H_MAXV.get(secSel,
+	if(H_NOISE_V.hasEntry(secSel,oppSel,comSel)){
+            this.canvasNoise.draw(H_NOISE_V.get(secSel,
                                              oppSel,
                                              comSel));
             
@@ -2111,8 +2126,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// left top (bottom) for thin (thick) layer
         canvasVoltage.cd(layCDL);
         
-        if(H_MAXV.hasEntry(secSel,laySel,comSel)){
-            this.canvasVoltage.draw(H_MAXV.get(secSel,
+        if(H_NOISE_V.hasEntry(secSel,laySel,comSel)){
+            this.canvasVoltage.draw(H_NOISE_V.get(secSel,
 					       laySel,
 					       comSel));
 	    if(fV1.hasEntry(secSel,
@@ -2134,10 +2149,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	// left top (bottom) for thin (thick) layer
         canvasVoltage.cd(oppCDL);
         
-        if(H_MAXV.hasEntry(secSel,
+        if(H_NOISE_V.hasEntry(secSel,
                               oppSel,
                               comSel))
-            this.canvasVoltage.draw(H_MAXV.get(secSel,
+            this.canvasVoltage.draw(H_NOISE_V.get(secSel,
                                                  oppSel,
                                                  comSel));
        if(fV1.hasEntry(secSel,
@@ -3714,7 +3729,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    setYTitle("Counts");
         
         
-        H_MAXV.add(HP.getS(),HP.getL(), HP.getC(),
+        H_NOISE_V.add(HP.getS(),HP.getL(), HP.getC(),
                    new H1D(DetectorDescriptor.
                            getName("WAVEMAX",
                                    HP.getS(),HP.getL(),HP.getC()),
@@ -3722,13 +3737,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 			   0.5*nGain_mV,
 			   3.0*nGain_mV));
         
-	H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+	H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setFillColor(2);
 	
-        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+        H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setXTitle("Waveform Max (mV)");
 	
-        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+        H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setYTitle("Counts");
         
 	H_MIP_V.add(HP.getS(),HP.getL(), HP.getC(),
@@ -3767,7 +3782,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				getName("H_MAXV_VS_T",
 					HP.getS(),HP.getL(),HP.getC()),
 				HP.getTitle(),
-				32,125.,275.,
+				32,0.,500.,
 				32,0.,2000.));
 	
 	//H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
@@ -3800,8 +3815,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 			   new H1D(DetectorDescriptor.
 				   getName("H_DT_MODE7",
 					   HP.getS(),HP.getL(),HP.getC()),
-				   HP.getTitle(), 64, -100, 100));
-	    //HP.getTitle(), 64, -16, 16));
+				   HP.getTitle(), 64, -16, 16));
+	    //		   HP.getTitle(), 64, -100, 100));
             H_DT_MODE7.get(HP.getS(),HP.getL(), 
 			   HP.getC()).setFillColor(4);
             H_DT_MODE7.get(HP.getS(),
@@ -3928,7 +3943,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         H_NPE_MATCH.get(HP.getS(),HP.getL(),HP.getC()).setXTitle("npe (peak/gain)");
         H_NPE_MATCH.get(HP.getS(),HP.getL(),HP.getC()).setYTitle("Counts");
         
-        H_MAXV.add(HP.getS(),HP.getL(), HP.getC(),
+        H_NOISE_V.add(HP.getS(),HP.getL(), HP.getC(),
                    new H1D(DetectorDescriptor.
                            getName("WAVEMAX",
                                    HP.getS(),HP.getL(),HP.getC()),
@@ -3936,13 +3951,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 			   0.5*nGain_mV,
 			   3.0*nGain_mV));
         
-	H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+	H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setFillColor(2);
 	
-        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+        H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setXTitle("Waveform Max (mV)");
 	
-        H_MAXV.get(HP.getS(),HP.getL(), HP.getC()).
+        H_NOISE_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setYTitle("Counts");
 	
     }
@@ -3984,7 +3999,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                    HP.getL(),
                    HP.getC()).reset();
         
-        H_MAXV.get(HP.getS(),
+        H_NOISE_V.get(HP.getS(),
 		   HP.getL(),
 		   HP.getC()).reset();
 	
@@ -4157,57 +4172,108 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void processDecodedSimEvent(DetectorCollection<Double> adc, 
 				       DetectorCollection<Double> tdc){
 	
-	double charge, deltaT;
+	double[] time = { -99.9, -99.9, -99.9 };
+	double   time2Hodo = 6.0;
+	double   startTime = 124.25;
 	
-	boolean applyTCut, goodTime;
+	time[0] = startTime + time2Hodo;
+	
+	boolean[] goodTime = {false, false, false};
+	boolean   goodDT;
+	
+	double    tCut  = 10.0;
+	double    dtCut =  5.0;
+	
+	boolean[] applyTCut  = {false, false, false}; 
+	boolean   applyDTCut = false; 
+	
+	boolean   applyNoCuts = true; 
 
+	double[]  charge      = {0.0, 0.0, 0.0};
+	double[]  peakVolt = {0.0, 0.0, 0.0};
+	double    deltaT;
+	
 	for (int s = 1 ; s < 9 ; s++){
 	    for (int c = 1 ; c < 20 ; c++){
 		
 		if( s%2==1 && c > 9 ) 
 		    continue;
 		
-		deltaT = 0.0;
-		goodTime = false;
-		
-		if (tdc.hasEntry(s,1,c) &&
-		    tdc.hasEntry(s,2,c)){
-		    deltaT = tdc.get(s,1,c) - tdc.get(s,2,c);
-		    deltaT = deltaT*nsPerSample;
-		    H_DT_MODE7.get(s, 1, c).fill(deltaT);
-		    goodTime = true;
-		}
-				
+		deltaT      = -999.9;
+		goodDT      = false;
+		    
 		for (int l = 1 ; l < 3 ; l++){    
 		    
-		    charge = 0.0;
-		    
-		    applyTCut = true;
-		    
-		    if (adc.hasEntry(s,l,c)) {
-			    
-			if( (applyTCut && 
-			     goodTime  &&
-			     sqrt(deltaT*deltaT) < 2.) || 
-			    !applyTCut){
-			    
-			    charge = adc.get(s,l,c)*LSB*4.0/50;
-			    
-			}
+		    peakVolt[l] = 0.0;
+		    charge[l]      = 0.0;
+		    time[l]        = -99.9;
+		    goodTime[l]    = false;
+		    	
+		    if( tdc.hasEntry(s,l,c) ){
+			time[l] = tdc.get(s,l,c)*nsPerSample/100.;
+			
+			if(debugging_mode)
+			    System.out.println(" time[" + l +
+					       " = " + time[l] );
+			
+			if(abs(time[l] - time[0]) < tCut ) 
+			    goodTime[l] = true;
 		    }
 		    
-		    H_MIP_Q.get(s, l, c)
-			.fill(charge);
+		    if( l == 2              &&
+			tdc.hasEntry(s,1,c) &&
+			tdc.hasEntry(s,2,c) 
+			){
+			
+			deltaT = time[2] - time[1];
+			
+			if( abs(deltaT) < dtCut ){
+			    goodDT = true;
+			}
+			
+			H_DT_MODE7.get(s, 1, c).fill(deltaT);
+			
+		    }
+		
+		    if (adc.hasEntry(s,l,c)) {
 		    
-		    H_NOISE_Q.get(s, l, c)
-			.fill(charge);
+			charge[l]      = adc.get(s,l,c)*LSB*4.0/50;
+			peakVolt[l] = charge[l]/2;
+			
+			if( (applyTCut[l] && 
+			     goodTime[l])    ||
+			    (applyDTCut && 
+			     goodDT)         ||
+			    (applyNoCuts)
+			    ){
+			    
+			   H_MAXV_VS_T.get(s,l,c)
+			       .fill(time[l],peakVolt[l]);
+			   
+			   H_MIP_Q.get(s, l, c)
+			       .fill(charge[l]);
+			   
+			   H_NOISE_Q.get(s, l, c)
+			       .fill(charge[l]);
+			   
+			   H_MIP_V.get(s, l, c)
+			       .fill(peakVolt[l]);
+			   
+			   H_NOISE_V.get(s, l, c)
+			       .fill(peakVolt[l]);
+			   
+						       
+			}
+			
+		    } // end of: if (adc.hasEntry(s,l,c)) {....
 		    
-// 		    if(charge > 500)
+		    // 		    if(charge > 500)
 // 			System.out.println(" charge (s,l,c) = " + 
 // 					   charge               +
 // 					   "(" + s + "," + l    +
 // 					   "," + c + ")");
- 		}
+ 		} // end of: for (int l = 1 ; l < 3 ; l++)
+
 	    }
 	}
 	drawCanvasCharge(secSel,laySel,comSel);
@@ -4215,7 +4281,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     }
     
     public void processDecodedEvent(int repaintFrequency, int detType) {
-        nProcessed++;
+        nDecodedProcessed++;
         
         List<DetectorCounter> counters;
         
@@ -4224,7 +4290,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         else
             counters = decoder.getDetectorCounters(DetectorType.FTHODO);
         
-        //System.out.println("event #: " + nProcessed);
+        //System.out.println("event #: " + nDecodedProcessed);
         
         FTHODOViewerModule.MyADCFitter fadcFitter;
         fadcFitter = new FTHODOViewerModule.MyADCFitter();
@@ -4290,10 +4356,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    // Maybe this can be of number of events in histogram instead.. 
 	    // however all histograms should have ped for every event
 	    
-            if (nProcessed/100 < nPointsPed)
-                eventloop=nProcessed;
+            if (nDecodedProcessed/100 < nPointsPed)
+                eventloop=nDecodedProcessed;
             else
-                eventloop=nProcessed-nProcessed/(nPointsPed*100)*nPointsPed*100;
+                eventloop=nDecodedProcessed-nDecodedProcessed/(nPointsPed*100)*nPointsPed*100;
 	    
             if (eventloop%100!=0){
 		// Fills a histogram for pedestal by averaging 
@@ -4447,7 +4513,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             H_V_MAX.fill(index,voltMax);
             H_NPE_MAX.fill(index,npeMax);
             
-	    H_MAXV.get(sec, lay, com).
+	    H_NOISE_V.get(sec, lay, com).
 		fill(voltMax);
 	    
 	    if( lay > 0 &&
@@ -4548,11 +4614,11 @@ public class FTHODOViewerModule implements IDetectorListener,
         // Event Tab Selected
         
         if     ( tabSelect == tabIndexEvent &&
-		 (nProcessed%repaintFrequency==0) ) {
+		 (nDecodedProcessed%repaintFrequency==0) ) {
 
 	    //  double hwmax =  H_W_MAX.getBinContent(indexSel);
 	    
-	    // 	System.out.println(" nProcessed       = " + nProcessed);
+	    // 	System.out.println(" nDecodedProcessed       = " + nDecodedProcessed);
 	    // 	System.out.println(" repaintFrequency = " + repaintFrequency);
 	    // 	System.out.println(" threshold        = " + threshold);
 	    // 	System.out.println(" hwmax            = " + hwmax);
@@ -4571,7 +4637,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    }
         }
         else if( tabSelect == tabIndexNoise &&
-		 (nProcessed%(10*repaintFrequency)==0) ) {
+		 (nDecodedProcessed%(10*repaintFrequency)==0) ) {
 	    
 	    if(H_W_MAX.getBinContent(indexSel) > threshold){
 		drawCanvasNoise(secSel,
@@ -4580,7 +4646,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    }
         }
         else if( tabSelect == tabIndexPed &&
-		 (nProcessed%(10*repaintFrequency)==0) ) {
+		 (nDecodedProcessed%(10*repaintFrequency)==0) ) {
             
             drawCanvasPed(secSel,
 			  laySel,
@@ -4588,7 +4654,7 @@ public class FTHODOViewerModule implements IDetectorListener,
             
         }
         else if( tabSelect == tabIndexCharge  &&
-                (nProcessed%(10*repaintFrequency)==0) ) {
+                (nDecodedProcessed%(10*repaintFrequency)==0) ) {
             
             drawCanvasCharge(secSel,
                              laySel,
@@ -4597,7 +4663,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         }
 	//==========================================
         
-        if(nProcessed%repaintFrequency==0)
+        if(nDecodedProcessed%repaintFrequency==0)
             this.view.repaint();
     }
     

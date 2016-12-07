@@ -51,7 +51,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 					   ActionListener,
 					   ChangeListener{
     EventDecoder decoder;
-   
+    
     //=================================
     //    PANELS, CANVASES ETC
     //=================================
@@ -148,40 +148,36 @@ public class FTHODOViewerModule implements IDetectorListener,
     //           ARRAYS
     //=================================
     
-    private double ped[][][];
+    private double[][][] status;
+    private double[][][] thrshNPE;
+    
+    private double[][][] ped;
 
-    private double pedMean[][][];
+    private double[][][] pedMean;
     
-    private double vMax[][][];
-    private double vMaxEvent[][][];
+    private double[][][] gain;
+    private double[][][] errGain;
     
-    private double meanNPE[][][];
-    private double errNPE[][][];
-    private double sigNPE[][][];
+    private double[][][] gain_mV;
+    private double[][][] errGain_mV;
     
-    private double meanNPE_mV[][][];
-    private double errNPE_mV[][][];
-    private double sigNPE_mV[][][];
+    private double[][][] meanNPE;
+    private double[][][] errNPE;
+    private double[][][] sigNPE;
+    
+    private double[][][] meanNPE_mV;
+    private double[][][] errNPE_mV;
+    private double[][][] sigNPE_mV;
 
-    private double gain[][][];
-    private double errGain[][][];
     
-    final   double gainNew    = 20;
-    final   double gainOld    = 70;
+    // not ccdb constants
+    private double[][][] npeEvent;
+
+    private double[][][] vMax;
+    private double[][][] vMaxEvent;
     
-    private double gain_mV[][][];
-    private double errGain_mV[][][];
-    
-    final   double gainNew_mV = 10;
-    final   double gainOld_mV = 44;
-    
-    private double npeEvent[][][];
-        
     boolean testMode = false;
     boolean debugging_mode = false;
-    
-    double nGain    = gainNew;
-    double nGain_mV = gainNew_mV;
     
     //=================================
     //           CONSTANTS
@@ -189,21 +185,33 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     boolean fitTwoPeaksV = false;
     boolean fitTwoPeaksQ = false;
-
-    // extract from file name    
-    int    runNumber     = 982;
-        
+    
+    final double nStatus     = 0.0;
+    final double nThrshNPE   = 2.5;
+    final double nPed        = 200.0;
+    final double nPed_RMS    = 10.0;
+    final double nGain       = 20.0;
+    final double nErrGain    = 0.0;
+    final double nGain_mV    = 10;
+    final double nErrGain_mV = 0.0;
+    final double nMipEThin   = 1.2;    
+    final double nMipEThick  = 2.65;    
+    final double nMipCThin   = 700.;   
+    final double nMipCThick  = 1500.;   
+    final double nTOff       = 0.0;    
+    final double nTRes       = 1.0;    
+    
     int    fADCBins      = 4096;
     double voltageMax    = 2000.;
     double LSB           = voltageMax/fADCBins;
     
-    double thrshNPE      = 2.5;
-    double thrshNoiseNPE = 0.5;
+    
+    final double thrshNoiseNPE = 0.5;
     
     double voltsPerSPE   = 10.;
     double binsPerSPE    = voltsPerSPE/LSB;
     
-    double thrshVolts    = thrshNPE*voltsPerSPE;
+    double thrshVolts    = nThrshNPE*voltsPerSPE;
     double noiseThrshV   = thrshNoiseNPE*voltsPerSPE;
     
     double cosmicsThrsh  = thrshVolts/LSB;
@@ -211,29 +219,19 @@ public class FTHODOViewerModule implements IDetectorListener,
     
 
     //==================
-    //int threshold = 50; // 10 fADC value <-> ~ 5mV
-
     // greater than 2.5 p.e.
     // (pe * v/pe * bins /v )
-    double threshD   = thrshNPE * 10.0 / LSB; 
+    // = 51 
+    double threshD   = nThrshNPE * 10.0 / LSB; 
     int    threshold;
     
-    //     int ped_i1 = 1;
-    //     int ped_i2 = 20;
-    //     int pul_i1 = 21;
-    //     int pul_i2 = 60;
     double nsPerSample = 4;
-    //    double LSB = 0.4884;
-    //    double crystal_size = 15;
     //=================
 
     int ped_i1 = 4;
     int ped_i2 = 24;
     int pul_i1 = 30;
     int pul_i2 = 70;
-    
-    int ped_j1 = 79;
-    int ped_j2 = 99;
     
     final int NBinsCosmic = 50;
     
@@ -244,7 +242,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     final int CosmicNPEXMax[]  = {200,93,133};
     
     boolean simulatedAnalysis = true;
-
+    boolean useDefaultGain    = true;
+    
     double NoiseQXMin[] = {0.  ,10., 10.};
     double NoiseQXMax[] = {310.,CosmicQXMin[1],CosmicQXMin[2]};
 
@@ -269,8 +268,6 @@ public class FTHODOViewerModule implements IDetectorListener,
     double   tile_size = 15;
     int      nDecodedProcessed = 0;
     
-
-
     private int secSel = 5;
     private int laySel = 2;
     private int comSel = 1;    
@@ -280,24 +277,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     private boolean useGain_mV = true;
     
     JPanel rBPane;
-    int previousTabSelect = 0;
+    int    previousTabSel = 0;
 
-    private int tabSelect = 4;
+    private int tabSel = 4;
 
-    // the following indices must correspond
-    // to the order the canvased are added
-    // to 'tabbedPane'
-    final private int tabIndexEvent   = 0;
-    final private int tabIndexPed     = 1;
-    final private int tabIndexNoise   = 2;
-    final private int tabIndexGain    = 3;
-    final private int tabIndexCharge  = 4;
-    final private int tabIndexVoltage = 5;
-    final private int tabIndexMIP     = 6;
-    final private int tabIndexMatch   = 7;
-    final private int tabIndexTime    = 8;
-    final private int tabIndexTable   = 9;
-    
     // the following indices must
     // correspond to the order the
     // columns are added to the 
@@ -315,6 +298,20 @@ public class FTHODOViewerModule implements IDetectorListener,
     final private int tResCCDB   = 12;
 
     
+    // the following indices must correspond
+    // to the order the canvased are added
+    // to 'tabbedPane'
+    final private int tabIndexEvent   = 0;
+    final private int tabIndexPed     = 1;
+    final private int tabIndexNoise   = 2;
+    final private int tabIndexGain    = 3;
+    final private int tabIndexCharge  = 4;
+    final private int tabIndexVoltage = 5;
+    final private int tabIndexMIP     = 6;
+    final private int tabIndexMatch   = 7;
+    final private int tabIndexTime    = 8;
+    final private int tabIndexTable   = 9;
+
     public void initPanel() {
 
         JSplitPane splitPane = new JSplitPane();
@@ -337,6 +334,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         tabbedPane.add("Time"    ,this.canvasTime);
         tabbedPane.add("Table"   ,canvasTable);
 	tabbedPane.addChangeListener(this);
+        tabbedPane.setSelectedIndex(this.tabSel);
         this.initCanvas();
         
         JPanel buttonPane = new JPanel();
@@ -555,8 +553,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 				  "MIPS_CHARGE:d",     // 10
 				  "TIME_OFFSET:d",     // 11
 				  "TIME_RESOLUTION:d");// 12
-				  
-        double[] tableInitialValues = {0.0, 2.5, 200., 10., 20,
+		
+	
+        double[] tableInitialValues = {0.0, nThrshNPE, 200., 10., 20,
 				       10., 1.4, 700., 0.0, 1.0};
 
         
@@ -595,24 +594,18 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     
     public FTHODOViewerModule(){
-        this.threshold = (int)threshD;
-        
-	System.out.println(" threshold = " + threshold );
 	
+	System.out.println( " -------------------");
+	System.out.println( " FTHODOViewerModule ");
+	System.out.println( " -------------------");
+
+        this.threshold = (int)threshD;
+
         this.detectorPanel = null;
         this.decoder = null;
-	
-	if(runNumber > 750){
-	    this.nGain    = gainNew;
-	    this.nGain_mV = gainNew_mV;
-	}
-	else{
-	    this.nGain    = gainOld;
-	    this.nGain_mV = gainOld_mV;
-	}
-	
+
     }
-    
+
     public void initDetector(){
 
         DetectorShapeView2D viewFTHODO = this.drawDetector(0.0, 0.0);
@@ -2971,28 +2964,28 @@ public class FTHODOViewerModule implements IDetectorListener,
 	//============================================================
 	// FTHODOViewer
 	
-        if      ( tabSelect == this.tabIndexEvent ) {
+        if      ( tabSel == this.tabIndexEvent ) {
 	    
  	    drawCanvasEvent(secSel,
 			    laySel,
 			    comSel);
             
         }
-        else if ( tabSelect == this.tabIndexPed ) {
+        else if ( tabSel == this.tabIndexPed ) {
 	 
 	    drawCanvasPed(secSel,
 			  laySel,
 			  comSel);
             
         }
-        else if ( tabSelect == this.tabIndexNoise ) {
+        else if ( tabSel == this.tabIndexNoise ) {
 	    
             drawCanvasNoise(secSel,
                             laySel,
                             comSel);
             
         }
-        else if ( tabSelect == this.tabIndexGain ) {
+        else if ( tabSel == this.tabIndexGain ) {
 	    
 	    
 	    if(drawByElec==false){
@@ -3012,21 +3005,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 		}
 	
 	}
-        else if ( tabSelect == this.tabIndexCharge ) {
+        else if ( tabSel == this.tabIndexCharge ) {
             
             drawCanvasCharge(secSel,
                              laySel,
                              comSel);
 			     
         }
-        else if ( tabSelect == this.tabIndexVoltage ) {
+        else if ( tabSel == this.tabIndexVoltage ) {
             
             drawCanvasVoltage(secSel,
 			      laySel,
 			      comSel);
 			     
         }
-        else if ( tabSelect == this.tabIndexMIP ) {
+        else if ( tabSel == this.tabIndexMIP ) {
             
 	    if(drawByElec==false){
 		drawCanvasMIP(secSel,
@@ -3041,13 +3034,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	}
 	    
-        else if ( tabSelect == this.tabIndexMatch ) {
+        else if ( tabSel == this.tabIndexMatch ) {
             
             drawCanvasMatch(secSel,
                             laySel,
                             comSel);
         }
-	else if ( tabSelect == this.tabIndexTime ) {
+	else if ( tabSel == this.tabIndexTime ) {
             
             drawCanvasTime(secSel,
 			   laySel,
@@ -3146,7 +3139,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 					      12*nGain_mV,
 					      true);
 
-        if    ( tabSelect == tabIndexEvent ) {
+        if    ( tabSel == tabIndexEvent ) {
             if      ( waveMax > cosmicsThrsh) {
                 shape.setColor(0, 255, 0, signalAlpha);
             }
@@ -3157,28 +3150,28 @@ public class FTHODOViewerModule implements IDetectorListener,
                 shape.setColor(255, 255, 255, 0);
             }
         }
-	else if( tabSelect == tabIndexPed ) {
+	else if( tabSel == tabIndexPed ) {
 	    shape.setColor(pedColor.getRed(),
 			   pedColor.getGreen(),
 			   pedColor.getBlue());
         }
-        else if( tabSelect == tabIndexNoise ){ 
+        else if( tabSel == tabIndexNoise ){ 
 	    shape.setColor(noiseColor.getRed(),
 			   noiseColor.getGreen(),
 			   noiseColor.getBlue());
 	}
-	else if( tabSelect == tabIndexVoltage ) {
+	else if( tabSel == tabIndexVoltage ) {
 	    shape.setColor(voltColor.getRed(),
 			   voltColor.getGreen(),
 			   voltColor.getBlue());
         }
-	else if( tabSelect == tabIndexGain ){ 
+	else if( tabSel == tabIndexGain ){ 
 	    shape.setColor(gainColor.getRed(),
 			   gainColor.getGreen(),
 			   gainColor.getBlue());
 	}
-	else if( tabSelect == tabIndexMIP    ||
-		 tabSelect == tabIndexCharge ){
+	else if( tabSel == tabIndexMIP    ||
+		 tabSel == tabIndexCharge ){
             if      (waveMax  > cosmicsThrsh ) {
                 shape.setColor(0, 255, 0, (256/4)-1);
             }
@@ -3195,23 +3188,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     // Calculate Constants
     
     private double getStatus(int s, int l, int c){
-	
-        double thisStatus = 0.0;
-	
-	// 0  Okay
-	// 1  Noisy Channel 
-	// 2  Dead  Channel (unsuccessful fit to charge mips)
-	// 3  Any Other Problem
-	if     (s==7 && l == 1 && c == 4 
-		){
-	    thisStatus = 1.0;
-	}
-	else if(s==6 && l == 1 && c == 11
-		){
-	    thisStatus = 2.0;
-	}
-	
-        return thisStatus;
+        return status[s][l][c];
     }
     
     private double getPedMean(int s, int l, int c){
@@ -3230,15 +3207,16 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double getGain(int s, int l, int c){
         
         double thisGain = 0.0;
-
 	
-	if ( !this.fitTwoPeaksQ ){
+	if( useDefaultGain ){
+	    thisGain = nGain;
+	}
+	else if ( !this.fitTwoPeaksQ ){
 	    
 	    if(fQ1.hasEntry(s, l, c)){
 		
 		double n1 = fQ1.get(s,l,c).getParameter(3);		
 		thisGain  =  n1;
-		
 	    }
 	    
 	}
@@ -3250,7 +3228,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 		double n2 = fQ2.get(s,l,c).getParameter(1);
 		double n1 = fQ1.get(s,l,c).getParameter(3);		
 		thisGain = n2 - n1;
-		
 	    }
 	}
 	
@@ -3265,7 +3242,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double gainError = 0.0;
 	
-	if ( !this.fitTwoPeaksQ ){
+	if( useDefaultGain ){
+	    gainError = 0.0;
+	}
+	else if ( !this.fitTwoPeaksQ ){
 	    if(fQ1.hasEntry(s,l,c) &&
 	       getGain(s,l,c) > 0.0 ){
 		
@@ -3298,7 +3278,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
         double thisGain_mV = 0.0;
 	
-	if( !this.fitTwoPeaksV ){
+	if( useDefaultGain ){
+	    thisGain_mV = nGain_mV;
+	}
+	else if( !this.fitTwoPeaksV ){
 	    if(fV1.hasEntry(s, l, c)){
 		double m1 = fV1.get(s,l,c).getParameter(1);
 		thisGain_mV =  m1;
@@ -3329,7 +3312,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
         double gainErr_mV = 0.0;
 
-	if( !this.fitTwoPeaksV ){
+	if( useDefaultGain ){
+	    gainErr_mV = 0.0;
+	}
+	else if( !this.fitTwoPeaksV ){
 	    if(fV1.hasEntry(s,l,c) &&
 	       getGain_mV(s,l,c) > 0.0 ){
 		double m1Error = fV1.get(s,l,c).getParError(1);
@@ -3517,6 +3503,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 			mipC = mipC*1.5;
 		    }
 		    
+		    
 		    //final private int statCCDB   = 3;
 		    //final private int npeThCCDB  = 4;
 		    //final private int pedCCDB    = 5;
@@ -3527,7 +3514,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    //final private int mipChCCDB  = 10;
 		    //final private int tOffCCDB   = 11;
 		    //final private int tResCCDB   = 12;
-			
+		    
 		    // 0  Okay
 		    // 1  Noisy Channel
 		    // 2  Dead  Channel
@@ -3581,25 +3568,25 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void stateChanged(ChangeEvent e) {
         JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
 	
-	tabSelect = sourceTabbedPane.getSelectedIndex();
+	tabSel = sourceTabbedPane.getSelectedIndex();
         
-	if ( tabSelect == this.tabIndexGain ||
-	     tabSelect == this.tabIndexMIP )
+	if ( tabSel == this.tabIndexGain ||
+	     tabSel == this.tabIndexMIP )
 	    this.canvasPane.add(rBPane, BorderLayout.NORTH);
 	
-	if( (this.previousTabSelect==this.tabIndexGain ||
-	     this.previousTabSelect==this.tabIndexMIP ) && 
-	    tabSelect!=this.tabIndexGain )
+	if( (this.previousTabSel==this.tabIndexGain ||
+	     this.previousTabSel==this.tabIndexMIP ) && 
+	    tabSel!=this.tabIndexGain )
             this.canvasPane.remove(rBPane);
     
 	System.out.println("Tab changed to: " +
-                           sourceTabbedPane.getTitleAt(tabSelect) +
-                           " with index " + tabSelect);
+                           sourceTabbedPane.getTitleAt(tabSel) +
+                           " with index " + tabSel);
         
-        if(tabSelect == tabIndexTable)
+        if(tabSel == tabIndexTable)
             this.updateConstants();
         
-	previousTabSelect = tabSelect;
+	previousTabSel = tabSel;
 	
         this.view.repaint();
     }
@@ -4112,6 +4099,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     
     public void initArrays() {
         
+	status   = new double[9][3][21];
+	thrshNPE = new double[9][3][21];
+	
 	ped      = new double[9][3][21];
 	pedMean  = new double[9][3][21];
 
@@ -4131,124 +4121,37 @@ public class FTHODOViewerModule implements IDetectorListener,
         errGain_mV  = new double[9][3][21];
         
 	npeEvent = new double[9][3][21];
-
-	boolean top = false;
-	boolean bot = false;
-        
+	
         for (int s = 0; s < 9; s++) {
             for (int l = 0; l < 3; l++) {
                 for ( int c = 0 ; c < 21 ; c++){
-                    
-		    this.ped[s][l][c]        = 0.0;
-		    this.pedMean[s][l][c]    = 0.0;
 		    
-		    this.vMax[s][l][c]       = 0.0;
-		    this.vMaxEvent[s][l][c]  = 0.0;
+		    this.status[s][l][c]     = nStatus;
+		    
+		    this.thrshNPE[s][l][c]   = nThrshNPE;
+		    
+		    this.ped[s][l][c]        = nPed;
+		    this.pedMean[s][l][c]    = nPed_RMS;
+		    
+		    this.gain[s][l][c]       = nGain;
+                    this.errGain[s][l][c]    = nErrGain;
+		    
+		    this.gain_mV[s][l][c]    = nGain_mV;
+                    this.errGain_mV[s][l][c] = nErrGain_mV;
 		    
 		    this.meanNPE[s][l][c]    = 0.0;
                     this.errNPE[s][l][c]     = 0.0;
                     this.sigNPE[s][l][c]     = 100.0;
 		    
-		    this.gain[s][l][c]       = gainOld;
-                    this.errGain[s][l][c]    = 0.0;
-
                     
-		    this.meanNPE_mV[s][l][c]    = 0.0;
-                    this.errNPE_mV[s][l][c]     = 0.0;
+		    this.meanNPE_mV[s][l][c]  = 0.0;
+                    this.errNPE_mV[s][l][c]   = 0.0;
                     
-		    this.gain_mV[s][l][c]    = gainOld_mV;
-                    this.errGain_mV[s][l][c] = 0.0;
-
-		    this.npeEvent[s][l][c]   = 0.0;                    
+		    this.vMax[s][l][c]       = 0.0;
+		    this.vMaxEvent[s][l][c]  = 0.0;
 		    
-		    if (runNumber > 750 ){
-			this.gain[s][l][c]       = gainNew;
-			this.gain_mV[s][l][c]    = gainNew_mV;
-		    }
+		    this.npeEvent[s][l][c]    = 0.0;                    
 		    
-		    // NEW CONVENTION 
-		    // Mezzanine numbering [0,14] (not [1,15])
-		    
-		    if  ( getChan4SLC(s,l,c) <  8 )
-			top = true;
-		    else 
-			bot = true;
-		    
-		    // Mezz 9 - includes S2 C20 
-		    // tested with new SiPMS 
-		    // in run 721
-		    if     ( getMezz4SLC(s,l,c) == 9){
-			
-			if    ( runNumber > 710 ){
-			    // new SiPMs with gain of 90
-			    this.gain_mV[s][l][c] = gainNew_mV;
-			    this.gain[s][l][c]    = gainNew;
-			}
-			
-		    }
-		    
-		    if (getMezz4SLC(s,l,c) == 12 ){
-					
-			if     (top){
-			    
-			    if ( runNumber == 705  ){
-				this.gain_mV[s][l][c] = gainNew_mV * 450/90;
-				this.gain[s][l][c]    = gainNew * 450/90;
-			    }
-			    
-			}
-			else if(bot){
-			    
-			    if ( runNumber == 696){
-				this.gain_mV[s][l][c] = gainOld_mV * 300/450;
-				this.gain[s][l][c]    = gainOld * 300/450;
-			    }
-			    
-			    if ( runNumber == 705  ){
-				this.gain_mV[s][l][c] = gainNew_mV * 150/90;
-				this.gain[s][l][c]    = gainNew * 150/90;
-			    }
-			    
-						    
-			}
-		    }
-
-		    if (getMezz4SLC(s,l,c) == 13 ){
-						
-			if     (top){
-			    
-			    if ( runNumber == 696 ){
-				this.gain_mV[s][l][c] = gainNew_mV * 450/90;
-				this.gain[s][l][c]    = gainNew * 450/90;
-			    }
-			    if ( runNumber == 705  ){
-				this.gain_mV[s][l][c] = gainNew_mV * 450/90;
-				this.gain[s][l][c]    = gainNew * 450/90;
-			    }
-			    
-			}
-			else if(bot){
-			    
-			    if ( runNumber == 696){
-				this.gain_mV[s][l][c] = gainNew_mV * 150/90;
-				this.gain[s][l][c]    = gainNew * 150/90;
-			    }
-			    
-			    if ( runNumber == 705  ){
-				this.gain_mV[s][l][c] = gainNew_mV * 300/90;
-				this.gain[s][l][c]    = gainNew * 300/90;
-			    }
-			}
-
-			if ( runNumber >= 721  ){
-			    this.gain_mV[s][l][c] = gainNew_mV;
-			    this.gain[s][l][c]    = gainNew;
-			}			
-		    }
-		    
-		    top = false;
-		    bot = false;
-		
 		} // end: for ( int c = 0 ; c...
 	    } // end: for (int l = 0; l < 3; l...
 	} // end: for (int s = 0; s...
@@ -4375,9 +4278,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    }
 	}
 	
-	if     (tabSelect == tabIndexCharge)
+	if     (tabSel == tabIndexCharge)
 	    drawCanvasCharge(secSel,laySel,comSel);
-	else if(tabSelect == tabIndexTime)
+	else if(tabSel == tabIndexTime)
 	    drawCanvasTime(secSel,laySel,comSel);
     }
     
@@ -4712,7 +4615,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         //============================================================
         // Event Tab Selected
         
-        if     ( tabSelect == tabIndexEvent &&
+        if     ( tabSel == tabIndexEvent &&
 		 (nDecodedProcessed%repaintFrequency==0) ) {
 
 	    //  double hwmax =  H_W_MAX.getBinContent(indexSel);
@@ -4736,7 +4639,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 	    }
         }
-        else if( tabSelect == tabIndexNoise &&
+        else if( tabSel == tabIndexNoise &&
 		 (nDecodedProcessed%(10*repaintFrequency)==0) ) {
 	    
 	    if(H_W_MAX.getBinContent(indexSel) > threshold){
@@ -4745,7 +4648,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				comSel);
 	    }
         }
-        else if( tabSelect == tabIndexPed &&
+        else if( tabSel == tabIndexPed &&
 		 (nDecodedProcessed%(10*repaintFrequency)==0) ) {
             
             drawCanvasPed(secSel,
@@ -4753,7 +4656,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 			  comSel);
             
         }
-        else if( tabSelect == tabIndexCharge  &&
+        else if( tabSel == tabIndexCharge  &&
                 (nDecodedProcessed%(10*repaintFrequency)==0) ) {
             
             drawCanvasCharge(secSel,

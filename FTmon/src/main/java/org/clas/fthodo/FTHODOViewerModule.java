@@ -243,10 +243,12 @@ public class FTHODOViewerModule implements IDetectorListener,
     final int CosmicNPEXMin[]  = {0,3,5};
     final int CosmicNPEXMax[]  = {200,93,133};
     
-    final int NBinsNoise = 100;
-    
+    boolean simulatedAnalysis = true;
+
     double NoiseQXMin[] = {0.  ,10., 10.};
-    double NoiseQXMax[] = {310.,310.,310.};
+    double NoiseQXMax[] = {310.,CosmicQXMin[1],CosmicQXMin[2]};
+
+    int[] NBinsNoise = {100,100,100};
     
     final int NBinsPed = 1050; 
     //pedestal min and max bin values for histogram
@@ -3750,7 +3752,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	H_MIP_Q.get(HP.getS(),HP.getL(),HP.getC()).
 	    setYTitle("Counts");
 	
-	//! temporary for calibration challenge
 	H_NOISE_Q.add(HP.getS(),HP.getL(),HP.getC(),
                       new H1D(DetectorDescriptor.
                               getName("Noise Charge",
@@ -3758,11 +3759,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 				      HP.getL(),
 				      HP.getC()),
                               HP.getTitle(),
-                              NBinsNoise,
-			      0, CosmicQXMin[HP.getL()]));
-			      //0.5*nGain,
-			      //3.0*nGain));
-	
+                              NBinsNoise[HP.getL()],
+			      NoiseQXMin[HP.getL()],
+			      NoiseQXMax[HP.getL()]));
+
 	H_NOISE_Q.get(HP.getS(),HP.getL(),HP.getC()).
 	    setFillColor(5);
 	
@@ -4290,7 +4290,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double    deltaT;
 	
 	for (int s = 1 ; s < 9 ; s++){
-	    for (int c = 1 ; c < 20 ; c++){
+	    for (int c = 1 ; c < 21 ; c++){
 		
 		if( s%2==1 && c > 9 ) 
 		    continue;

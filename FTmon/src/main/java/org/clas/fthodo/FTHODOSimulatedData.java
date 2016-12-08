@@ -49,10 +49,10 @@ public class FTHODOSimulatedData extends FTApplication{
             s = this.eviobank.getInt("sector"   , row);
             l = this.eviobank.getInt("layer"    , row);
             c = this.eviobank.getInt("component", row);
-	    
+
             adc = (double)this.eviobank.getInt("ADC", row);
             tdc = (double)this.eviobank.getInt("TDC", row);
-           
+	    
 	    if(debugging_mode){
 		System.out.println(" ---------- ");
 		System.out.println(" fthodoBank");

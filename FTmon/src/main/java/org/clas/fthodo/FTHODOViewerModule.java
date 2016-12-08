@@ -186,7 +186,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     boolean fitTwoPeaksV = false;
     boolean fitTwoPeaksQ = false;
     
-    final double nStatus     = 0.0;
+    final double nStatus     = 2.0;
     final double nThrshNPE   = 2.5;
     final double nPed        = 200.0;
     final double nPed_RMS    = 10.0;
@@ -504,6 +504,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
+//     final double nStatus     = 2.0;
+//     final double nThrshNPE   = 2.5;
+//     final double nPed        = 200.0;
+//     final double nPed_RMS    = 10.0;
+//     final double nGain       = 20.0;
+//     final double nErrGain    = 0.0;
+//     final double nGain_mV    = 10;
+//     final double nErrGain_mV = 0.0;
+//     final double nMipEThin   = 1.2;    
+//     final double nMipEThick  = 2.65;    
+//     final double nMipCThin   = 700.;   
+//     final double nMipCThick  = 1500.;   
+//     final double nTOff       = 0.0;    
+//     final double nTRes       = 1.0;    
+
     private void initConstants(){
 	
 	int s,l,c;
@@ -3191,6 +3206,10 @@ public class FTHODOViewerModule implements IDetectorListener,
         return status[s][l][c];
     }
     
+    private void setStatus(int s, int l, int c, double stat){
+        status[s][l][c] = stat;
+    }
+    
     private double getPedMean(int s, int l, int c){
         
         double thisPed = 0.0;
@@ -3475,6 +3494,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                     if(s%2==1 && c > 9 ) continue;
 		    
 		    index = getIndex4SLC(s,l,c);
+
+		    //------------------------------
+		    // Determine constants
+		    //------------------------------
 		    
 		    pedMean[s][l][c]    = getPedMean(s,l,c);
 		    
@@ -3503,6 +3526,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 			mipC = mipC*1.5;
 		    }
 		    
+		    double stat = 2.0;
+		    if     ( l==1 && (mipC > )
+			     stat = 0.0;
+			     
+		    setStatus(s,l,c,stat);
 		    
 		    //final private int statCCDB   = 3;
 		    //final private int npeThCCDB  = 4;
@@ -3515,10 +3543,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    //final private int tOffCCDB   = 11;
 		    //final private int tResCCDB   = 12;
 		    
-		    // 0  Okay
-		    // 1  Noisy Channel
-		    // 2  Dead  Channel
-		    // 3  Any Other Problem
+		    
+		    //---------------------------------
+		    // Update the table
+		    //---------------------------------
+
+		    // 0  Okay, 1  Noisy, 2  Dead, 3  Other
 		    ccdbTable.setValueAtAsDouble(statCCDB-3,
 						 getStatus(s,l,c),
 						 s,l,c);

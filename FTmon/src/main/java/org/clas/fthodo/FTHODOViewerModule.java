@@ -176,6 +176,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     private double[][][] vMax;
     private double[][][] vMaxEvent;
     
+    private double[][][] qMax;
+    
     boolean testMode = false;
     boolean debugging_mode = false;
     
@@ -2561,7 +2563,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	int comp;
 	int laye;
 	
-	//!!!!!
 	if(useGain_mV){
 	    for (int chan = 0 ; chan < 16 ; chan++ ){
 		sect = getSect4ChMez(chan,mezSel);
@@ -2580,8 +2581,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 		comp = getComp4ChMez(chan,mezSel);
 		laye = chan/8 + 1;
 		
-		npeArr[chan] = getNPEMean(s,l,c);
-		npeErr[chan] = getNPEError(s,l,c);
+		npeArr[chan] = getNPEMean(sect,laye,comp);
+		npeErr[chan] = getNPEError(sect,laye,comp);
 	    }
 	}
 	
@@ -3099,10 +3100,10 @@ public class FTHODOViewerModule implements IDetectorListener,
         
 	double npeWaveMax  = H_NPE_MAX.getBinContent(index);
         
-            // map [0,4095] to [0,255]
+	// map [0,4095] to [0,255]
         int    signalAlpha = (int)(waveMax)/16;
         
-            // map [0,20] to [0,255]
+	// map [0,20] to [0,255]
         int    noiseAlpha  = min((int)(npeWaveMax/20*255),255);
 	
 	Color  pedColor = palette.getColor3D(pedMean[sec][lay][com],
@@ -3117,17 +3118,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 
 	if(useGain_mV){
 	    gainColor = palette.getColor3D(gain_mV[sec][lay][com],
-					   1.5*nGain_mV,
+					   1.0*nGain_mV,
 					   true);
 	}
 	else{  
 	    gainColor = palette.getColor3D(gain[sec][lay][com],
-					   1.5*nGain,
+					   1.0*nGain,
 					   true);
 	}
 	
 	Color  voltColor = palette.getColor3D(vMax[sec][lay][com],
 					      12*nGain_mV,
+					      true);
+	
+	Color  qColor    = palette.getColor3D(qMax[sec][lay][com],
+					      250*nGain,
 					      true);
 
         if    ( tabSel == tabIndexEvent ) {
@@ -3155,6 +3160,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    shape.setColor(voltColor.getRed(),
 			   voltColor.getGreen(),
 			   voltColor.getBlue());
+        }
+	else if( tabSel == tabIndexCharge ) {
+	    shape.setColor(qColor.getRed(),
+			   qColor.getGreen(),
+			   qColor.getBlue());
         }
 	else if( tabSel == tabIndexGain ){ 
 	    shape.setColor(gainColor.getRed(),
@@ -3186,8 +3196,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     private void setStatus(int s, int l, int c){
 	
 	boolean goodQ = false;
-	boolean lowQ  = false;
-	boolean zeroQ  = false;
+ 	boolean lowQ  = false;
+	boolean zeroQ = false;
 	
 	double  meanQ = getQMean(s,l,c);
 	
@@ -4156,6 +4166,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	vMax      = new double[9][3][21];
 	vMaxEvent = new double[9][3][21];
 	
+	qMax      = new double[9][3][21];
+	
         meanNPE  = new double[9][3][21];
         errNPE   = new double[9][3][21];
         sigNPE   = new double[9][3][21];
@@ -4198,7 +4210,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    this.vMax[s][l][c]       = 0.0;
 		    this.vMaxEvent[s][l][c]  = 0.0;
 		    
-		    this.npeEvent[s][l][c]    = 0.0;                    
+		    this.qMax[s][l][c]       = 0.0;
+		    
+		    this.npeEvent[s][l][c]   = 0.0;                    
 		    
 		} // end: for ( int c = 0 ; c...
 	    } // end: for (int l = 0; l < 3; l...
@@ -4285,9 +4299,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    }// end of time difference stuff
 		    
 		    if (adc.hasEntry(s,l,c)) {
-		    
+			
 			charge[l]      = adc.get(s,l,c)*LSB*4.0/50;
 			peakVolt[l] = charge[l]/2;
+			
+			if( charge[l] > qMax[s][l][c])
+			    qMax[s][l][c] = charge[l];
 			
 			// cut conditions
 			if( (applyTCut[l] && 
@@ -4296,20 +4313,20 @@ public class FTHODOViewerModule implements IDetectorListener,
 			     goodDT)         ||
 			    (applyNoCuts)
 			    ){
-			   
-			   H_MIP_Q.get(s, l, c)
-			       .fill(charge[l]);
-			   
-			   H_NOISE_Q.get(s, l, c)
-			       .fill(charge[l]);
-			   
-			   H_MIP_V.get(s, l, c)
-			       .fill(peakVolt[l]);
-			   
-			   H_NOISE_V.get(s, l, c)
-			       .fill(peakVolt[l]);
-			   
-						       
+			    
+			    H_MIP_Q.get(s, l, c)
+				.fill(charge[l]);
+			    
+			    H_NOISE_Q.get(s, l, c)
+				.fill(charge[l]);
+			    
+			    H_MIP_V.get(s, l, c)
+				.fill(peakVolt[l]);
+			    
+			    H_NOISE_V.get(s, l, c)
+				.fill(peakVolt[l]);
+			    
+			    
 			} // end of cut conditions
 			
 			H_MAXV_VS_T.get(s,l,c)

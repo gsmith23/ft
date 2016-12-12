@@ -15,10 +15,11 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import java.io.File;
+import javax.accessibility.AccessibleContext;
 
-//import org.clas.ftcal.FTCALCosmic;
-//import org.clas.ftcal.FTHODODetector;
-import org.clas.ftcal.FTCALDetector;
+import org.clas.ftcal.FTHODODetector;
 import org.clas.fthodo.FTHODOSimulatedData;
 import org.jlab.clas.detector.DetectorCollection;
 
@@ -34,7 +35,9 @@ import org.jlab.clas12.calib.IDetectorListener;
 import org.jlab.clas12.detector.EventDecoder;
 import org.jlab.clasrec.main.DetectorEventProcessorPane;
 import org.jlab.data.io.DataEvent;
+
 import org.jlab.evio.clas12.EvioDataEvent;
+import org.jlab.evio.clas12.EvioSource;
 
 import org.root.attr.ColorPalette;
 
@@ -57,9 +60,8 @@ public class FTViewerModule implements IDetectorProcessor,
     
     EventDecoder decoder = new EventDecoder();
     
-    //FTHODODetector viewFTHODO = new FTHODODetector("FTHODO"); 
-    FTCALDetector viewFTCAL = new FTCALDetector("FTCAL"); 
-    FTHODOSimulatedData simulation = new FTHODOSimulatedData(viewFTCAL);
+    FTHODODetector viewFTHODO = new FTHODODetector("FTHODO"); 
+    FTHODOSimulatedData simulation = new FTHODOSimulatedData(viewFTHODO);
 
     int          nProcessed = 0;
     
@@ -104,6 +106,15 @@ public class FTViewerModule implements IDetectorProcessor,
         
         this.evPane.addProcessor(this);
        
+	for(int i=0; i<this.evPane.getComponents().length;i++){
+	    AccessibleContext p = this.evPane.getComponent(i).getAccessibleContext();
+	    if(this.evPane.getComponent(i).getAccessibleContext().getAccessibleName()=="File"){
+		JButton  buttonOpen = new JButton("Evio FileS");
+		buttonOpen.addActionListener(this);
+		this.evPane.add(buttonOpen);
+		this.evPane.repaint(i);
+	    }
+        }
 	
         /*Graphics starts here*/
         // whole panel
@@ -332,11 +343,54 @@ public class FTViewerModule implements IDetectorProcessor,
 	    System.out.println("Updating every Blue Moon ");
         }
 	
+	//!!!!!!
+	if(e.getActionCommand().compareTo("Evio FileS")==0) FileList();
+	
 	if(!onlyHodo)
 	    moduleFTCAL.setRepaintFrequency(repaintFrequency);
 
     }
     
+    //!!!!!
+    private void FileList(){
+        EvioSource reader = new EvioSource();
+        
+        JFileChooser fc = new JFileChooser();
+        File file = new File("/scratch/Gary/Netbeans_Projects/ft/FTmon/");
+        int returnValue = fc.showOpenDialog(null);
+        fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        fc.setAcceptAllFileFilterUsed(false);
+        
+        int nf=0;
+        String ff ="";
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File[] folders = new File(fc.getCurrentDirectory().getPath()).listFiles();
+            for (File fd : folders) {
+                if(fd.isFile()){
+                    if(nf==0)ff=fd.getName();
+                    // File type chosen based on the first file selected //
+                    if((ff.contains(".evio") && 
+			!fd.getName().contains(".evio")) || 
+		       (ff.contains(".hipo") && 
+			!fd.getName().contains(".hipo")))continue;
+		    reader.open(fd);
+		    Integer current = reader.getCurrentIndex();
+		    Integer nevents = reader.getSize();
+                    System.out.println("FILE: "+nf+" "+fd.getName()+
+				       " N.EVENTS: " + nevents.toString() + 
+				       "  CURRENT : " + current.toString());
+		    for(int k=0; k<nevents; k++){
+			if(reader.hasEvent()){
+			    DataEvent event = reader.getNextEvent();
+			    processEvent(event);
+                        }
+		    }
+		    nf++;
+                }
+            }
+        }   
+    }
+
     public void detectorSelected(DetectorDescriptor dd) {
 	//To change body of generated methods, choose Tools | Templates.
 	componentSelect = dd.getComponent();

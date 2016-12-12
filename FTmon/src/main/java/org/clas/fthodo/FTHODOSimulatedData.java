@@ -24,7 +24,7 @@ public class FTHODOSimulatedData extends FTApplication{
     boolean debugging_mode = false;
     
     public FTHODOSimulatedData(FTDetector d) {
-	super(d);
+    	super(d);
     }
       
     public void eventBankDecoder(EvioDataEvent event, String bank){

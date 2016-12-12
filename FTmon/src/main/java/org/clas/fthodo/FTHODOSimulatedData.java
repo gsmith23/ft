@@ -43,7 +43,7 @@ public class FTHODOSimulatedData extends FTApplication{
         clearSimcollection();
         
         double adc=0.0, tdc=0.0;
-        int s=0, l=0, c=0;
+        int    s=0, l=0, c=0;
         for (int row = 0; row < this.eviobank.rows(); row++) {
 	    
             s = this.eviobank.getInt("sector"   , row);

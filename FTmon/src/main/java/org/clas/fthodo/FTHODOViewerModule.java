@@ -1144,12 +1144,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    // exponential
 	    fQ1.get(s,l,c).setParLimits(0, ampl/10.0, 5.0*ampl);
             fQ1.get(s,l,c).setParLimits(1, -5.0, -0.0001);
-            
+            	    
 	    // gaus 1
 	    fQ1.get(s,l,c).setParLimits(2, ampl/2., ampl*2);
             fQ1.get(s,l,c).setParLimits(3, 0.5*nGain, 1.5*nGain);
             fQ1.get(s,l,c).setParLimits(4, 1, std/2.);
-
+	    
+	    fQ1.get(s,l,c).setLineColor(1);
+	    
 	    if(testMode)
 		System.out.println(" initFitQNoiseParameters setting fQ2 parameters ") ;
 
@@ -1167,8 +1169,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fQ2.get(s,l,c).setParLimits(1, mean+20, mean+100);
 	    fQ2.get(s,l,c).setParLimits(2, 1, std*3.0);
 	    
-	    return true;
+	    fQ2.get(s,l,c).setLineColor(1);
 	    
+	    return true;
+
 	}
 	else{
 	    if(testMode)
@@ -1366,7 +1370,9 @@ public class FTHODOViewerModule implements IDetectorListener,
             fQMIP.get(s,l,c).setParLimits(0, 0, ampl*2.0);
             fQMIP.get(s,l,c).setParLimits(1, mean-400, mean+400);
             fQMIP.get(s,l,c).setParLimits(2, 50, 1500);
-        
+	    
+	    fQMIP.get(s,l,c).setLineColor(1);
+	    
 	    return true;
 	}
 	else
@@ -3204,7 +3210,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	if     ((l==1 && meanQ > 500  ) ||
 		(l==2 && meanQ > 1000 ))
 	    goodQ = true;
-	else if (meanQ > 0.0) 
+	else if ( qMax[s][l][c] > 0.0 )
 	    lowQ  = true;
 	else
 	    zeroQ = true;

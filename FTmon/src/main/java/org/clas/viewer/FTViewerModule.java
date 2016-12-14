@@ -109,7 +109,7 @@ public class FTViewerModule implements IDetectorProcessor,
 	for(int i=0; i<this.evPane.getComponents().length;i++){
 	    AccessibleContext p = this.evPane.getComponent(i).getAccessibleContext();
 	    if(this.evPane.getComponent(i).getAccessibleContext().getAccessibleName()=="File"){
-		JButton  buttonOpen = new JButton("Evio FileS");
+		JButton  buttonOpen = new JButton("Evio Files");
 		buttonOpen.addActionListener(this);
 		this.evPane.add(buttonOpen);
 		this.evPane.repaint(i);
@@ -344,7 +344,7 @@ public class FTViewerModule implements IDetectorProcessor,
         }
 	
 	//!!!!!!
-	if(e.getActionCommand().compareTo("Evio FileS")==0) FileList();
+	if(e.getActionCommand().compareTo("Evio Files")==0) FileList();
 	
 	if(!onlyHodo)
 	    moduleFTCAL.setRepaintFrequency(repaintFrequency);

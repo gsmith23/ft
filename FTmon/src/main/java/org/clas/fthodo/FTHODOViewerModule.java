@@ -570,7 +570,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 				  "PEDESTAL_RMS:d",    // 6
 				  "GAIN_PC:d",         // 7
 				  "GAIN_MV:d",         // 8
-				  "GAIN_MV:d",         // 8
 				  "MIPS_ENERGY:d",     // 9
 				  "MIPS_CHARGE:d",     // 10
 				  "TIME_OFFSET:d",     // 11
@@ -578,7 +577,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 	
         double[] tableInitialValues = {0.0, nThrshNPE, 200., 10., 20,
-				       10., 1.4, 700., 0.0, 1.0};
+				       10., 1.4, 700., 99.9, 99.9};
 
         
         for (int layer = 2; layer > 0; layer--) {

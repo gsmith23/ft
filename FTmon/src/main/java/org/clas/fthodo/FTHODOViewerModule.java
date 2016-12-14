@@ -570,6 +570,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				  "PEDESTAL_RMS:d",    // 6
 				  "GAIN_PC:d",         // 7
 				  "GAIN_MV:d",         // 8
+				  "GAIN_MV:d",         // 8
 				  "MIPS_ENERGY:d",     // 9
 				  "MIPS_CHARGE:d",     // 10
 				  "TIME_OFFSET:d",     // 11
@@ -1360,16 +1361,27 @@ public class FTHODOViewerModule implements IDetectorListener,
                 }
             }
 	    
-            fQMIP.add(s,l,c, new F1D("landau",
-				     rangeLow[l],
-				     rangeHigh[l]));
+            // fQMIP.add(s,l,c, new F1D("landau + exp",
+	    // 			     rangeLow[l],
+	    // 			     rangeHigh[l]));
+	    
+            fQMIP.add(s,l,c, new F1D("landau+exp",
+	    			     rangeLow[l],
+	    			     rangeHigh[l]));
 	    
             fQMIP.get(s,l,c).setParameter(0, ampl);
             fQMIP.get(s,l,c).setParameter(1, mean);
             fQMIP.get(s,l,c).setParameter(2, 150);
+	    
+	    fQMIP.get(s,l,c).setParameter(3, ampl/5);
+	    fQMIP.get(s,l,c).setParameter(4, -0.001);
+
             fQMIP.get(s,l,c).setParLimits(0, 0, ampl*2.0);
             fQMIP.get(s,l,c).setParLimits(1, mean-400, mean+400);
             fQMIP.get(s,l,c).setParLimits(2, 50, 1500);
+	    
+	    fQMIP.get(s,l,c).setParLimits(3, ampl/10, ampl*20.0);
+	    fQMIP.get(s,l,c).setParLimits(4, -5.0,0.00);
 	    
 	    fQMIP.get(s,l,c).setLineColor(1);
 	    
@@ -4230,17 +4242,19 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void processDecodedSimEvent(DetectorCollection<Double> adc, 
 				       DetectorCollection<Double> tdc){
 	
-	double[] time = { -99.9, -99.9, -999.9 };
+	double[] time = { -9.9, -99.9, -999.9 };
 	double   time2Hodo = 6.0;
 	double   startTime = 124.25;
 	
 	time[0] = startTime + time2Hodo;
 	
-	boolean[] goodTime = {false, false, false};
+	boolean[] goodTime     = {false, false, false};
+	boolean[] veryGoodTime = {false, false, false};
 	boolean   goodDT;
 	
-	double    tCut  = 5.0;
-	double    dtCut = 5.0;
+	double    tCut   = 5.0;
+	double    tRange = 100.0;
+	double    dtCut  = 5.0;
 	
 	boolean   applyTCuts = true;
 	boolean[] applyTCut  = {false, applyTCuts, applyTCuts}; 
@@ -4269,13 +4283,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 		
 		deltaT      = -999.9;
 		goodDT      = false;
-		    
+		time[1]     = -99.9;
+		time[2]     = -999.9;
+		
 		for (int l = 1 ; l < 3 ; l++){    
 		    
 		    peakVolt[l] = 0.0;
 		    charge[l]   = 0.0;
-		    time[l]     = -99.9;
 		    goodTime[l] = false;
+		    veryGoodTime[l] = false;
 		    	
 		    if( tdc.hasEntry(s,l,c) ){
 			time[l] = tdc.get(s,l,c)*nsPerSample/100.;
@@ -4284,29 +4300,17 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    System.out.println(" time[" + l +
 					       " = " + time[l] );
 			
-			if(abs(time[l] - time[0]) < tCut ) 
+			if(abs(time[l] - time[0]) < tRange ) 
 			    goodTime[l] = true;
+
+			if(abs(time[l] - time[0]) < tCut ) 
+			    veryGoodTime[l] = true;
+	
 		    }
-		    
-		    // time difference stuff
-		    if( l == 2              &&
-			tdc.hasEntry(s,1,c) &&
-			tdc.hasEntry(s,2,c) 
-			){
-			
-			deltaT = time[2] - time[1];
-			
-			if( abs(deltaT) < dtCut ){
-			    goodDT = true;
-			}
-			
-			H_DT_MODE7.get(s, 1, c).fill(deltaT);
-		    
-		    }// end of time difference stuff
-		    
+		    		    
 		    if (adc.hasEntry(s,l,c)) {
 			
-			charge[l]      = adc.get(s,l,c)*LSB*4.0/50;
+			charge[l]   = adc.get(s,l,c)*LSB*4.0/50;
 			peakVolt[l] = charge[l]/2;
 			
 			if( charge[l] > qMax[s][l][c])
@@ -4314,9 +4318,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 			
 			// cut conditions
 			if( (applyTCut[l] && 
-			     goodTime[l])    ||
+			     veryGoodTime[l]) ||
 			    (applyDTCut && 
-			     goodDT)         ||
+			     goodDT)          ||
 			    (applyNoCuts)
 			    ){
 			    
@@ -4341,6 +4345,25 @@ public class FTHODOViewerModule implements IDetectorListener,
 
 		    } // end of: if (adc.hasEntry(s,l,c)) {....
 		    
+		    
+		    // time difference stuff
+		    if( l == 2      &&
+			goodTime[1] &&
+			goodTime[2] &&
+			(charge[1] > 100.0) &&
+			(charge[2] > 100.0) 
+			){
+			
+			deltaT = time[2] - time[1];
+			
+			if( abs(deltaT) < dtCut ){
+			    goodDT = true;
+			}
+			
+			H_DT_MODE7.get(s, 1, c).fill(deltaT);
+		    
+		    }// end of time difference stuff
+
 		    // 		    if(charge > 500)
 // 			System.out.println(" charge (s,l,c) = " + 
 // 					   charge               +

@@ -2546,10 +2546,15 @@ public class FTHODOViewerModule implements IDetectorListener,
             G_NPE[layerM].setMarkerSize(5);
             G_NPE[layerM].setMarkerColor(layerM+1); // 0-9 for given palette
             G_NPE[layerM].setMarkerStyle(layerM+1); // 1 or 2
+	    G_NPE[layerM].setMarkerSize(10); // 1 or 2
+	    
             
         }
         canvasMIP.draw(G_NPE[0]);
         canvasMIP.draw(G_NPE[1],"same");
+	
+	System.out.println(" Marker Size = " + G_NPE[0].getMarkerSize());
+	
     }
     
     void drawCanvasMIPElec(int s,int l,int c){
@@ -2627,7 +2632,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	G_NPE.setMarkerSize(5);
 	G_NPE.setMarkerColor(1); 
 	G_NPE.setMarkerStyle(1); 
-	
+	G_NPE.setMarkerSize(10); 
 	canvasMIP.draw(G_NPE);
 	
     }

@@ -237,7 +237,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     int pul_i1 = 30;
     int pul_i2 = 70;
     
-    final int NBinsCosmic = 50;
+    final int NBinsCosmic = 128;
     
     final int CosmicQXMin[]  = {0,200,300};
     final int CosmicQXMax[]  = {10000,5200,5300};
@@ -4258,7 +4258,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double    tCut   = 5.0;
 	double    tRange = 100.0;
-	double    dtCut  = 5.0;
+	double    dtCut  = 2.5;
 	
 	boolean   applyTCuts = true;
 	boolean[] applyTCut  = {false, applyTCuts, applyTCuts}; 

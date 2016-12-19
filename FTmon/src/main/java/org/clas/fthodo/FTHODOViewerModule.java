@@ -237,7 +237,8 @@ public class FTHODOViewerModule implements IDetectorListener,
     int pul_i1 = 30;
     int pul_i2 = 70;
     
-    final int NBinsCosmic = 128;
+    final boolean fitBackground = false;
+    final int NBinsCosmic = 64;
     
     final int CosmicQXMin[]  = {0,200,300};
     final int CosmicQXMax[]  = {10000,5200,5300};
@@ -1360,11 +1361,12 @@ public class FTHODOViewerModule implements IDetectorListener,
                 }
             }
 	    
-            // fQMIP.add(s,l,c, new F1D("landau + exp",
-	    // 			     rangeLow[l],
-	    // 			     rangeHigh[l]));
+	    String fitFunc = "landau";
 	    
-            fQMIP.add(s,l,c, new F1D("landau+exp",
+	    if(fitBackground)
+		fitFunc = "landau+exp";
+	    
+            fQMIP.add(s,l,c, new F1D(fitFunc,
 	    			     rangeLow[l],
 	    			     rangeHigh[l]));
 	    
@@ -1372,15 +1374,19 @@ public class FTHODOViewerModule implements IDetectorListener,
             fQMIP.get(s,l,c).setParameter(1, mean);
             fQMIP.get(s,l,c).setParameter(2, 150);
 	    
-	    fQMIP.get(s,l,c).setParameter(3, ampl/5);
-	    fQMIP.get(s,l,c).setParameter(4, -0.001);
-
+	    if(fitBackground){
+		fQMIP.get(s,l,c).setParameter(3, ampl/5);
+		fQMIP.get(s,l,c).setParameter(4, -0.001);
+	    }
+	    
             fQMIP.get(s,l,c).setParLimits(0, 0, ampl*2.0);
             fQMIP.get(s,l,c).setParLimits(1, mean-400, mean+400);
             fQMIP.get(s,l,c).setParLimits(2, 50, 1500);
 	    
-	    fQMIP.get(s,l,c).setParLimits(3, ampl/10, ampl*20.0);
-	    fQMIP.get(s,l,c).setParLimits(4, -5.0,0.00);
+	    if(fitBackground){
+		fQMIP.get(s,l,c).setParLimits(3, ampl/10, ampl*20.0);
+		fQMIP.get(s,l,c).setParLimits(4, -5.0,0.00);
+	    }
 	    
 	    fQMIP.get(s,l,c).setLineColor(1);
 	    

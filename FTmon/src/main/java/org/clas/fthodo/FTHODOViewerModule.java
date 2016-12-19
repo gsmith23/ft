@@ -4260,12 +4260,20 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double    tRange = 100.0;
 	double    dtCut  = 2.5;
 	
-	boolean   applyTCuts = true;
+	boolean   applyTCuts = false;
 	boolean[] applyTCut  = {false, applyTCuts, applyTCuts}; 
 	boolean   applyDTCut = false; 
 	
-	boolean   applyNoCuts = false;
+	boolean   applyNoCuts = true;
+
+	if(applyNoCuts){
+	    for( int i = 0 ; i < 3  ; i++)
+		applyTCut[i] = false;
+	    applyDTCut = false;
+	}
 	
+	
+	   
 	if (
 	    (applyTCut[1] ||
 	     applyTCut[2] ||

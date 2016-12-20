@@ -247,7 +247,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     final int CosmicNPEXMax[]  = {200,93,133};
     
     boolean simulatedAnalysis = true;
-    boolean useDefaultGain    = true;
+    boolean useDefaultGain    = false;
     
     double NoiseQXMin[] = {0.  ,0.5*nGain,0.5*nGain};
     double NoiseQXMax[] = {310.,3.0*nGain,3.0*nGain};
@@ -1426,11 +1426,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 	//mean = H1.getMaximumBin()*45 + 250;
 	double mean[] = {0.,300.,600.};
 	double std  = 5.0;
-	
+		
 	double[] rangeLow  = {0.0, 100.,  250};
 	double[] rangeHigh = {0.0, 1250., 2000};
         	
-	if (H1.integral() > 10 ){
+	if (H1.integral() > 50 ){
 	    
 	    fVMIP.add(s,l,c, new F1D("landau",
 				     rangeLow[l],
@@ -1456,8 +1456,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	if (testMode)
 	    System.out.println(" Fitting V MIP (S,L,C) = (" +
 			       s  + "," + l + "," + c + ")"); 
-
-	if(initFitVMIPParameters(s,l,c,H_MIP_V.get(s,l,c))){
+	
+	if(H_MIP_V.hasEntry(s,l,c) &&
+	   initFitVMIPParameters(s,l,c,H_MIP_V.get(s,l,c))){
 	
 	    H_MIP_V.get(s,l,c).
 		fit(fVMIP.get(s,l,c),fitOption);
@@ -1480,10 +1481,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double mean = 0.;
 	double std  = 1.0;
 	
-	double rangeLow  = -10.;
-	double rangeHigh = 10.0;
+	double rangeLow  = -15.;
+	double rangeHigh = 15.0;
         	
-	if (H1.integral() > 10 ){
+	if (H1.integral() > 50 ){
 	    
 	    fDT.add(s,l,c, new F1D("gaus",
 				   rangeLow,
@@ -1513,7 +1514,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    System.out.println(" Fitting DT (S,L,C) = (" +
 			       s  + "," + l + "," + c + ")"); 
 	
-	if(initFitDTParameters(s,l,c,H_DT_MODE7.get(s,l,c))){
+	if(H_DT_MODE7.hasEntry(s,l,c) &&
+	   initFitDTParameters(s,l,c,H_DT_MODE7.get(s,l,c))){
 	    
 	    H_DT_MODE7.get(s,l,c).
 		fit(fDT.get(s,l,c),fitOption);
@@ -1564,10 +1566,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    l = HP.getL();
 	    c = HP.getC();
 
-	    //fitPedestals(s,l,c,fitOption);
-	    //fitVNoise(s,l,c,fitOption);
+	    fitPedestals(s,l,c,fitOption);
+	    fitVNoise(s,l,c,fitOption);
+	    fitQNoise(s,l,c,fitOption);
+
 	    fitVMIP(s,l,c,fitOption);
-	    //fitQNoise(s,l,c,fitOption);
 	    fitQMIP(s,l,c,fitOption);
 	    
 	    if(l==1)
@@ -3239,6 +3242,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	if     (goodQ)
 	    status[s][l][c] = 0.0;
+	else if(gain[s][l][c] == 0.0)
+	    status[s][l][c] = 1.0;
 	else if(lowQ)
 	    status[s][l][c] = 5.0;
 	else if(zeroQ)
@@ -3267,6 +3272,10 @@ public class FTHODOViewerModule implements IDetectorListener,
     }
     
     private double getGain(int s, int l, int c){
+	return gain[s][l][c];
+    }
+    
+    private void setGain(int s, int l, int c){
         double thisGain = 0.0;
 	
 	if( useDefaultGain ){
@@ -3293,10 +3302,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
 	
 	if (thisGain < 15.0 ||
-	    thisGain > 25.0)
+	    thisGain > 25.0){
+	    
 	    thisGain = 0.0;
-	
-	return thisGain;
+	    setStatus(s,l,c);
+	}
+	else{
+	    gain[s][l][c] = thisGain;
+	}
     }
     
     private double getGainError(int s, int l, int c){
@@ -3575,7 +3588,7 @@ public class FTHODOViewerModule implements IDetectorListener,
                     errNPE[s][l][c]     = getNPEError(s,l,c);
                     sigNPE[s][l][c]     = getSigNPE(s,l,c);
 		    
-		    gain[s][l][c]       = getGain(s,l,c);
+		    
                     errGain[s][l][c]    = getGainError(s,l,c);
 		    
 		    meanNPE_mV[s][l][c] = getNPEMean_mV(s,l,c);
@@ -3586,7 +3599,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    
 		    setStatus(s,l,c);
 		    setPedMean(s,l,c);
-		    
+		    setGain(s,l,c);
 		    
 		    //---------------------------------
 		    // Update the table
@@ -3931,6 +3944,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 			 HP.getC()).setXTitle("Mode 1 Time (ns)");
         H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
         
+	double[] timeMin = {0.  ,100.,100.};
+	double[] timeMax = {500.,150.,150.};
+	
+	timeMin[1] = 150.0;
+	timeMin[2] = 15.0;
+	
+	timeMax[1] = 200.0;
+	timeMax[2] = 200.0;
+	
 	H_MAXV_VS_T.add(HP.getS(),
 			HP.getL(), 
 			HP.getC(),
@@ -3938,7 +3960,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 				getName("H_MAXV_VS_T",
 					HP.getS(),HP.getL(),HP.getC()),
 				HP.getTitle(),
-				32,100.,150.,
+				32,timeMin[HP.getL()],timeMax[HP.getL()],
 				32,0.,2000.));
 	
 	//H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
@@ -4742,9 +4764,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    
 	    if(H_W_MAX.getBinContent(indexSel) > threshold){
 	    
-// 	    drawCanvasEvent(secSel,
-// 			    laySel,
-// 			    comSel);
+		drawCanvasEvent(secSel,
+				laySel,
+				comSel);
 	    
 	    }
 	}

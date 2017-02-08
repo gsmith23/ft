@@ -30,6 +30,7 @@ public class FTCALDetector extends FTDetector {
     private DetectorCollection<ShapePoint> points = new DetectorCollection<ShapePoint>();
     DetectorCollection<Double> thresholds = new DetectorCollection<Double>();
         
+   
 
     public FTCALDetector(String name) {
         super(name);
@@ -74,6 +75,7 @@ public class FTCALDetector extends FTDetector {
             paddle.createBarXY(crystal_size*nCrystalX, crystal_size/2.);
             paddle.getShapePath().translateXYZ(crystal_size*nCrystalX/2.,crystal_size*(nCrystalX+2)*(ipaddle % 2)+crystal_size/4.*(((int) ipaddle/2)*2-1),0.0);
             paddle.setColor(0, 145, 0);
+            
             this.addShape(paddle);
         }
     }

@@ -46,6 +46,12 @@ import org.root.histogram.H2D;
 
 import org.root.basic.EmbeddedCanvas;
 
+import java.io.PrintWriter;
+import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
 public class FTHODOViewerModule implements IDetectorListener,
 					   IHashTableListener,
 					   ActionListener,
@@ -295,11 +301,11 @@ public class FTHODOViewerModule implements IDetectorListener,
     // ccdb table
     
     final private int statCCDB   = 3;
-    final private int npeThCCDB  = 4;
-    final private int pedCCDB    = 5;
-    final private int pedRMSCCDB = 6;
-    final private int gainPCCCDB = 7;
-    final private int gainMVCCDB = 8;
+    final private int pedCCDB    = 4;
+    final private int pedRMSCCDB = 5;
+    final private int gainPCCCDB = 6;
+    final private int gainMVCCDB = 7;
+    final private int npeThCCDB  = 8;
     final private int mipEnCCDB  = 9;
     final private int mipChCCDB  = 10;
     final private int tOffCCDB   = 11;
@@ -512,21 +518,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
     
-//     final double nStatus     = 2.0;
-//     final double nThrshNPE   = 2.5;
-//     final double nPed        = 200.0;
-//     final double nPed_RMS    = 10.0;
-//     final double nGain       = 20.0;
-//     final double nErrGain    = 0.0;
-//     final double nGain_mV    = 10;
-//     final double nErrGain_mV = 0.0;
-//     final double nMipEThin   = 1.2;    
-//     final double nMipEThick  = 2.65;    
-//     final double nMipCThin   = 700.;   
-//     final double nMipCThick  = 1500.;   
-//     final double nTOff       = 0.0;    
-//     final double nTRes       = 1.0;    
-    
     private void initConstants(){
 	
 	int s,l,c;
@@ -565,17 +556,17 @@ public class FTHODOViewerModule implements IDetectorListener,
     @SuppressWarnings("empty-statement")
     private void initTable() {
         ccdbTable = new HashTable(3,
-				  "STATUS:d",          // 3
-				  "NPE_THRESHOLD:d",   // 4 
-				  "PEDESTAL:d",        // 5
-				  "PEDESTAL_RMS:d",    // 6
-				  "GAIN_PC:d",         // 7
-				  "GAIN_MV:d",         // 8
-				  "MIPS_ENERGY:d",     // 9
-				  "MIPS_CHARGE:d",     // 10
-				  "TIME_OFFSET:d",     // 11
-				  "TIME_RESOLUTION:d");// 12
-		
+				  "status:d",   // 3
+				  "ped:d",      // 4
+				  "ped_rms:d",  // 5
+				  "gain_pc:d",  // 6
+				  "gain_mv:d",  // 7
+				  "thr_npe:d",  // 8
+				  "mips_e:d",   // 9
+				  "mips_q:d",   // 10
+				  "t_offset:d", // 11
+				  "t_rms:d");// 12
+	
 	
         double[] tableInitialValues = {0.0, nThrshNPE, 200., 10., 20,
 				       10., 1.4, 700., 99.9, 99.9};
@@ -593,7 +584,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 				     component);
                     
 		    ccdbTable.addConstrain(statCCDB, -0.5, 0.5);
-		    ccdbTable.addConstrain(npeThCCDB, 2.0, 3.0);
 		    
 		    ccdbTable.addConstrain(pedCCDB,  100.0, 400.0);
 		    ccdbTable.addConstrain(pedRMSCCDB, 1.0, 100.0);
@@ -601,6 +591,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    ccdbTable.addConstrain(gainPCCCDB, 10.0, 30.0);
                     ccdbTable.addConstrain(gainMVCCDB,  5.0, 15.0);
 
+		    ccdbTable.addConstrain(npeThCCDB, 2.0, 3.0);
+		    
 		    ccdbTable.addConstrain(mipEnCCDB, 1.0, 4.0);
 		    ccdbTable.addConstrain(mipChCCDB, 500, 3000);
 		    
@@ -614,7 +606,173 @@ public class FTHODOViewerModule implements IDetectorListener,
         
     } // end of : private void initTable() {
     
+    private String[] readGeometryTable(int s, int l, int c){
+	
+	BufferedReader br;
+	
+	String[] xyzwd = {"0.","0.","0.","0.","0."};
+	
+	String sString = String.valueOf(s);
+	String lString = String.valueOf(l);
+	String cString = String.valueOf(c);
+	
+	try {
+	    
+	    br = new BufferedReader(new FileReader("./Tables/fthodo_geometry.txt"));
+	    
+	    String line;
+	    while ( (line = br.readLine()) != null) {
+		
+		if(line.startsWith("1") || 
+		   line.startsWith("2") || 
+		   line.startsWith("3") || 
+		   line.startsWith("4") || 
+		   line.startsWith("5") || 
+		   line.startsWith("6") || 
+		   line.startsWith("7") ||
+ 		   line.startsWith("8")  
+		   ){
+		    
+		    String slc_xyz_wd[] = line.split(" ", 8);
+		    
+		    if( slc_xyz_wd[0].compareTo(sString) == 0 &&
+			slc_xyz_wd[1].compareTo(lString) == 0 &&
+			slc_xyz_wd[2].compareTo(cString) == 0
+			){
+			
+			for( int i = 0 ; i < 5 ; i++ )
+			    xyzwd[i] = slc_xyz_wd[i+3];
+			
+		    }
+		}
+	    }
+	    br.close();
+	} catch (FileNotFoundException ex) {
+            System.out.println(" FileNotFoundException ");
+        } catch (IOException ex) {
+            System.out.println(" IOException ");
+	}
+	
+	return xyzwd;
+    }
     
+    private void printCCDBTables(){
+
+        try {
+            PrintWriter fout_full;
+            fout_full = new PrintWriter("./Tables/fthodo_ccdb.txt");
+            
+            PrintWriter fout_status;
+            fout_status = new PrintWriter("./Tables/fthodo_status.txt");
+            
+            PrintWriter fout_noise;
+            fout_noise = new PrintWriter("./Tables/fthodo_noise.txt");
+	    
+	    PrintWriter fout_energy;
+            fout_energy = new PrintWriter("./Tables/fthodo_energy.txt");
+
+	    PrintWriter fout_time;
+            fout_time = new PrintWriter("./Tables/fthodo_time.txt");
+	    
+            String col = "";
+            for(int r = 0; r < ccdbTable.getRowCount(); r++){
+		for(int c = 0; c < ccdbTable.getColumnCount(); c++){
+		    col = ccdbTable.getColumnName(c);
+		    
+		    if(r==0){
+                        switch (c) {
+			case 0:
+			    fout_full.printf("s \t");
+			    fout_status.printf("s \t");
+			    fout_noise.printf("s \t");
+			    fout_energy.printf("s \t");
+			    fout_time.printf("s \t");
+			    break;
+			case 1:
+			    fout_full.printf("l \t");
+			    fout_status.printf("l \t");
+			    fout_noise.printf("l \t");
+			    fout_time.printf("l \t");
+			    fout_energy.printf("l \t");
+			    break;
+			case 2:
+			    fout_full.printf("c \t");
+			    fout_status.printf("c \t");
+			    fout_noise.printf("c \t");
+			    fout_time.printf("c \t");
+			    fout_energy.printf("c \t");
+			    break;
+			default:
+			    fout_full.printf(col+"\t");
+			    break;
+                        }
+		        
+			if      (col.equals("status"))
+			    fout_status.printf(col+"\t");
+			else if (col.equals("ped")     ||
+				 col.equals("ped_rms") ||
+				 col.equals("gain_pc") ||
+				 col.equals("gain_mv") ||
+				 col.equals("thr_npe"))
+			    fout_noise.printf(col+"\t");
+			else if (col.equals("mips_e")  ||
+				 col.equals("mips_q"))
+			    fout_energy.printf(col+"\t");
+			else if  (col.equals("t_offset") || 
+				  col.equals("t_rms"))
+			    fout_time.printf(col+"\t");
+		    }
+		    else if(r > 0 && c < 3){
+			fout_full.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_status.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_noise.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_energy.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_time.printf(ccdbTable.getValueAt(r, c)+"\t");
+		    }
+		    else if (col.equals("status")){
+			Double pp = Double.parseDouble(ccdbTable.getValueAt(r, c).toString());
+			fout_full.printf(pp.intValue()+"\t");
+			fout_status.printf(pp.intValue()+"\t");
+		    }
+		    else if (col.equals("ped")     ||
+			     col.equals("ped_rms") ||
+			     col.equals("gain_pc") ||
+			     col.equals("gain_mv") ||
+			     col.equals("thr_npe")){
+			fout_full.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_noise.printf(ccdbTable.getValueAt(r, c)+"\t");
+		    }
+		    else if (col.equals("mips_e")  ||
+			     col.equals("mips_q")){
+			fout_full.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_energy.printf(ccdbTable.getValueAt(r, c)+"\t");
+		    }
+		    else if  (col.equals("t_offset") || 
+			      col.equals("t_rms")){
+			fout_full.printf(ccdbTable.getValueAt(r, c)+"\t");
+			fout_time.printf(ccdbTable.getValueAt(r, c)+"\t");
+		    }
+		}
+		fout_full.printf("\n");
+		fout_status.printf("\n");
+		fout_noise.printf("\n");
+		fout_energy.printf("\n");
+		fout_time.printf("\n");
+	    }
+	    
+            fout_full.close();
+            fout_status.close();
+	    fout_noise.close();
+	    fout_energy.close();
+            fout_time.close();
+            
+            System.out.println("CCDB files written");
+	    
+	} catch (FileNotFoundException ex) {
+	    System.out.println(" Keith Cuthbertson ");
+	}
+    }
+
     public FTHODOViewerModule(){
 	
 	System.out.println( " -------------------");
@@ -625,7 +783,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 
         this.detectorPanel = null;
         this.decoder = null;
-
+	
     }
 
     public void initDetector(){
@@ -869,27 +1027,26 @@ public class FTHODOViewerModule implements IDetectorListener,
         return viewPaddles;
     };
     
-    
     public DetectorShapeView2D drawDetector(double x0, double y0) {
         DetectorShapeView2D viewFTHODO = new DetectorShapeView2D("Detector");
         
 		
-            // sectors 1-8 for each layer.
-            // detector symmetry is fourfold
-            // with elements 0-28 for each quarter.
+	// sectors 1-8 for each layer.
+	// detector symmetry is fourfold
+	// with elements 0-28 for each quarter.
         int sector;
         
-            // tile component
-            // 1-9 for odd sectors
-            // 1-20 for even
+	// tile component
+	// 1-9 for odd sectors
+	// 1-20 for even
         int component;
         
-            // thick and thin
+	// thick and thin
         int layer;
         
-            // y-offset to place thin and thick layer on same pane
+	// y-offset to place thin and thick layer on same pane
         double[] layerOffsetY = {-200.0,200.0};
-            // size of tiles per quadrant
+	// size of tiles per quadrant
         double[] tileSize = {15.0,30.0,15.0,30.0,30.0,30.0,30.0,30.0,15.0,
 			     30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,30.0,
 			     30.0,30.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0};
@@ -898,81 +1055,81 @@ public class FTHODOViewerModule implements IDetectorListener,
         
             //============================================================
         double[] xx = {-97.5 ,  -75.0, -127.5, -105.0, -75.0,
-            -135.0, -105.0,  -75.0,  -52.5,
-            -45.0 ,  -15.0,   15.0,   45.0, -45.0,
-            -15.0 ,   15.0,   45.0,  -45.0, -15.0,
-            15.0  ,   45.0,  -52.5,  -37.5, -22.5,
-            -7.5  ,    7.5,   22.5,   37.5,  52.5};
+		       -135.0, -105.0,  -75.0,  -52.5,
+		       -45.0 ,  -15.0,   15.0,   45.0, -45.0,
+		       -15.0 ,   15.0,   45.0,  -45.0, -15.0,
+		       15.0  ,   45.0,  -52.5,  -37.5, -22.5,
+		       -7.5  ,    7.5,   22.5,   37.5,  52.5};
         
         double[] yy = {-127.5, -135.0,  -97.5, -105.0, -105.0,
-            -75.0 ,  -75.0,  -75.0,  -52.5,
-            -150.0, -150.0, -150.0, -150.0, -120.0,
-            -120.0, -120.0, -120.0,  -90.0,  -90.0,
-            -90.0 ,  -90.0,  -67.5,  -67.5,  -67.5,
-            -67.5 ,  -67.5,  -67.5,  -67.5,  -67.5};
-            //============================================================
+		       -75.0 ,  -75.0,  -75.0,  -52.5,
+		       -150.0, -150.0, -150.0, -150.0, -120.0,
+		       -120.0, -120.0, -120.0,  -90.0,  -90.0,
+		       -90.0 ,  -90.0,  -67.5,  -67.5,  -67.5,
+		       -67.5 ,  -67.5,  -67.5,  -67.5,  -67.5};
+	//============================================================
         
         double xcenter = 0;
         double ycenter = 0;
         double zcenter;
         
-            // two layers: I==0 for thin and I==1 for thick
+	// two layers: I==0 for thin and I==1 for thick
         for (int layerI = 0; layerI < 2; layerI++){
             layer = layerI+1;
             
-                // 4 symmetry sectors per layer (named quadrant) from 0-3
+	    // 4 symmetry sectors per layer (named quadrant) from 0-3
             for (int quadrant=0; quadrant < 4; quadrant++) {
-                
-                    // 29 elements per symmetry sector
+		
+		// 29 elements per symmetry sector
                 for (int element = 0; element < 29; element++) {
-                    
-                        // sector is odd for first 9 elements
-                        // and even for the rest
+		    
+		    // sector is odd for first 9 elements
+		    // and even for the rest
                     if (element < 9) {
                         sector = quadrant*2 + 1;
-                            // component number for odd sector is 1-9
+			// component number for odd sector is 1-9
                         component = element + 1;
                     }
                     else  {
                         sector = quadrant*2 + 2;
-                            // component number for even sector is 1-20
+			// component number for even sector is 1-20
                         component = element + 1 - 9;
                     }
                     
                     // calculate the x-element of the center of each tile;
                     switch (quadrant) {
-                        case 0:
-                            xcenter = xx[element];
-                            break;
-                        case 1:
-                            xcenter =-yy[element];
-                            break;
-                        case 2:
-                            xcenter =-xx[element];
-                            break;
-                        case 3:
-                            xcenter = yy[element];
-                            break;
-                        default:
-                            break;
+		    case 0:
+			xcenter = xx[element];
+			break;
+		    case 1:
+			xcenter =-yy[element];
+			break;
+		    case 2:
+			xcenter =-xx[element];
+			break;
+		    case 3:
+			xcenter = yy[element];
+			break;
+		    default:
+			break;
                     }
                     
                     // calculate the y-element of the center of each tile
                     switch (quadrant) {
-                        case 0:
-                            ycenter = yy[element] + layerOffsetY[layerI];
-                            break;
-                        case 1:
-                            ycenter = xx[element] + layerOffsetY[layerI];
-                            break;
-                        case 2:
-                            ycenter =-yy[element] + layerOffsetY[layerI];
-                            break;
-                        case 3:
-                            ycenter =-xx[element] + layerOffsetY[layerI];
-                            break;
-                        default:
-                            break;
+		    case 0:
+			ycenter = yy[element] + layerOffsetY[layerI];
+			break;
+		    case 1:
+			ycenter = xx[element] + layerOffsetY[layerI];
+			break;
+		    case 2:
+			ycenter =-yy[element] + layerOffsetY[layerI];
+			break;
+		    case 3:
+			ycenter =-xx[element] + layerOffsetY[layerI];
+			break;
+		    default:
+			break;
                     }
                     
                     if(layerI==0){
@@ -981,10 +1138,10 @@ public class FTHODOViewerModule implements IDetectorListener,
                     else
                         zcenter =  tileThickness[layerI]/2.0;
                     
-                        // Sectors 1-8
-                        // (sect=1: upper left - clockwise);
-                        // layers 1-2 (thin==1, thick==2);
-                        // tiles (1-9 for odd and 1-20 for even sectors)
+		    // Sectors 1-8
+		    // (sect=1: upper left - clockwise);
+		    // layers 1-2 (thin==1, thick==2);
+		    // tiles (1-9 for odd and 1-20 for even sectors)
                     DetectorShape2D shape  = new DetectorShape2D(DetectorType.FTHODO,
                                                                  sector,
                                                                  layer,
@@ -995,16 +1152,16 @@ public class FTHODOViewerModule implements IDetectorListener,
                                                                  layer,
                                                                  component);
                     
-                        // defines the 2D bars dimensions using the element size
+		    // defines the 2D bars dimensions using the element size
                     shape.createBarXY(tileSize[element], tileSize[element]);
                     
                     shape2.createBarXY(tileSize[element],tileThickness[layerI]);
                     
-                        // defines the placements of the 2D bar according to the
-                        // xcenter and ycenter calculated above
+		    // defines the placements of the 2D bar according to the
+		    // xcenter and ycenter calculated above
                     shape.getShapePath().translateXYZ(xcenter,ycenter,zcenter);
                     
-                        //
+		    //
                     shape.setColor(0, 0, 0, 0);
                     
                     viewFTHODO.addShape(shape);
@@ -1012,20 +1169,20 @@ public class FTHODOViewerModule implements IDetectorListener,
                     //===========================================================
                     // calculate the y-element of the center of each tile
                     switch (quadrant) {
-                        case 0:
-                            ycenter = yy[element];
-                            break;
-                        case 1:
-                            ycenter = xx[element];
-                            break;
-                        case 2:
-                            ycenter =-yy[element];
-                            break;
-                        case 3:
-                            ycenter =-xx[element];
-                            break;
-                        default:
-                            break;
+		    case 0:
+			ycenter = yy[element];
+			break;
+		    case 1:
+			ycenter = xx[element];
+			break;
+		    case 2:
+			ycenter =-yy[element];
+			break;
+		    case 3:
+			ycenter =-xx[element];
+			break;
+		    default:
+			break;
                     }
                     
                     shape2.setColor(0, 0, 0, 0);
@@ -1050,6 +1207,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         }
         if (e.getActionCommand().compareTo("Constants") == 0) {
             updateConstants();
+	    //!!!!!!!!
+	    printCCDBTables();
         }
         if (e.getActionCommand().compareTo("Fit") == 0) {
             fitHistograms();
@@ -3101,8 +3260,35 @@ public class FTHODOViewerModule implements IDetectorListener,
         return index;
     }
     
-        // for all shapes made this is executed
-        // for every event and every action
+    public int[] getSLC4Index(int index){
+        
+	int[] slc = {0,0,0};
+	
+	int layer = index/116 + 1;
+	int quadrant = (index-(layer-1)*116) / 29;
+	int element = index - quadrant * 29 -(layer-1)*116;
+	int sector;
+	int component;
+	
+	if (element < 9) {
+	    sector    = quadrant*2 + 1;
+	    component = element + 1;
+	}
+	else {
+	    sector    = quadrant*2 + 2;
+	    component = element + 1 - 9;
+	}
+	
+	slc[0] = sector;
+	slc[1] = layer;
+	slc[2] = component;
+	
+        return slc;
+    }
+
+    
+    // for all shapes made this is executed
+    // for every event and every action
     public void update(DetectorShape2D shape) {
         
         int sec = shape.getDescriptor().getSector();
@@ -3607,9 +3793,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    ccdbTable.setValueAtAsDouble(statCCDB-3,
 						 getStatus(s,l,c),
 						 s,l,c);
-		    ccdbTable.setValueAtAsDouble(npeThCCDB-3,
-						 getThrshNPE(s,l,c),
-						 s,l,c);
 		    ccdbTable.setValueAtAsDouble(pedCCDB-3,
 						 getPedMean(s,l,c),
 						 s,l,c);
@@ -3621,6 +3804,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 						 s,l,c);
                     ccdbTable.setValueAtAsDouble(gainMVCCDB-3,
 						 getGain_mV(s,l,c),
+						 s,l,c);
+		    ccdbTable.setValueAtAsDouble(npeThCCDB-3,
+						 getThrshNPE(s,l,c),
 						 s,l,c);
 		    ccdbTable.setValueAtAsDouble(mipEnCCDB-3,
 						 getE(s,l,c),
@@ -4274,11 +4460,13 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void processDecodedSimEvent(DetectorCollection<Double> adc, 
 				       DetectorCollection<Double> tdc){
 	
-	double[] time = { -9.9, -99.9, -999.9 };
+	double[] time_tdc = { -9.9, -99.9, -999.9 };
+	double[] time     = { -9.9, -99.9, -999.9 };
 	double   time2Hodo = 6.0;
+	double   time2Tile[] = {-99.0, 6.0, 6.0};
 	double   startTime = 124.25;
 	
-	time[0] = startTime + time2Hodo;
+	//time[0] = startTime + time2Hodo;
 	
 	boolean[] goodTime     = {false, false, false};
 	boolean[] veryGoodTime = {false, false, false};
@@ -4293,15 +4481,13 @@ public class FTHODOViewerModule implements IDetectorListener,
 	boolean   applyDTCut = false; 
 	
 	boolean   applyNoCuts = true;
-
+	
 	if(applyNoCuts){
 	    for( int i = 0 ; i < 3  ; i++)
 		applyTCut[i] = false;
 	    applyDTCut = false;
 	}
 	
-	
-	   
 	if (
 	    (applyTCut[1] ||
 	     applyTCut[2] ||
@@ -4313,7 +4499,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double[]  charge   = {0.0, 0.0, 0.0};
 	double[]  peakVolt = {0.0, 0.0, 0.0};
-	double    deltaT;
+	double    deltaT,deltaT1;
+	
+	Double x,y,z,w,d,u;
+	double xyz[] = {0. , 0. , 0.};
 	
 	for (int s = 1 ; s < 9 ; s++){
 	    for (int c = 1 ; c < 21 ; c++){
@@ -4321,29 +4510,80 @@ public class FTHODOViewerModule implements IDetectorListener,
 		if( s%2==1 && c > 9 ) 
 		    continue;
 		
-		deltaT      = -999.9;
-		goodDT      = false;
-		time[1]     = -99.9;
-		time[2]     = -999.9;
+		deltaT1       = -999.9;
+		deltaT       = -999.9;
+		goodDT       = false;
+		time[1]      = -99.9;
+		time[2]      = -99.9;
+		time_tdc[1]  = -99.9;
+		time_tdc[2]  = -999.9;
+		time2Tile[1] = -9.9;
+		time2Tile[2] = -9999.9;
 		
 		for (int l = 1 ; l < 3 ; l++){    
 		    
+		    String xyzwd[] = readGeometryTable(s,l,c);
+		    
+		    x = Double.parseDouble(xyzwd[0]); 
+		    y = Double.parseDouble(xyzwd[1]); 
+		    z = Double.parseDouble(xyzwd[2]); 
+		    w = Double.parseDouble(xyzwd[3]); 
+		    d = Double.parseDouble(xyzwd[4]); 
+		    
+		    xyz[0] = x;
+		    xyz[1] = y;
+		    xyz[2] = z;
+		    
+		    u = 0.;
+		    
+		    for (int i = 0 ; i < 3 ; i++)
+			u = u + Math.sqrt(xyz[i]*xyz[i]); 
+		    
+		    // convert to cm
+		    u = u / 10.;
+
 		    peakVolt[l] = 0.0;
 		    charge[l]   = 0.0;
+
 		    goodTime[l] = false;
 		    veryGoodTime[l] = false;
-		    	
+		    
 		    if( tdc.hasEntry(s,l,c) ){
-			time[l] = tdc.get(s,l,c)*nsPerSample/100.;
+
+			time_tdc[l] = tdc.get(s,l,c)*nsPerSample/100.;
+			
+			// time in ns = (u in cm) / (c in cm/ns)
+			// should be around zero
+			time2Tile[l] = u/30.0 + startTime;
+			
+			
+			if(debugging_mode){
+			    System.out.println(" time_tdc[" + l +
+					       " = " + time_tdc[l] );
+			    System.out.println("u(s,l,c) = " +
+					       u + "(" + s + "," +
+					       l + "," + c + ") =");
+			    
+			    for( int i = 0 ; i < 3 ; i++ )
+				System.out.println("xyz[" + i +"] = " +
+						   xyz[i]  );
+			    
+			    System.out.println(" time_tdc[" + l +
+					       "] = " + time_tdc[l] );
+			    System.out.println(" time2Tile[" + l +
+					       "] = " + time2Tile[l] );
+			}
+			
+			time[l] = time_tdc[l] - time2Tile[l];
 			
 			if(debugging_mode)
-			    System.out.println(" time[" + l +
-					       " = " + time[l] );
+			    System.out.println("time[" + l + "] = " +
+					       time[l]);
 			
-			if(abs(time[l] - time[0]) < tRange ) 
+			if( abs(time[l] ) < tRange ) 
 			    goodTime[l] = true;
-
-			if(abs(time[l] - time[0]) < tCut ) 
+			
+			if( abs(time[l] ) < tCut ) 
 			    veryGoodTime[l] = true;
 	
 		    }
@@ -4357,6 +4597,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    qMax[s][l][c] = charge[l];
 			
 			// cut conditions
+			
+			
 			if( (applyTCut[l] && 
 			     veryGoodTime[l]) ||
 			    (applyDTCut && 
@@ -4380,12 +4622,22 @@ public class FTHODOViewerModule implements IDetectorListener,
 			} // end of cut conditions
 			
 			H_MAXV_VS_T.get(s,l,c)
-			    .fill(time[l],peakVolt[l]);
+			    .fill(time_tdc[l],peakVolt[l]);
 			   
-
+			
 		    } // end of: if (adc.hasEntry(s,l,c)) {....
 		    
-		    
+		    if( debugging_mode && 
+			l==2 && charge[2] > 0.0 ){
+			System.out.println(" time diff. stuff ");
+			for (int i = 1 ; i < 3 ; i++){
+			    System.out.println(" goodTime[" + i +
+					       "] = " + goodTime[i]);
+			    System.out.println(" charge[" + i +
+					       "] = " + charge[i]);
+			    }
+			
+		    }
 		    // time difference stuff
 		    if( l == 2      &&
 			goodTime[1] &&
@@ -4394,14 +4646,21 @@ public class FTHODOViewerModule implements IDetectorListener,
 			(charge[2] > 100.0) 
 			){
 			
-			deltaT = time[2] - time[1];
+			//deltaT = time[2] - time[1];
+			deltaT1 = time[1];
+			deltaT  = time[2];
 			
+			if( debugging_mode )
+			    System.out.println(" deltaT = " + deltaT);
+
 			if( abs(deltaT) < dtCut ){
 			    goodDT = true;
 			}
 			
+			H_DT_MODE3.get(s, 1, c).fill(deltaT1);
 			H_DT_MODE7.get(s, 1, c).fill(deltaT);
-		    
+			
+
 		    }// end of time difference stuff
 
 		    // 		    if(charge > 500)

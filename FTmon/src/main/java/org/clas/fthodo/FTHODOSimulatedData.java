@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.clas.fthodo;
 
 import org.clas.tools.FTApplication;
@@ -13,7 +8,7 @@ import org.jlab.evio.clas12.EvioDataEvent;
 
 /**
  *
- * @author fanchini
+ * @author fanchini, smith
  */
 public class FTHODOSimulatedData extends FTApplication{
     EvioDataBank eviobank;
@@ -67,20 +62,17 @@ public class FTHODOSimulatedData extends FTApplication{
             this.sim_tdc.add(s, l, c, tdc);
             
 	}
-        //System.out.println("Erica Sim1: sim_ad.size:"+this.sim_adc.getComponents(0, 0).size());
     }
    
  
                
     public DetectorCollection<Double> getSimAdc() {
-	//System.out.println("Erica Sim2: sim_ad.size:"+this.sim_adc.getComponents(0, 0).size());
-	//System.out.println("Erica Sim2: sim_ad.size:"+this.sim_adc.getComponents(0, 0).size());
-	
+
 	return this.sim_adc;
     }
         
     public DetectorCollection<Double> getSimTdc() {
-	//System.out.println("Erica Sim2: sim_ad.size:"+this.sim_tdc.getComponents(0, 0).size());
+
         return this.sim_tdc;
     }
        

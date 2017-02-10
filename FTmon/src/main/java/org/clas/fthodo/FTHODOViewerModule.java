@@ -118,10 +118,9 @@ public class FTHODOViewerModule implements IDetectorListener,
     DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
     DetectorCollection<H1D> H_NPE_MATCH = new DetectorCollection<H1D>();
     
-    DetectorCollection<H1D> H_TIME_MODE3 = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_DT_MODE3   = new DetectorCollection<H1D>();
-    DetectorCollection<H1D> H_DT_MODE7   = new DetectorCollection<H1D>();
-    
+    DetectorCollection<H1D> H_T_MODE3   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_T_MODE7   = new DetectorCollection<H1D>();
+        
     // 2D
     DetectorCollection<H2D> H_MAXV_VS_T = new DetectorCollection<H2D>();
     DetectorCollection<H2D> H_T1_T2     = new DetectorCollection<H2D>();
@@ -137,7 +136,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     DetectorCollection<F1D> fV1   = new DetectorCollection<F1D>();
     DetectorCollection<F1D> fV2   = new DetectorCollection<F1D>();
     DetectorCollection<F1D> fVMIP = new DetectorCollection<F1D>();
-    DetectorCollection<F1D> fDT   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fT   = new DetectorCollection<F1D>();
     
     // Functions (that are not used to fit)
     DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
@@ -1589,7 +1588,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double[] rangeLow  = {0.0, 100.,  250};
 	double[] rangeHigh = {0.0, 1250., 2000};
         	
-	if (H1.integral() > 50 ){
+	if (H1.integral() > 100 ){
 	    
 	    fVMIP.add(s,l,c, new F1D("landau",
 				     rangeLow[l],
@@ -1634,7 +1633,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	}
     }
 
-    private boolean initFitDTParameters(int s,int l,int c,H1D H1){
+    private boolean initFitTParameters(int s,int l,int c,H1D H1){
 	
 	double ampl = H1.getBinContent(H1.getMaximumBin());
 	double mean = 0.;
@@ -1645,19 +1644,19 @@ public class FTHODOViewerModule implements IDetectorListener,
         	
 	if (H1.integral() > 50 ){
 	    
-	    fDT.add(s,l,c, new F1D("gaus",
+	    fT.add(s,l,c, new F1D("gaus",
 				   rangeLow,
 				   rangeHigh));
 		
-	    fDT.get(s,l,c).setParameter(0, ampl);
-	    fDT.get(s,l,c).setParameter(1, mean);
-	    fDT.get(s,l,c).setParameter(2, std);
+	    fT.get(s,l,c).setParameter(0, ampl);
+	    fT.get(s,l,c).setParameter(1, mean);
+	    fT.get(s,l,c).setParameter(2, std);
 		    
-	    fDT.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2);
-	    fDT.get(s,l,c).setParLimits(1, rangeLow, rangeHigh);
-	    fDT.get(s,l,c).setParLimits(2, 0.3, 4.0);
+	    fT.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2);
+	    fT.get(s,l,c).setParLimits(1, rangeLow, rangeHigh);
+	    fT.get(s,l,c).setParLimits(2, 0.3, 4.0);
 	    
-	    fDT.get(s,l,c).setLineColor(1);
+	    fT.get(s,l,c).setLineColor(1);
 
 	    	    
 	    return true;
@@ -1667,27 +1666,27 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
     }
 
-    private void fitDT(int s,int l,int c,String fitOption){
+    private void fitT(int s,int l,int c,String fitOption){
 	
 	if (testMode)
-	    System.out.println(" Fitting DT (S,L,C) = (" +
+	    System.out.println(" Fitting T (S,L,C) = (" +
 			       s  + "," + l + "," + c + ")"); 
 	
-	if(H_DT_MODE7.hasEntry(s,l,c) &&
-	   initFitDTParameters(s,l,c,H_DT_MODE7.get(s,l,c))){
+	if(H_T_MODE7.hasEntry(s,l,c) &&
+	   initFitTParameters(s,l,c,H_T_MODE7.get(s,l,c))){
 	    
-	    H_DT_MODE7.get(s,l,c).
-		fit(fDT.get(s,l,c),fitOption);
+	    H_T_MODE7.get(s,l,c).
+		fit(fT.get(s,l,c),fitOption);
 	    
 	    	    
 	if (testMode)
-	    System.out.println(" Fitted DT (S,L,C) = (" + 
+	    System.out.println(" Fitted T (S,L,C) = (" + 
 			       s  + "," + l + "," + c + ")");
 	
 	}
 	else{
 	    if (testMode)
-		System.out.println(" No DT Fit (S,L,C) = (" + 
+		System.out.println(" No T Fit (S,L,C) = (" + 
 				   s  + "," + l + "," + c + ")");
 	}
     }
@@ -1732,8 +1731,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	    fitVMIP(s,l,c,fitOption);
 	    fitQMIP(s,l,c,fitOption);
 	    
-	    if(l==1)
-		fitDT(s,l,c,fitOption);
+	    fitT(s,l,c,fitOption);
 	    
 	    
 	} // end of : for (int index = 0; index < 232; index++) {
@@ -2164,15 +2162,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 	canvasTime.cd(layCDL);
 	
 	if(H_MAXV_VS_T.hasEntry(secSel,
-				 laySel,
-				 comSel) ){
+				laySel,
+				comSel) ){
 	    
 	    this.canvasTime.draw(H_MAXV_VS_T.get(secSel,
 						 laySel,
 						 comSel));
 	    
 	}
-
+	
 	//----------------------------------------
 	// left top (bottom) for thin (thick) layer
         canvasTime.cd(oppCDL);
@@ -2189,79 +2187,45 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	//----------------------------------------
 	// right top 
-        canvasTime.cd(1);
+        canvasTime.cd(layCDR);
 	
-	if(H_DT_MODE3.hasEntry(secSel,
-			       laySel,
-			       comSel) ){
-            this.canvasTime.draw(H_DT_MODE3.get(secSel,
-						laySel,
-						comSel));
+	if(H_T_MODE7.hasEntry(secSel,
+			      laySel,
+			      comSel) ){
+            this.canvasTime.draw(H_T_MODE7.get(secSel,
+					       laySel,
+					       comSel));
+	    if(fT.hasEntry(secSel,
+			   laySel,
+			   comSel))
+                this.canvasTime.draw(fT.get(secSel,
+					    laySel,
+					    comSel),"same S");
 	}
-	else if(H_DT_MODE3.hasEntry(secSel,
-				    oppSel,
-				    comSel)){
-            this.canvasTime.draw(H_DT_MODE3.get(secSel,
-						oppSel,
-						comSel));
-	}
-	
 	
 	//----------------------------------------
 	// right bottom
-        canvasTime.cd(3);
+        canvasTime.cd(oppCDR);
 	
-	if(H_DT_MODE7.hasEntry(secSel,
-			       laySel,
-			       comSel) ){
-            this.canvasTime.draw(H_DT_MODE7.get(secSel,
-						laySel,
-						comSel));
-	
-	    if(fDT.hasEntry(secSel,
-			    laySel,
-			    comSel))
-                this.canvasTime.draw(fDT.get(secSel,
-					       laySel,
-					       comSel),"same S");
-	
-	}
-	else if(H_DT_MODE7.hasEntry(secSel,
-				    oppSel,
-				    comSel)){
-            this.canvasTime.draw(H_DT_MODE7.get(secSel,
-						oppSel,
-						comSel));
-	    
-	    if(fDT.hasEntry(secSel,
-			    oppSel,
-			    comSel))
-                this.canvasTime.draw(fDT.get(secSel,
+	if(H_T_MODE7.hasEntry(secSel,
+			      oppSel,
+			      comSel)){
+            this.canvasTime.draw(H_T_MODE7.get(secSel,
 					       oppSel,
-					       comSel),"same S");
-
+					       comSel));
+	    
+	    if(fT.hasEntry(secSel,
+			   oppSel,
+			   comSel))
+                this.canvasTime.draw(fT.get(secSel,
+					    oppSel,
+					    comSel),"same S");
+	    
 	    
 	}
-
-	// if(H_T1_T2.hasEntry(secSel,
-// 			       laySel,
-// 			       comSel) ){
-//             this.canvasTime.draw(H_T1_T2.get(secSel,
-// 						laySel,
-// 						comSel));
-// 	}
-// 	else if(H_T1_T2.hasEntry(secSel,
-// 				    oppSel,
-// 				    comSel)){
-//             this.canvasTime.draw(H_T1_T2.get(secSel,
-// 					     oppSel,
-// 					     comSel));
-// 	}
 	
-
-    
     }
-    
+
     void drawCanvasCharge(int secSel,
                           int laySel,
                           int comSel){
@@ -3638,27 +3602,23 @@ public class FTHODOViewerModule implements IDetectorListener,
         
     }
 
-    private double getDTMean(int s, int l, int c){
+    private double getTMean(int s, int l, int c){
 	
         double tMean = 0.0;
 	
-	int thinLayer = 1;
-	
-        if(fDT.hasEntry(s, thinLayer, c))
-	    tMean = fDT.get(s,thinLayer,c).getParameter(1);
+        if(fT.hasEntry(s, l, c))
+	    tMean = fT.get(s,l,c).getParameter(1);
         
         return tMean;
         
     }
     
-    private double getDTSigma(int s, int l, int c){
+    private double getTSigma(int s, int l, int c){
 	
         double tSigma = 0.0;
         
-	int thinLayer = 1;
-	
-        if(fDT.hasEntry(s, thinLayer, c))
-	    tSigma = fDT.get(s,thinLayer,c).getParameter(2);
+	if(fT.hasEntry(s, l, c))
+	    tSigma = fT.get(s,l,c).getParameter(2);
         
         return tSigma;
         
@@ -3815,10 +3775,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 						 getQMean(s,l,c),
 						 s,l,c);
 		    ccdbTable.setValueAtAsDouble(tOffCCDB-3,
-						 getDTMean(s,l,c),
+						 getTMean(s,l,c),
 						 s,l,c);
 		    ccdbTable.setValueAtAsDouble(tResCCDB-3,
-						 getDTSigma(s,l,c),
+						 getTSigma(s,l,c),
 						 s,l,c);
 		    
 		    
@@ -4118,22 +4078,22 @@ public class FTHODOViewerModule implements IDetectorListener,
 	H_MIP_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setYTitle("Counts");
         
-        H_TIME_MODE3.add(HP.getS(),HP.getL(), HP.getC(),
-                         new H1D(DetectorDescriptor.
-                                 getName("H_TIME_MODE3",
-                                         HP.getS(),HP.getL(),HP.getC()),
-                                 HP.getTitle(), 100, 0.0, 400));
+        H_T_MODE3.add(HP.getS(),HP.getL(), HP.getC(),
+		      new H1D(DetectorDescriptor.
+			      getName("H_T_MODE3",
+				      HP.getS(),HP.getL(),HP.getC()),
+			      HP.getTitle(), 100, 0.0, 400));
         
-        H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
-        H_TIME_MODE3.get(HP.getS(),
-			 HP.getL(), 
-			 HP.getC()).setXTitle("Mode 1 Time (ns)");
-        H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
+        H_T_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
+        H_T_MODE3.get(HP.getS(),
+		      HP.getL(), 
+		      HP.getC()).setXTitle("Mode 3 Time (ns)");
+        H_T_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setYTitle("Counts");
         
 	double[] timeMin = {0.  ,100.,100.};
 	double[] timeMax = {500.,150.,150.};
 	
-	timeMin[1] = 150.0;
+	timeMin[1] = 15.0;
 	timeMin[2] = 15.0;
 	
 	timeMax[1] = 200.0;
@@ -4149,58 +4109,57 @@ public class FTHODOViewerModule implements IDetectorListener,
 				32,timeMin[HP.getL()],timeMax[HP.getL()],
 				32,0.,2000.));
 	
-	//H_TIME_MODE3.get(HP.getS(),HP.getL(), HP.getC()).setFillColor(4);
-        
 	H_MAXV_VS_T.get(HP.getS(),
 			HP.getL(), 
 			HP.getC()).setXTitle("Mode 1 Time (ns)");
         H_MAXV_VS_T.get(HP.getS(),HP.getL(), 
 			HP.getC()).setYTitle("Peak Voltage (mV)");
         
+	
+	H_T_MODE3.add(HP.getS(),
+		      HP.getL(), 
+		      HP.getC(),
+		      new H1D(DetectorDescriptor.
+			      getName("H_T_MODE3",
+				      HP.getS(),HP.getL(),HP.getC()),
+			      HP.getTitle(), 32, -16, 16));
+	H_T_MODE3.get(HP.getS(),HP.getL(), 
+		      HP.getC()).setFillColor(4);
+	H_T_MODE3.get(HP.getS(),
+		      HP.getL(), 
+		      HP.getC()).setXTitle("Mode Three #Delta T (ns) [thick - thin]");
+	H_T_MODE3.get(HP.getS(),HP.getL(), 
+		      HP.getC()).setYTitle("Counts");
+	
+	H_T_MODE7.add(HP.getS(),
+		      HP.getL(), 
+		      HP.getC(),
+		      new H1D(DetectorDescriptor.
+			      getName("H_T_MODE7",
+				      HP.getS(),HP.getL(),HP.getC()),
+			      HP.getTitle(), 64, -16, 16));
+	//		   HP.getTitle(), 64, -100, 100));
+	H_T_MODE7.get(HP.getS(),HP.getL(), 
+		      HP.getC()).setFillColor(4);
+	
+	H_T_MODE7.get(HP.getS(),HP.getL(), 
+		      HP.getC()).setLineColor(1);
+	
+	H_T_MODE7.get(HP.getS(),
+		      HP.getL(), 
+		      HP.getC()).setXTitle("Mode Seven Time (ns) [start time subtracted]");
+	H_T_MODE7.get(HP.getS(),HP.getL(), 
+		      HP.getC()).setYTitle("Counts");
+	
 	if (HP.getL()==1){
-            H_DT_MODE3.add(HP.getS(),
-			   HP.getL(), 
-			   HP.getC(),
-			   new H1D(DetectorDescriptor.
-				   getName("H_DT_MODE3",
-					   HP.getS(),HP.getL(),HP.getC()),
-				   HP.getTitle(), 32, -16, 16));
-            H_DT_MODE3.get(HP.getS(),HP.getL(), 
-			   HP.getC()).setFillColor(4);
-            H_DT_MODE3.get(HP.getS(),
-			   HP.getL(), 
-			   HP.getC()).setXTitle("Mode Three #Delta T (ns) [thick - thin]");
-            H_DT_MODE3.get(HP.getS(),HP.getL(), 
-			   HP.getC()).setYTitle("Counts");
-	    
-	    H_DT_MODE7.add(HP.getS(),
-			   HP.getL(), 
-			   HP.getC(),
-			   new H1D(DetectorDescriptor.
-				   getName("H_DT_MODE7",
-					   HP.getS(),HP.getL(),HP.getC()),
-				   HP.getTitle(), 64, -16, 16));
-	    //		   HP.getTitle(), 64, -100, 100));
-            H_DT_MODE7.get(HP.getS(),HP.getL(), 
-			   HP.getC()).setFillColor(4);
-            
-	    H_DT_MODE7.get(HP.getS(),HP.getL(), 
-			   HP.getC()).setLineColor(1);
-	    
-	    H_DT_MODE7.get(HP.getS(),
-			   HP.getL(), 
-			   HP.getC()).setXTitle("Mode Seven #Delta T (ns) [thick - thin]");
-            H_DT_MODE7.get(HP.getS(),HP.getL(), 
-			   HP.getC()).setYTitle("Counts");
-	    
 	    H_T1_T2.add(HP.getS(),
 			   HP.getL(), 
 			   HP.getC(),
-			   new H2D(DetectorDescriptor.
-				   getName("H_T1_T2",
+			new H2D(DetectorDescriptor.
+				getName("H_T1_T2",
 					   HP.getS(),HP.getL(),HP.getC()),
-				   HP.getTitle(), 
-				   256, 125., 275.,
+				HP.getTitle(), 
+				256, 125., 275.,
 				   256, 125., 275.));
             
             H_T1_T2.get(HP.getS(),
@@ -4386,6 +4345,15 @@ public class FTHODOViewerModule implements IDetectorListener,
 			HP.getL(),
 			HP.getC()).reset();
 	    
+	    H_T_MODE7.get(HP.getS(),
+			  HP.getL(),
+			  HP.getC()).reset();
+	    
+	    H_MAXV_VS_T.get(HP.getS(),
+			    HP.getL(),
+			    HP.getC()).reset();
+	    
+	    
 	}
 	
     }
@@ -4499,7 +4467,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double[]  charge   = {0.0, 0.0, 0.0};
 	double[]  peakVolt = {0.0, 0.0, 0.0};
-	double    deltaT,deltaT1;
+	double    deltaT,deltaT1,time_L1,time_L2;
 	
 	Double x,y,z,w,d,u;
 	double xyz[] = {0. , 0. , 0.};
@@ -4510,7 +4478,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 		if( s%2==1 && c > 9 ) 
 		    continue;
 		
-		deltaT1       = -999.9;
+		time_L1      = -999.9;
+		time_L2      =  99.9;
+		deltaT1      = -999.9;
 		deltaT       = -999.9;
 		goodDT       = false;
 		time[1]      = -99.9;
@@ -4597,8 +4567,6 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    qMax[s][l][c] = charge[l];
 			
 			// cut conditions
-			
-			
 			if( (applyTCut[l] && 
 			     veryGoodTime[l]) ||
 			    (applyDTCut && 
@@ -4657,8 +4625,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    goodDT = true;
 			}
 			
-			H_DT_MODE3.get(s, 1, c).fill(deltaT1);
-			H_DT_MODE7.get(s, 1, c).fill(deltaT);
+			H_T_MODE7.get(s, 1, c).fill(time[1]);
+			H_T_MODE7.get(s, 2, c).fill(time[2]);
 			
 
 		    }// end of time difference stuff
@@ -4932,9 +4900,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 		time_M3[sec-1][lay-1][com-1] = fadcFitter.getTime(3);
 		time_M7[sec-1][lay-1][com-1] = fadcFitter.getTime(7);
 	    
-		H_TIME_MODE3.get(sec, 
-				 lay, 
-				 com).fill(time_M3[sec-1][lay-1][com-1]);
+		H_T_MODE3.get(sec, 
+			      lay, 
+			      com).fill(time_M3[sec-1][lay-1][com-1]);
 		
 		H_MAXV_VS_T.get(sec,
 				lay,
@@ -4962,7 +4930,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    dT_M3[secM][comM] =  - time_M3[secM][1][comM];
 		    dT_M3[secM][comM] += time_M3[secM][0][comM];
 		    
-		    H_DT_MODE3.get(secM+1, 1, comM+1).
+		    H_T_MODE3.get(secM+1, 1, comM+1).
 			fill(dT_M3[secM][comM]);
 		    
 		    if (time_M7[secM][1][comM] > 0 &&
@@ -4971,7 +4939,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 			dT_M7[secM][comM] = - time_M7[secM][1][comM];
 			dT_M7[secM][comM] +=  time_M7[secM][0][comM];
 			
-			H_DT_MODE7.get(secM+1, 1, comM+1).
+			H_T_MODE7.get(secM+1, 1, comM+1).
 			fill(dT_M7[secM][comM]);
 			
 			H_T1_T2.get(secM+1, 1, comM+1).

@@ -4469,7 +4469,9 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double[]  peakVolt = {0.0, 0.0, 0.0};
 	double    deltaT,deltaT1,time_L1,time_L2;
 	
-	Double x,y,z,w,d,u;
+	Double x,y,z,w,d;
+	
+	Double u[] = {0.,0.,0.};
 	double xyz[] = {0. , 0. , 0.};
 	
 	for (int s = 1 ; s < 9 ; s++){
@@ -4504,13 +4506,12 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    xyz[1] = y;
 		    xyz[2] = z;
 		    
-		    u = 0.;
+		    u[l] = 0.;
 		    
-		    for (int i = 0 ; i < 3 ; i++)
-			u = u + Math.sqrt(xyz[i]*xyz[i]); 
+		    u[l] = Math.sqrt( xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] );
 		    
 		    // convert to cm
-		    u = u / 10.;
+		    u[l] = u[l] / 10.;
 
 		    peakVolt[l] = 0.0;
 		    charge[l]   = 0.0;
@@ -4519,37 +4520,39 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    veryGoodTime[l] = false;
 		    
 		    if( tdc.hasEntry(s,l,c) ){
-
+			
 			time_tdc[l] = tdc.get(s,l,c)*nsPerSample/100.;
 			
 			// time in ns = (u in cm) / (c in cm/ns)
 			// should be around zero
-			time2Tile[l] = u/30.0 + startTime;
 			
+			time2Tile[l] = u[l]/30.0 + startTime;
 			
 			if(debugging_mode){
-			    System.out.println(" time_tdc[" + l +
-					       " = " + time_tdc[l] );
-			    System.out.println("u(s,l,c) = " +
-					       u + "(" + s + "," +
-					       l + "," + c + ") =");
 			    
 			    for( int i = 0 ; i < 3 ; i++ )
-				System.out.println("xyz[" + i +"] = " +
+				System.out.println(" xyz[" + i +"] = " +
 						   xyz[i]  );
+			    
+			    System.out.println(" u[" + l + "]/30.(s,l,c) = " +
+					       u[l]/30. + "(" + s + "," +
+					       l + "," + c + ")");
 			    
 			    System.out.println(" time_tdc[" + l +
 					       "] = " + time_tdc[l] );
+			    
 			    System.out.println(" time2Tile[" + l +
 					       "] = " + time2Tile[l] );
 			}
 			
 			time[l] = time_tdc[l] - time2Tile[l];
 			
-			if(debugging_mode)
-			    System.out.println("time[" + l + "] = " +
+			if(debugging_mode){
+			    System.out.println(" -----------------------" );
+			    System.out.println(" time[" + l + "] = " +
 					       time[l]);
-			
+			    System.out.println(" -----------------------" );
+			}
 			if( abs(time[l] ) < tRange ) 
 			    goodTime[l] = true;
 			
@@ -4597,6 +4600,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    
 		    if( debugging_mode && 
 			l==2 && charge[2] > 0.0 ){
+			System.out.println(" -----------------------" );
 			System.out.println(" time diff. stuff ");
 			for (int i = 1 ; i < 3 ; i++){
 			    System.out.println(" goodTime[" + i +
@@ -4610,17 +4614,40 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    if( l == 2      &&
 			goodTime[1] &&
 			goodTime[2] &&
-			(charge[1] > 100.0) &&
-			(charge[2] > 100.0) 
+			(charge[1] > 1000.0) &&
+			(charge[2] > 1000.0) 
 			){
 			
-			//deltaT = time[2] - time[1];
-			deltaT1 = time[1];
-			deltaT  = time[2];
+			deltaT = time[2] - time[1];
 			
-			if( debugging_mode )
-			    System.out.println(" deltaT = " + deltaT);
-
+			
+// 			System.out.println(" -------------------- ");
+			
+// 			for( int i = 0 ; i < 3 ; i++ )
+// 			    System.out.println(" xyz[" + i +"] = " +
+// 					       xyz[i]  );
+			
+// 			System.out.println(" u[1]/30.(s,l,c) = " +
+// 					   u[1]/30. + "(" + s + ",1," 
+// 					   + c + ")");
+			
+// 			System.out.println(" u[2]/30.(s,l,c) = " +
+// 					   u[2]/30. + "(" + s + ",2," +
+// 					   c + ")");
+			
+// 			System.out.println(" time_tdc[1] = " + time_tdc[1] );
+// 			System.out.println(" time_tdc[2] = " + time_tdc[2] );
+			
+// 			System.out.println(" time2Tile[1] = " + time2Tile[1] );
+// 			System.out.println(" time2Tile[2] = " + time2Tile[2] );
+			
+// 			System.out.println(" time[1] = " + time[1] );
+// 			System.out.println(" time[2] = " + time[2] );
+			
+// 			System.out.println(" deltaT  = " + deltaT);
+			
+// 			System.out.println(" -------------------- ");
+					   
 			if( abs(deltaT) < dtCut ){
 			    goodDT = true;
 			}

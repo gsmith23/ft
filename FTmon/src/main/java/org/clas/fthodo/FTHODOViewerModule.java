@@ -242,7 +242,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     int pul_i1 = 30;
     int pul_i2 = 70;
     
-    final boolean fitBackground = false;
+    final boolean fitBackground = true;
     final int NBinsCosmic = 64;
     
     final int CosmicQXMin[]  = {0,200,300};
@@ -4093,11 +4093,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double[] timeMin = {0.  ,100.,100.};
 	double[] timeMax = {500.,150.,150.};
 	
-	timeMin[1] = 15.0;
-	timeMin[2] = 15.0;
+	timeMin[1] = -100.0;
+	timeMin[2] = -100.0;
 	
-	timeMax[1] = 200.0;
-	timeMax[2] = 200.0;
+	timeMax[1] = 100.0;
+	timeMax[2] = 100.0;
 	
 	H_MAXV_VS_T.add(HP.getS(),
 			HP.getL(), 
@@ -4442,7 +4442,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double    tCut   = 5.0;
 	double    tRange = 100.0;
-	double    dtCut  = 2.5;
+	double    dtCut  = 5.0;
 	
 	boolean   applyTCuts = false;
 	boolean[] applyTCut  = {false, applyTCuts, applyTCuts}; 
@@ -4467,7 +4467,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	
 	double[]  charge   = {0.0, 0.0, 0.0};
 	double[]  peakVolt = {0.0, 0.0, 0.0};
-	double    deltaT,deltaT1,time_L1,time_L2;
+	double    deltaT;
 	
 	Double x,y,z,w,d;
 	
@@ -4480,13 +4480,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 		if( s%2==1 && c > 9 ) 
 		    continue;
 		
-		time_L1      = -999.9;
-		time_L2      =  99.9;
-		deltaT1      = -999.9;
 		deltaT       = -999.9;
 		goodDT       = false;
-		time[1]      = -99.9;
-		time[2]      = -99.9;
+		time[1]      = -199.9;
+		time[2]      = -991.9;
 		time_tdc[1]  = -99.9;
 		time_tdc[2]  = -999.9;
 		time2Tile[1] = -9.9;
@@ -4553,12 +4550,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 					       time[l]);
 			    System.out.println(" -----------------------" );
 			}
+
 			if( abs(time[l] ) < tRange ) 
 			    goodTime[l] = true;
 			
 			if( abs(time[l] ) < tCut ) 
 			    veryGoodTime[l] = true;
 	
+			
 		    }
 		    		    
 		    if (adc.hasEntry(s,l,c)) {
@@ -4593,13 +4592,14 @@ public class FTHODOViewerModule implements IDetectorListener,
 			} // end of cut conditions
 			
 			H_MAXV_VS_T.get(s,l,c)
-			    .fill(time_tdc[l],peakVolt[l]);
-			   
+			    .fill(time[l],peakVolt[l]);
 			
 		    } // end of: if (adc.hasEntry(s,l,c)) {....
 		    
 		    if( debugging_mode && 
-			l==2 && charge[2] > 0.0 ){
+			l==2           &&
+			charge[2] > 0.0 ){
+			
 			System.out.println(" -----------------------" );
 			System.out.println(" time diff. stuff ");
 			for (int i = 1 ; i < 3 ; i++){
@@ -4610,51 +4610,53 @@ public class FTHODOViewerModule implements IDetectorListener,
 			    }
 			
 		    }
-		    // time difference stuff
+		    // timing stuff
 		    if( l == 2      &&
 			goodTime[1] &&
 			goodTime[2] &&
-			(charge[1] > 1000.0) &&
+			(charge[1] >  500.0) &&
 			(charge[2] > 1000.0) 
 			){
 			
 			deltaT = time[2] - time[1];
 			
-			
-// 			System.out.println(" -------------------- ");
-			
-// 			for( int i = 0 ; i < 3 ; i++ )
-// 			    System.out.println(" xyz[" + i +"] = " +
-// 					       xyz[i]  );
-			
-// 			System.out.println(" u[1]/30.(s,l,c) = " +
-// 					   u[1]/30. + "(" + s + ",1," 
-// 					   + c + ")");
-			
-// 			System.out.println(" u[2]/30.(s,l,c) = " +
-// 					   u[2]/30. + "(" + s + ",2," +
-// 					   c + ")");
-			
-// 			System.out.println(" time_tdc[1] = " + time_tdc[1] );
-// 			System.out.println(" time_tdc[2] = " + time_tdc[2] );
-			
-// 			System.out.println(" time2Tile[1] = " + time2Tile[1] );
-// 			System.out.println(" time2Tile[2] = " + time2Tile[2] );
-			
-// 			System.out.println(" time[1] = " + time[1] );
-// 			System.out.println(" time[2] = " + time[2] );
-			
-// 			System.out.println(" deltaT  = " + deltaT);
-			
-// 			System.out.println(" -------------------- ");
-					   
 			if( abs(deltaT) < dtCut ){
 			    goodDT = true;
 			}
 			
-			H_T_MODE7.get(s, 1, c).fill(time[1]);
-			H_T_MODE7.get(s, 2, c).fill(time[2]);
+			if(goodDT){
+			    H_T_MODE7.get(s, 1, c).fill(time[1]);
+			    H_T_MODE7.get(s, 2, c).fill(time[2]);
+			}
+
+			if(debugging_mode){
+			    System.out.println(" -------------------- ");
 			
+			    for( int i = 0 ; i < 3 ; i++ )
+				System.out.println(" xyz[" + i +"] = " +
+						   xyz[i]  );
+			
+			    System.out.println(" u[1]/30.(s,l,c) = " +
+					       u[1]/30. + "(" + s + ",1," 
+					       + c + ")");
+			
+			    System.out.println(" u[2]/30.(s,l,c) = " +
+					       u[2]/30. + "(" + s + ",2," +
+					       c + ")");
+			
+			    System.out.println(" time_tdc[1] = " + time_tdc[1] );
+			    System.out.println(" time_tdc[2] = " + time_tdc[2] );
+			
+			    System.out.println(" time2Tile[1] = " + time2Tile[1] );
+			    System.out.println(" time2Tile[2] = " + time2Tile[2] );
+			
+			    System.out.println(" time[1] = " + time[1] );
+			    System.out.println(" time[2] = " + time[2] );
+			
+			    System.out.println(" deltaT  = " + deltaT);
+			
+			    System.out.println(" -------------------- ");
+			}
 
 		    }// end of time difference stuff
 
@@ -4753,7 +4755,8 @@ public class FTHODOViewerModule implements IDetectorListener,
             if (nDecodedProcessed/100 < nPointsPed)
                 eventloop=nDecodedProcessed;
             else
-                eventloop=nDecodedProcessed-nDecodedProcessed/(nPointsPed*100)*nPointsPed*100;
+                eventloop=nDecodedProcessed-nDecodedProcessed/
+		    (nPointsPed*100)*nPointsPed*100;
 	    
             if (eventloop%100!=0){
 		// Fills a histogram for pedestal by averaging 
@@ -4769,22 +4772,31 @@ public class FTHODOViewerModule implements IDetectorListener,
 		// Calculates most prob pedestal value by taking 
 		// +/-5 bins from maximum-content bin
                 for (int i=0; i<5;i++){
-                    avePed = avePed + PedBinWidth * (maxPedbin+i) * H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin+i)+PedBinWidth*(maxPedbin-i)*H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin-i);
-                    nEventsAvePed=nEventsAvePed+H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin+i)+H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin-i);
+                    avePed = avePed + PedBinWidth * 
+			(maxPedbin+i) * 
+			H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin+i)+
+			PedBinWidth*(maxPedbin-i)*
+			H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin-i);
+                    
+		    nEventsAvePed = nEventsAvePed + 
+			H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin+i) +
+			H_PED_TEMP.get(sec,lay,com).getBinContent(maxPedbin-i);
                 }
 		//calculates average and corrects for offset of histogram
                 avePed=avePed/nEventsAvePed+PedQX[0]; 
 		// System.out.println("Nick: " + sec +" "+lay+" "+com+
 		//" "+ (maxPedbin*PedBinWidth+PedQX[0]) +" "+avePed);
 		// Ideally I would use setPoint function -- 
-		//H_PED_VS_EVENT.get(sec,lay,com).setPoint(eventloop/100, eventloop/100, avePed); 
+		//H_PED_VS_EVENT.get(sec,lay,com).
+		//setPoint(eventloop/100, eventloop/100, avePed); 
 		//-- but functionality not present for coatjava 2.4
                 py_H_PED_VS_EVENT[sec-1][lay-1][com-1][eventloop/100]=avePed;
-                H_PED_VS_EVENT.add(sec,lay,com,
-                                   new GraphErrors(px_H_PED_VS_EVENT, 
-						   py_H_PED_VS_EVENT[sec-1][lay-1][com-1],
-                                                   pex_H_PED_VS_EVENT, 
-						   pey_H_PED_VS_EVENT[sec-1][lay-1][com-1]));
+                H_PED_VS_EVENT.
+		    add(sec,lay,com,
+			new GraphErrors(px_H_PED_VS_EVENT, 
+					py_H_PED_VS_EVENT[sec-1][lay-1][com-1],
+					pex_H_PED_VS_EVENT, 
+					pey_H_PED_VS_EVENT[sec-1][lay-1][com-1]));
 		
                 String namePed2;
                 if (lay==1)
@@ -4899,9 +4911,12 @@ public class FTHODOViewerModule implements IDetectorListener,
  		    vMaxEvent[sec][lay][opp] > threshDV
 		    ){
 		    
-// 		    System.out.println(" vMaxEvent["+sec+"]["+lay+"]["+com+"] = " + vMaxEvent[sec][lay][com]);
-// 		    System.out.println(" vMaxEvent["+sec+"]["+opp+"]["+com+"] = " + vMaxEvent[sec][opp][com]);
-// 		    System.out.println(" threshDV                             = " + threshDV);
+// 		    System.out.println(" vMaxEvent["+sec+"]["+lay+"]["+com+"] =
+//		    " + vMaxEvent[sec][lay][com]);
+// 		    System.out.println(" vMaxEvent["+sec+"]["+opp+"]["+com+"] =
+//                  " + vMaxEvent[sec][opp][com]);
+// 		    System.out.println(" threshDV                             =
+//		    " + threshDV);
 		    
 		    if(npeEvent[sec][lay][com] > 0.0)
 			H_NPE_MATCH.get(sec, lay, com)
@@ -5053,8 +5068,8 @@ public class FTHODOViewerModule implements IDetectorListener,
         
         if(nDecodedProcessed%repaintFrequency==0)
             this.view.repaint();
-    }
     
+    }
     
     public void hashTableCallback(String string, Long l) {
         System.out.println("Selected table row " + string + " " + l);

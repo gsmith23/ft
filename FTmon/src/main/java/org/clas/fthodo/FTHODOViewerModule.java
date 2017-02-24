@@ -4093,11 +4093,11 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double[] timeMin = {0.  ,100.,100.};
 	double[] timeMax = {500.,150.,150.};
 	
-	timeMin[1] = -100.0;
-	timeMin[2] = -100.0;
+	timeMin[1] = -50.0;
+	timeMin[2] = -50.0;
 	
-	timeMax[1] = 100.0;
-	timeMax[2] = 100.0;
+	timeMax[1] = 50.0;
+	timeMax[2] = 50.0;
 	
 	H_MAXV_VS_T.add(HP.getS(),
 			HP.getL(), 
@@ -4106,8 +4106,8 @@ public class FTHODOViewerModule implements IDetectorListener,
 				getName("H_MAXV_VS_T",
 					HP.getS(),HP.getL(),HP.getC()),
 				HP.getTitle(),
-				32,timeMin[HP.getL()],timeMax[HP.getL()],
-				32,0.,2000.));
+				64,timeMin[HP.getL()],timeMax[HP.getL()],
+				64,0.,2000.));
 	
 	H_MAXV_VS_T.get(HP.getS(),
 			HP.getL(), 
@@ -4428,13 +4428,20 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void processDecodedSimEvent(DetectorCollection<Double> adc, 
 				       DetectorCollection<Double> tdc){
 	
+	boolean  calChalData = false;
+
 	double[] time_tdc = { -9.9, -99.9, -999.9 };
 	double[] time     = { -9.9, -99.9, -999.9 };
 	double   time2Hodo = 6.0;
 	double   time2Tile[] = {-99.0, 6.0, 6.0};
-	double   startTime = 124.25;
+			
+	double   startTime       = 0.0;
+	double   timeOrderFactor = 1.;
 	
-	//time[0] = startTime + time2Hodo;
+	if(calChalData){
+	    startTime = 124.25;
+	    timeOrderFactor = 100.;  
+	}
 	
 	boolean[] goodTime     = {false, false, false};
 	boolean[] veryGoodTime = {false, false, false};
@@ -4518,7 +4525,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 		    
 		    if( tdc.hasEntry(s,l,c) ){
 			
-			time_tdc[l] = tdc.get(s,l,c)*nsPerSample/100.;
+			time_tdc[l] = tdc.get(s,l,c)*nsPerSample/timeOrderFactor;
 			
 			// time in ns = (u in cm) / (c in cm/ns)
 			// should be around zero

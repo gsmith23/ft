@@ -186,6 +186,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     boolean testMode = false;
     boolean debugging_mode = false;
     
+    
     //=================================
     //           CONSTANTS
     //=================================
@@ -242,7 +243,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     int pul_i1 = 30;
     int pul_i2 = 70;
     
-    final boolean fitBackground = true;
+    final boolean fitBackground = false;
     final int NBinsCosmic = 64;
     
     final int CosmicQXMin[]  = {0,200,300};
@@ -511,7 +512,7 @@ public class FTHODOViewerModule implements IDetectorListener,
         this.canvasTime.setTitleFontSize(16);
         this.canvasTime.setAxisTitleFontSize(14);
         this.canvasTime.setStatBoxFontSize(8);
-        this.canvasTime.divide(2,2);
+        this.canvasTime.divide(2,3);
         
 	drawCanvasTime(secSel,laySel,comSel);
 	
@@ -4428,7 +4429,7 @@ public class FTHODOViewerModule implements IDetectorListener,
     public void processDecodedSimEvent(DetectorCollection<Double> adc, 
 				       DetectorCollection<Double> tdc){
 	
-	boolean  calChalData = false;
+	boolean  calChalData = true;
 
 	double[] time_tdc = { -9.9, -99.9, -999.9 };
 	double[] time     = { -9.9, -99.9, -999.9 };
@@ -4439,7 +4440,7 @@ public class FTHODOViewerModule implements IDetectorListener,
 	double   timeOrderFactor = 1.;
 	
 	if(calChalData){
-	    startTime = 124.25;
+	    //startTime = 124.25;
 	    timeOrderFactor = 100.;  
 	}
 	

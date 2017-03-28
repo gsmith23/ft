@@ -103,6 +103,7 @@ public class FTViewerModule implements IDetectorProcessor,
         
         this.initDetector();
         this.initHistograms();
+	this.initArrays();
         
         this.evPane.addProcessor(this);
        
@@ -225,6 +226,14 @@ public class FTViewerModule implements IDetectorProcessor,
 	    moduleFTCAL.initHistograms();
         
 	moduleFTHODO.initHistograms();
+    }
+
+    private void initArrays() {
+            
+	// if(!onlyHodo)
+	//   moduleFTCAL.initArrays();
+        
+	moduleFTHODO.initArrays();
     }
 
     private void resetHistograms() {

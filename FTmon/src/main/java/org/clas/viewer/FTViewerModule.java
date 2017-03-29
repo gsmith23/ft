@@ -352,7 +352,6 @@ public class FTViewerModule implements IDetectorProcessor,
 	    System.out.println("Updating every Blue Moon ");
         }
 	
-	//!!!!!!
 	if(e.getActionCommand().compareTo("Evio Files")==0) FileList();
 	
 	if(!onlyHodo)
@@ -360,7 +359,6 @@ public class FTViewerModule implements IDetectorProcessor,
 
     }
     
-    //!!!!!
     private void FileList(){
         EvioSource reader = new EvioSource();
         

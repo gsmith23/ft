@@ -3807,7 +3807,7 @@
 
      //!!!! 
      private void setSigNPE(int s, int l, int c){
-	 double sigma = 10.0
+	 double sigma = 10.0;
 	     return sigma;
      }
 

@@ -3805,10 +3805,8 @@
      private double getNPEMean(int s, int l, int c){
 	 return meanNPE[s][l][c];}
 
-     //!!!! 
      private void setSigNPE(int s, int l, int c){
-	 double sigma = 10.0;
-	     return sigma;
+	 sigNPE[s][l][c] = 10.0;
      }
 
      private double getSigNPE(int s, int l, int c){
@@ -3834,8 +3832,8 @@
 	 errNPE[s][l][c] = npeError;
      }
      
-     private double getNPEError(int s, int l, int c)
-	 return errNPE[s][l][c];
+     private double getNPEError(int s, int l, int c){
+	 return errNPE[s][l][c];}
 	 
 
      private void setNPEMean_mV(int s, int l, int c){
@@ -3845,8 +3843,8 @@
 	     meanNPE_mV[s][l][c] = 0.0;
      }
      
-     private double getNPEMean_mV(int s, int l, int c)
-	 return meanNPE_mV[s][l][c];
+     private double getNPEMean_mV(int s, int l, int c){
+	 return meanNPE_mV[s][l][c];}
      
      
     private double getNPEErr_mV(int s, int l, int c){

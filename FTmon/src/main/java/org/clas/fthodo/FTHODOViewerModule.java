@@ -199,8 +199,8 @@
      boolean testMode = false;
      boolean debugging_mode = false;
 
-     boolean usePedMeanCCDB = false;
-     boolean pedMeanGood = true;
+     boolean setConstantsToCCDB = false;
+     boolean pedMeanGood = false;
 
      //=================================
      //           CONSTANTS
@@ -255,10 +255,10 @@
      double nsPerSample = 4;
      //=================
 
-     // int ped_i1 = 4;
- //     int ped_i2 = 24;
- //     int pul_i1 = 30;
- //     int pul_i2 = 70;
+     //     int ped_i1 = 4;
+     //     int ped_i2 = 24;
+     //     int pul_i1 = 30;
+     //     int pul_i2 = 70;
 
      // cosmics
      int ped_i1 = 4;
@@ -272,6 +272,11 @@
      final int CosmicQXMin[]  = {0,200,300};
      final int CosmicQXMax[]  = {10000,5200,5300};
 
+     final int nBinsVMIP = 50;
+     
+     final int CosmicVXMin[]  = {0,100,100};
+     final int CosmicVXMax[]  = {10000,1800,1800};
+
      final int CosmicNPEXMin[]  = {0,3,5};
      final int CosmicNPEXMax[]  = {200,93,133};
 
@@ -283,12 +288,13 @@
 
      double NoiseVXMin[] = {0.  ,0.5*nGain_mV,0.5*nGain_mV};
      double NoiseVXMax[] = {310.,3.0*nGain_mV,3.0*nGain_mV};
-
+     
+     
      int[] NBinsNoise = {100,100,100};
 
      final int NBinsPed = 1050; 
      //pedestal min and max bin values for histogram
-     double[] PedQX = {50, 400}; 
+     double[] PedQX = {100, 500}; 
      double PedBinWidth=(PedQX[1]-PedQX[0])/(1.0*NBinsPed);
 
      // number of points in pedestal vs event index 
@@ -400,6 +406,10 @@
 	 JButton readBtn = new JButton("Read");
 	 readBtn.addActionListener(this);
 	 buttonPane.add(readBtn);
+
+	 JButton pedBtn = new JButton("Ped");
+	 pedBtn.addActionListener(this);
+	 buttonPane.add(pedBtn);
 
 	 //====        
 	 ButtonGroup group = new ButtonGroup();
@@ -620,7 +630,7 @@
 
 		     ccdbTable.addConstrain(statCCDB, -0.5, 0.5);
 
-		     ccdbTable.addConstrain(pedCCDB,  100.0, 400.0);
+		     ccdbTable.addConstrain(pedCCDB,  130.0, 440.0);
 		     ccdbTable.addConstrain(pedRMSCCDB, 1.0, 100.0);
 
 		     ccdbTable.addConstrain(gainPCCCDB, 10.0, 30.0);
@@ -630,7 +640,7 @@
 
 		     ccdbTable.addConstrain(mipEnCCDB, 1.0, 4.0);
 		     ccdbTable.addConstrain(mipChCCDB, 500, 3000);
-
+		     
 		     ccdbTable.addConstrain(tOffCCDB, -2.0, 2.0);
 		     ccdbTable.addConstrain(tResCCDB, -5.0, 5.0);
 
@@ -707,20 +717,6 @@
 	 }
 
 	 return values;
-     }
-
-     private void readCCDBTable(){
-
-	 int s,l,c;
-	 s = l = c = 1;
-
-	 String line[] = readTable(s,l,c,
-				   ccdbFileName,
-				   13);
-
-
-
-
      }
 
      //-----------------------------------------
@@ -1286,16 +1282,36 @@
 	     resetHistograms();
 	 }
 	 if (e.getActionCommand().compareTo("Constants") == 0) {
-	     updateConstants(false);
+	     updateConstants();
 	 }
 	 if (e.getActionCommand().compareTo("Print") == 0) { 
 	     printCCDBTables();
 	 }
 	 if (e.getActionCommand().compareTo("Read") == 0) { 
-	     readCCDBTable();
+	     setConstantsToCCDB = true;
+	     
+	     System.out.println(" setting constants to CCDB values ");
+	     System.out.println(" and updating the table ");
+	     
+	     updateConstants();
+
+	     setConstantsToCCDB = false;
 	 }
 	 if (e.getActionCommand().compareTo("Fit") == 0) {
 	     fitHistograms();
+	 }
+	 if (e.getActionCommand().compareTo("Ped") == 0) {
+	     
+	     if(pedMeanGood){
+		 pedMeanGood = false;
+		 System.out.println("using event by event pedestals only");
+	     }
+	     else{
+		 pedMeanGood = true;
+		 System.out.println("using pedestal mean for event " +
+				    " outliers (not inc. ADC values) ");
+	     }
+	     System.out.println("pedMeanGood = " + pedMeanGood);
 	 }
 	 if (e.getActionCommand().compareTo("Peak") == 0) {
 	     this.useGain_mV = true;
@@ -1314,15 +1330,19 @@
 
      private boolean initFitPedestalParameters(int s,int l,int c,H1D H1){
 
-	 if (H1.integral() > 100 ){
-	     fPed.add(s,l,c, new F1D("gaus",0,400));
-	     fPed.get(s,l,c).setParameter(0,H1.getBinContent(H1.getMaximumBin()));
-	     fPed.get(s,l,c).setParameter(1,H1.getMean());
-	     fPed.get(s,l,c).setParameter(2,H1.getRMS());
+	 double max = H1.getBinContent(H1.getMaximumBin());
 
-	     fPed.get(s,l,c).setParLimits(0, 0, 2*H1.getBinContent(H1.getMaximumBin()));
-	     fPed.get(s,l,c).setParLimits(0, 0, 400);
-	     fPed.get(s,l,c).setParLimits(0, 0, 5*H1.getRMS());
+	 if (H1.integral() > 100 ){
+	     fPed.add(s,l,c, new F1D("gaus",130,440));
+	     fPed.get(s,l,c).setParameter(0,max);
+	     fPed.get(s,l,c).setParameter(1,H1.getMean());
+	     fPed.get(s,l,c).setParameter(2,1.0);
+
+	     fPed.get(s,l,c).setParLimits(0,
+					  0.1*max,
+					  10.0*max);
+	     fPed.get(s,l,c).setParLimits(1, 130, 440);
+	     fPed.get(s,l,c).setParLimits(2, 0, 2.0);
 
 	     return true;
 	 }
@@ -1331,7 +1351,7 @@
      }
 
      private void fitPedestals(int s,int l,int c,String fitOption){
-
+	 
 	 if (testMode)
 	     System.out.println(" Fitting Pedestal (S,L,C) = (" + 
 				s  + "," + l + "," + c + ")");
@@ -1671,9 +1691,8 @@
 
      private boolean initFitVMIPParameters(int s,int l,int c,H1D H1){
 
+	 double min, max, mean;
 	 double ampl = H1.getBinContent(H1.getMaximumBin());
-	 //mean = H1.getMaximumBin()*45 + 250;
-	 double mean[] = {0.,300.,600.};
 	 double std  = 5.0;
 
 	 double[] rangeLow  = {0.0, 100.,  250};
@@ -1682,16 +1701,28 @@
 	 if (H1.integral() > 100 ){
 
 	     fVMIP.add(s,l,c, new F1D("landau",
-				      rangeLow[l],
-				      rangeHigh[l]));
+				      CosmicQXMin[l],
+				      CosmicQXMax[l]));
+	     
+	     mean = H1.getMean();
+	     
+	     if( mean > 1400.){
+		 System.out.println( " check gain for: " );
+		 System.out.println( " (s,l,c) = ("+s+","+l+"c)");
+	     }
 
+	     //mean = getNominalVLandauMean();
+	     
 	     fVMIP.get(s,l,c).setParameter(0, ampl);
-	     fVMIP.get(s,l,c).setParameter(1, mean[l]);
+	     fVMIP.get(s,l,c).setParameter(1, mean);
 	     fVMIP.get(s,l,c).setParameter(2, 200);
-
+	     
+	     min = CosmicQXMin[l];
+ 	     max = CosmicQXMax[l];
+	     
 	     fVMIP.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2.5);
-	     fVMIP.get(s,l,c).setParLimits(1, 0, 1500);
-	     fVMIP.get(s,l,c).setParLimits(2, 50, 100);
+	     fVMIP.get(s,l,c).setParLimits(1, min,max);
+	     fVMIP.get(s,l,c).setParLimits(2, 50, 200);
 
 	     return true;
 	 }
@@ -1817,7 +1848,7 @@
 	 for (int index = 0; index < 232; index++) {
 
 	     HP.setAllParameters(index,'h');
-
+	     
 	     s = HP.getS();
 	     l = HP.getL();
 	     c = HP.getC();
@@ -1825,10 +1856,10 @@
 	     fitPedestals(s,l,c,fitOption);
 	     fitVNoise(s,l,c,fitOption);
 	     fitQNoise(s,l,c,fitOption);
-
+	     
 	     fitVMIP(s,l,c,fitOption);
 	     fitQMIP(s,l,c,fitOption);
-
+	     
 	     fitT(s,l,c,fitOption);
 
 
@@ -3549,18 +3580,17 @@
 
      private void setPedMean(int s, int l, int c){
 
-	 if(usePedMeanCCDB){
+	 if(setConstantsToCCDB){
 	     String line[] = readTable(s,l,c,
-				       noisFileName,
-				       8);
-
-	     System.out.println(" (s,l,c) = (" + 
-				s + "," + l + "," + c + ")");
-	     System.out.println(" line[0] = " + line[0]);
+				       ccdbFileName,
+				       13);
+	     
+	     System.out.println("pedMean = " +
+				pedMean[s][l][c]);
+	     
 	     System.out.println(" line[1] = " + line[1]);
-	     System.out.println(" line[2] = " + line[2]);
-
-	     pedMean[s][l][c] = Double.parseDouble(line[0]);
+	     
+	     pedMean[s][l][c] = Double.parseDouble(line[1]);
 
 	     System.out.println("pedMean = " +
 				pedMean[s][l][c]);
@@ -3592,7 +3622,7 @@
 	 else if ( !this.fitTwoPeaksQ ){
 
 	     if(fQ1.hasEntry(s, l, c)){
-
+		 
 		 double n1 = fQ1.get(s,l,c).getParameter(3);		
 		 thisGain  =  n1;
 	     }
@@ -3619,9 +3649,12 @@
 	     gain[s][l][c] = thisGain;
 	 }
      }
-
+     
      private double getGainError(int s, int l, int c){
-
+	 return errGain[s][l][c];}
+     
+     private void setGainError(int s, int l, int c){
+	 
 	 double gainError = 0.0;
 
 	 if( useDefaultGain ){
@@ -3652,12 +3685,15 @@
 	     }
 	 }
 
-	 return gainError;
-
+	 errGain[s][l][c] = gainError;
+	 
      }
 
      private double getGain_mV(int s, int l, int c){
-
+	 return gain_mV[s][l][c];}
+     
+     private void setGain_mV(int s, int l, int c){
+	 
 	 double thisGain_mV = 0.0;
 
 	 if( useDefaultGain ){
@@ -3687,10 +3723,13 @@
 
 	     }
 	 }
-	 return thisGain_mV;
+	 gain_mV[s][l][c] = thisGain_mV;
      }
 
      private double getGainErr_mV(int s, int l, int c){
+	 return errGain_mV[s][l][c];}
+     
+     private void setGainErr_mV(int s, int l, int c){
 
 	 double gainErr_mV = 0.0;
 
@@ -3719,7 +3758,7 @@
 	     }
 	 }
 
-	 return gainErr_mV;
+	 errGain_mV[s][l][c] = gainErr_mV;
 
      }
 
@@ -3834,8 +3873,8 @@
      
      private double getNPEError(int s, int l, int c){
 	 return errNPE[s][l][c];}
-	 
-
+     
+     
      private void setNPEMean_mV(int s, int l, int c){
 	 if( getGain_mV(s,l,c) > 0.0 )
 	     meanNPE_mV[s][l][c]= getVMean(s,l,c)/getGain_mV(s,l,c);
@@ -3846,8 +3885,10 @@
      private double getNPEMean_mV(int s, int l, int c){
 	 return meanNPE_mV[s][l][c];}
      
+     private double getNPEErr_mV(int s, int l, int c){
+	 return errNPE_mV[s][l][c];}
      
-    private double getNPEErr_mV(int s, int l, int c){
+     private void setNPEErr_mV(int s, int l, int c){
 	
 	double npeErr_mV = 0.0;
 	
@@ -3865,74 +3906,66 @@
 	    npeErr_mV = getNPEMean_mV(s,l,c)*npeErr_mV;
 	}
 	
-        return npeErr_mV;
+        errNPE_mV[s][l][c] = npeErr_mV;
         
-    }
-    
-    private void updateConstants(boolean readFile) {
-        
-	int index;
-	
-	double mipE = 0.0;
-	double mipC = 0.0;
-	
-	for (int s = 1; s < 9; s++) {
+     }
+     
+     private void updateConstants() {
+	 
+	 int index;
+	 
+	 double mipE = 0.0;
+	 double mipC = 0.0;
+	 
+	 String values[];
+	 
+	 for (int s = 1; s < 9; s++) {
             for (int l = 1; l < 3; l++) {
                 for (int c = 1 ; c < 21 ; c++){
                     
                     if(s%2==1 && c > 9 ) continue;
 		    
-		    
-		    if(readFile){
-		    }
 		    index = getIndex4SLC(s,l,c);
 
 		    //------------------------------
 		    // set constants
 		    //------------------------------
 		    
-		    //!!! To Complete
-		    // Add Getters and Setters then
-		    // Set these variable arrays then
-		    // Get them when setting CCDB table
-		    // (as SetStatus etc are done)
+		    
+		    
+		    setPedMean(s,l,c);
+		    setPedRMS(s,l,c);
 		    
 		    setNPEMean(s,l,c);
 		    setNPEError(s,l,c);
                     setSigNPE(s,l,c);
+		   		    
+		    setNPEMean_mV(s,l,c);
+                    setNPEErr_mV(s,l,c);
+
+		    setGain(s,l,c);
+		    setGainError(s,l,c);
 		    
-                    errGain[s][l][c]    = getGainError(s,l,c);
+		    setGainError(s,l,c);
+                    
+		    setGain_mV(s,l,c);
+                    setGainErr_mV(s,l,c);
 		    
-		    meanNPE_mV[s][l][c] = getNPEMean_mV(s,l,c);
-                    errNPE_mV[s][l][c]  = getNPEErr_mV(s,l,c);
-                    gain_mV[s][l][c]    = getGain_mV(s,l,c);
-                    errGain_mV[s][l][c] = getGainErr_mV(s,l,c);
 		    
-		    setStatus(s,l,c);
-		    
-		    System.out.println(" (s,l,c) = (" + 
-				       s + "," + l + "," + c + ")");
-		    
-		    setPedMean(s,l,c);
-		    
-		    System.out.println(" pedMean["  +
-				       s + "," +
- 				       l + "," +
- 				       c + "] = " +
- 				       pedMean[s][l][c] );
-		    
-		    setPedRMS(s,l,c);
 		    setGain(s,l,c);
 		    
+		    //
+		    setStatus(s,l,c);
+
 		    //---------------------------------
 		    // Update the table
-		    
 		    ccdbTable.setValueAtAsDouble(statCCDB-3,
 						 getStatus(s,l,c),
 						 s,l,c);
 		    ccdbTable.setValueAtAsDouble(pedCCDB-3,
 						 getPedMean(s,l,c),
 						 s,l,c);
+		    
 		    ccdbTable.setValueAtAsDouble(pedRMSCCDB-3,
 						 getPedRMS(s,l,c),
 						 s,l,c);
@@ -3957,30 +3990,6 @@
 		    ccdbTable.setValueAtAsDouble(tResCCDB-3,
 						 getTSigma(s,l,c),
 						 s,l,c);
-		    
-
-	
-		    
-//                     ccdbTable.setValueAtAsDouble(,
-// 						 errNPE[s][l][c],
-		    // s,l,c);
-		
-// 		    ccdbTable.setValueAtAsDouble(gainPCCCDB,
-// 						 gain[s][l][c],
-// 						 s,l,c);
-                    
-//                     ccdbTable.setValueAtAsDouble(,
-// 						 errGain[s][l][c],
-// 						 s,l,c);
-                    
-//                     ccdbTable.setValueAtAsDouble(gainMVCCDB,
-// 						 gain_mV[s][l][c],
-// 						 s,l,c);
-                    
-//                     ccdbTable.setValueAtAsDouble(6,
-// 						 errGain_mV[s][l][c],
-// 						 s,l,c);
-                    
                 }
             }
         }
@@ -4097,7 +4106,7 @@
 				  HP.getL(),
 				  HP.getC()),
 			  HP.getTitle(),
-			  128,50.,400.));
+			  128,PedQX[0],PedQX[1]));
 	
         H_PED.get(HP.getS(),HP.getL(),HP.getC()).
 	    setFillColor(2);
@@ -4220,6 +4229,9 @@
         H_NPE_MATCH.get(HP.getS(),HP.getL(),HP.getC()).
 	    setYTitle("Counts");
         
+	// NoiseVXMin[1] = 0.0;
+// 	NoiseVXMin[2] = 0.0;
+
         H_NOISE_V.add(HP.getS(),HP.getL(), HP.getC(),
                    new H1D(DetectorDescriptor.
                            getName("WAVEMAX",
@@ -4243,7 +4255,8 @@
 				    HP.getS(),
 				    HP.getL(),
 				    HP.getC()),
-			    HP.getTitle(), 50, 100.0, 2000.));
+			    HP.getTitle(), nBinsVMIP,
+			    CosmicVXMin[0],CosmicVXMin[1]));
 	
         H_MIP_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setFillColor(3);
@@ -5010,23 +5023,17 @@
                 
             }
 	    
-	    double tileEventPedestal = fadcFitter.getPedestal();
+	    double compEvntPed = fadcFitter.getPedestal();
 
 	    // first use of pedestal
 	    if( abs(fadcFitter.getPedestal() - 
 		    pedMean[sec][lay][com] ) > 5. &&
 		pedMeanGood ) {
-		
-		
-		tileEventPedestal = pedMean[sec][lay][com];
-		
-// 		System.out.println( " ped  = " + fadcFitter.getPedestal() );
-// 		System.out.println( " peM  = " + pedMean[sec][lay][com] );
-
+		compEvntPed = pedMean[sec][lay][com];
 	    }
 	    
 	    //H_PED.get(sec,lay,com).fill(fadcFitter.getPedestal());
-	    H_PED.get(sec,lay,com).fill(tileEventPedestal);
+	    H_PED.get(sec,lay,com).fill(compEvntPed);
 	    
 	    // Maybe this can be of number of events in histogram instead.. 
 	    // however all histograms should have ped for every event
@@ -5041,7 +5048,7 @@
 		// Fills a histogram for pedestal by averaging 
 		// out a number of bins at a hardcoded position
                 //H_PED_TEMP.get(sec,lay,com).fill(fadcFitter.getPedestal()); 
-		H_PED_TEMP.get(sec,lay,com).fill(tileEventPedestal); 
+		H_PED_TEMP.get(sec,lay,com).fill(compEvntPed); 
             }
             else {
 		//System.out.println("Nick: " + eventloop/100);
@@ -5105,19 +5112,19 @@
                 // Baseline unsubtracted
 		// H_FADC.get(sec,lay,com).fill(i, pulse[i]);
 		
-		baselineSubRaw = pulse[i] - tileEventPedestal + 10.0;
+		baselineSubRaw = pulse[i] - compEvntPed + 10.0;
 		H_FADC.get(sec,lay,com).fill(i,baselineSubRaw);
                 
-                calibratedWave = (pulse[i]-tileEventPedestal)*LSB + vOffset;
+                calibratedWave = (pulse[i]-compEvntPed)*LSB + vOffset;
                 H_VT.get(sec,lay,com).fill(i*4,calibratedWave);
                 
-                npeWave = (pulse[i] - tileEventPedestal)*LSB/voltsPerSPE;
+                npeWave = (pulse[i] - compEvntPed)*LSB/voltsPerSPE;
                 H_NPE.get(sec, lay, com).fill(i*4, npeWave);
 				
 	    }
             
 	    double waveMax = 0.;
-	    waveMax =  - tileEventPedestal;
+	    waveMax =  - compEvntPed;
             waveMax = waveMax + fadcFitter.getWave_Max();
 	    vMaxEvent[sec][lay][com] = waveMax*LSB;
 	    
@@ -5146,31 +5153,29 @@
                 sec    = 0;
                 lay    = 0;
             }
-	    
 	                        
 	    // Fill Charge Histograms
             H_MIP_Q.get(sec, lay, com)
 		.fill(counter.getChannels().get(0).
 		      getADC().get(0)*LSB*4.0/50);
             
-	    
             H_NOISE_Q.get(sec, lay, com)
 		.fill(counter.getChannels().get(0).
 		      getADC().get(0)*LSB*4.0/50);
             	    
             double waveMax = 0.;
 	    
-	    double tileEventPedestal = fadcFitter.getPedestal();
+	    double compEvntPed = fadcFitter.getPedestal();
 
-	    // first use of pedestal
+	    // first use of pedestal (in second loop)
 	    if( abs(fadcFitter.getPedestal() - 
-		    pedMean[sec][lay][com] ) > 10. &&
+		    pedMean[sec][lay][com] ) > 5. &&
 		pedMeanGood) {
 		
-		tileEventPedestal = pedMean[sec][lay][com];
+		compEvntPed = pedMean[sec][lay][com];
 	    }
 	    
-	    waveMax =  - tileEventPedestal;
+	    waveMax =  - compEvntPed;
             waveMax = waveMax + fadcFitter.getWave_Max();
 	    
 	    double voltMax = waveMax*LSB;
@@ -5493,8 +5498,7 @@
         }
     }
     
-    
-    public class MyADCFitter implements IFADCFitter {
+     public class MyADCFitter implements IFADCFitter {
 
 	//============================================================
 
@@ -5513,9 +5517,8 @@
 	
 	
         public double getPedestal() {
-            //return pedestal;
-	    return 0.0;
-        }
+            return pedestal;
+	}
 
         public double getRMS() {
             return rms;

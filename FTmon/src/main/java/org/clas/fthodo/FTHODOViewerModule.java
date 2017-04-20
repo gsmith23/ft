@@ -1,211 +1,211 @@
- package org.clas.fthodo;
+package org.clas.fthodo;
 
- import java.awt.BorderLayout;
- import java.awt.Color;
- import java.awt.FlowLayout;
- import java.awt.event.ActionEvent;
- import java.awt.event.ActionListener;
- import java.util.List;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
 
- import static java.lang.Math.*;
- import java.lang.String;
+import static java.lang.Math.*;
+import java.lang.String;
 
- import javax.swing.ButtonGroup;
- import javax.swing.JButton;
- import javax.swing.JRadioButton;
- import javax.swing.JPanel;
- import javax.swing.JSplitPane;
- import javax.swing.JTabbedPane;
- import javax.swing.event.ChangeEvent;
- import javax.swing.event.ChangeListener;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JRadioButton;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
- import org.jlab.clas.detector.DetectorCollection;
- import org.jlab.clas.detector.DetectorDescriptor;
- import org.jlab.clas.detector.DetectorType;
- import org.jlab.clas12.calib.DetectorShape2D;
- import org.jlab.clas12.calib.DetectorShapeTabView;
- import org.jlab.clas12.calib.DetectorShapeView2D;
- import org.jlab.clas12.calib.IDetectorListener;
- import org.jlab.clas12.detector.DetectorChannel;
- import org.jlab.clas12.detector.DetectorCounter;
- import org.jlab.clas12.detector.EventDecoder;
- import org.jlab.clas12.detector.FADCBasicFitter;
- import org.jlab.clas12.detector.IFADCFitter;
+import org.jlab.clas.detector.DetectorCollection;
+import org.jlab.clas.detector.DetectorDescriptor;
+import org.jlab.clas.detector.DetectorType;
+import org.jlab.clas12.calib.DetectorShape2D;
+import org.jlab.clas12.calib.DetectorShapeTabView;
+import org.jlab.clas12.calib.DetectorShapeView2D;
+import org.jlab.clas12.calib.IDetectorListener;
+import org.jlab.clas12.detector.DetectorChannel;
+import org.jlab.clas12.detector.DetectorCounter;
+import org.jlab.clas12.detector.EventDecoder;
+import org.jlab.clas12.detector.FADCBasicFitter;
+import org.jlab.clas12.detector.IFADCFitter;
 
- import org.jlab.containers.HashTable;
- import org.jlab.containers.HashTableViewer;
- import org.jlab.containers.IHashTableListener;
+import org.jlab.containers.HashTable;
+import org.jlab.containers.HashTableViewer;
+import org.jlab.containers.IHashTableListener;
 
- import org.root.attr.ColorPalette;
+import org.root.attr.ColorPalette;
 
- import org.root.func.F1D;
+import org.root.func.F1D;
 
- import org.root.histogram.GraphErrors;
- import org.root.histogram.H1D;
- import org.root.histogram.H2D;
+import org.root.histogram.GraphErrors;
+import org.root.histogram.H1D;
+import org.root.histogram.H2D;
 
- import org.root.basic.EmbeddedCanvas;
+import org.root.basic.EmbeddedCanvas;
 
- import java.io.PrintWriter;
- import java.io.FileNotFoundException;
- import java.io.BufferedReader;
- import java.io.FileReader;
- import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 
- public class FTHODOViewerModule implements IDetectorListener,
-					    IHashTableListener,
-					    ActionListener,
-					    ChangeListener{
-     EventDecoder decoder;
+public class FTHODOViewerModule implements IDetectorListener,
+					   IHashTableListener,
+					   ActionListener,
+					   ChangeListener{
+    EventDecoder decoder;
+    
+    //=================================
+    //    PANELS, CANVASES ETC
+    //=================================
+    
+    JPanel detectorPanel;
+    JPanel canvasPane = new JPanel(new BorderLayout());
+    
+    EmbeddedCanvas canvasEvent   = new EmbeddedCanvas();
+    EmbeddedCanvas canvasPed     = new EmbeddedCanvas();
+    EmbeddedCanvas canvasNoise   = new EmbeddedCanvas();
+    EmbeddedCanvas canvasGain    = new EmbeddedCanvas();
+    EmbeddedCanvas canvasCharge  = new EmbeddedCanvas();
+    EmbeddedCanvas canvasVoltage = new EmbeddedCanvas();
+    EmbeddedCanvas canvasMIP     = new EmbeddedCanvas();
+    EmbeddedCanvas canvasMatch   = new EmbeddedCanvas();
+    EmbeddedCanvas canvasTime    = new EmbeddedCanvas();
+    
+    public EmbeddedCanvas canvasHODOEvent  = new EmbeddedCanvas();
+    
+    DetectorShapeTabView view    = new DetectorShapeTabView();
+    // Gagik to implement
+    // view.addChangeListener(this);
+    
+    ColorPalette         palette = new ColorPalette();
+    HashTable            ccdbTable = null;
+    
+    //=================================
+    //     HISTOGRAMS, GRAPHS
+    //=================================
+    
+    
+    //---------------
+    // Event-by-Event
+    // raw pulse
+    DetectorCollection<H1D> H_FADC = new DetectorCollection<H1D>();
+    
+    // baseline subtracted pulse calibrated to voltage and time
+    DetectorCollection<H1D> H_VT = new DetectorCollection<H1D>();
+    // '' calibrated to no. photoelectrons and time
+    DetectorCollection<H1D> H_NPE = new DetectorCollection<H1D>();
+    
+    // Semi Accumulated
+    DetectorCollection<H1D> H_PED_TEMP = new DetectorCollection<H1D>();
+    
+    // Accumulated
+    DetectorCollection<H1D> H_PED = new DetectorCollection<H1D>();
+    
+    DetectorCollection<GraphErrors> H_PED_VS_EVENT = new DetectorCollection<GraphErrors>();
+    DetectorCollection<GraphErrors> H_PED_INDEX;
+    
+    DetectorCollection<H1D> H_NOISE_V = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_MIP_V   = new DetectorCollection<H1D>();
 
-     //=================================
-     //    PANELS, CANVASES ETC
-     //=================================
-
-     JPanel detectorPanel;
-     JPanel canvasPane = new JPanel(new BorderLayout());
-
-     EmbeddedCanvas canvasEvent   = new EmbeddedCanvas();
-     EmbeddedCanvas canvasPed     = new EmbeddedCanvas();
-     EmbeddedCanvas canvasNoise   = new EmbeddedCanvas();
-     EmbeddedCanvas canvasGain    = new EmbeddedCanvas();
-     EmbeddedCanvas canvasCharge  = new EmbeddedCanvas();
-     EmbeddedCanvas canvasVoltage = new EmbeddedCanvas();
-     EmbeddedCanvas canvasMIP     = new EmbeddedCanvas();
-     EmbeddedCanvas canvasMatch   = new EmbeddedCanvas();
-     EmbeddedCanvas canvasTime    = new EmbeddedCanvas();
-
-     public EmbeddedCanvas canvasHODOEvent  = new EmbeddedCanvas();
-
-     DetectorShapeTabView view    = new DetectorShapeTabView();
-     // Gagik to implement
-     // view.addChangeListener(this);
-
-     ColorPalette         palette = new ColorPalette();
-     HashTable            ccdbTable = null;
-
-     //=================================
-     //     HISTOGRAMS, GRAPHS
-     //=================================
-
-
-     //---------------
-     // Event-by-Event
-     // raw pulse
-     DetectorCollection<H1D> H_FADC = new DetectorCollection<H1D>();
-
-     // baseline subtracted pulse calibrated to voltage and time
-     DetectorCollection<H1D> H_VT = new DetectorCollection<H1D>();
-     // '' calibrated to no. photoelectrons and time
-     DetectorCollection<H1D> H_NPE = new DetectorCollection<H1D>();
-
-     // Semi Accumulated
-     DetectorCollection<H1D> H_PED_TEMP = new DetectorCollection<H1D>();
-
-     // Accumulated
-     DetectorCollection<H1D> H_PED = new DetectorCollection<H1D>();
-
-     DetectorCollection<GraphErrors> H_PED_VS_EVENT = new DetectorCollection<GraphErrors>();
-     DetectorCollection<GraphErrors> H_PED_INDEX;
-
-     DetectorCollection<H1D> H_NOISE_V = new DetectorCollection<H1D>();
-     DetectorCollection<H1D> H_MIP_V   = new DetectorCollection<H1D>();
-
-     DetectorCollection<H1D> H_NOISE_Q = new DetectorCollection<H1D>();
-     DetectorCollection<H1D> H_MIP_Q   = new DetectorCollection<H1D>();
-
-     DetectorCollection<H1D> H_NPE_INT   = new DetectorCollection<H1D>();
-     DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
-     DetectorCollection<H1D> H_NPE_MATCH = new DetectorCollection<H1D>();
-
-     DetectorCollection<H1D> H_T_MODE3   = new DetectorCollection<H1D>();
-     DetectorCollection<H1D> H_T_MODE7   = new DetectorCollection<H1D>();
-
-     DetectorCollection<H1D> H_DT_MODE7  = new DetectorCollection<H1D>();
-
-     // 2D
-     DetectorCollection<H2D> H_MAXV_VS_T = new DetectorCollection<H2D>();
-     DetectorCollection<H2D> H_T1_T2     = new DetectorCollection<H2D>();
-
-     // 1D
-     DetectorCollection<H1D> H_COSMIC_fADC   = new DetectorCollection<H1D>();
-
-     // Fit Functions 
-     DetectorCollection<F1D> fPed  = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fQ1   = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fQ2   = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fQMIP = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fV1   = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fV2   = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fVMIP = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fT   = new DetectorCollection<F1D>();
-
-     // Functions (that are not used to fit)
-     DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
-     DetectorCollection<F1D> fVThr  = new DetectorCollection<F1D>();
-
-     DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
-
-     H1D H_W_MAX      = null;
-     H1D H_V_MAX      = null;
-     H1D H_NPE_MAX    = null;
-     H1D H_CHARGE_MAX = null;
-
-     //=================================
-     //           ARRAYS
-     //=================================
-
-     private double[][][] status;
-     private double[][][] thrshNPE;
-
-     private double[][][] pedMean;
-     private double[][][] pedRMS;
-
-     // save the pedestal of the previous event
-     private double[][][] pedPrevious;
-
-     private double[][][] gain;
-     private double[][][] errGain;
-
-     private double[][][] gain_mV;
-     private double[][][] errGain_mV;
-
-     private double[][][] meanNPE;
-     private double[][][] errNPE;
-     private double[][][] sigNPE;
-
-     private double[][][] meanNPE_mV;
-     private double[][][] errNPE_mV;
-     private double[][][] sigNPE_mV;
-
-     double[][][] time_M3; 
-     double[][][] time_M7; 
-     double[][]   dT_M3;   
-     double[][]   dT_M7;   
-
-
-     // not ccdb constants
-     private double[][][] npeEvent;
-
-     private double[][][] vMax;
-     private double[][][] vMaxEvent;
-
-     private double[][][] qMax;
-
-     String geomFileName = "./Tables/fthodo_geometry.txt";
-     String noisFileName = "./Tables/fthodo_noise.txt";
-     String ccdbFileName = "./Tables/fthodo_ccdb.txt";
-
-     boolean testMode = false;
-     boolean debugging_mode = false;
-
-     boolean setConstantsToCCDB = false;
-     boolean pedMeanGood = false;
-
-     //=================================
-     //           CONSTANTS
-     //=================================
-
+    DetectorCollection<H1D> H_NOISE_Q = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_MIP_Q   = new DetectorCollection<H1D>();
+    
+    DetectorCollection<H1D> H_NPE_INT   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_NPE_NOISE = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_NPE_MATCH = new DetectorCollection<H1D>();
+    
+    DetectorCollection<H1D> H_T_MODE3   = new DetectorCollection<H1D>();
+    DetectorCollection<H1D> H_T_MODE7   = new DetectorCollection<H1D>();
+    
+    DetectorCollection<H1D> H_DT_MODE7  = new DetectorCollection<H1D>();
+    
+    // 2D
+    DetectorCollection<H2D> H_MAXV_VS_T = new DetectorCollection<H2D>();
+    DetectorCollection<H2D> H_T1_T2     = new DetectorCollection<H2D>();
+    
+    // 1D
+    DetectorCollection<H1D> H_COSMIC_fADC   = new DetectorCollection<H1D>();
+    
+    // Fit Functions 
+    DetectorCollection<F1D> fPed  = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fQ1   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fQ2   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fQMIP = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fV1   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fV2   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fVMIP = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fT   = new DetectorCollection<F1D>();
+    
+    // Functions (that are not used to fit)
+    DetectorCollection<F1D> fThr   = new DetectorCollection<F1D>();
+    DetectorCollection<F1D> fVThr  = new DetectorCollection<F1D>();
+    
+    DetectorCollection<Integer> dcHits = new DetectorCollection<Integer>();
+    
+    H1D H_W_MAX      = null;
+    H1D H_V_MAX      = null;
+    H1D H_NPE_MAX    = null;
+    H1D H_CHARGE_MAX = null;
+    
+    //=================================
+    //           ARRAYS
+    //=================================
+    
+    private double[][][] status;
+    private double[][][] thrshNPE;
+    
+    private double[][][] pedMean;
+    private double[][][] pedRMS;
+    
+    // save the pedestal of the previous event
+    private double[][][] pedPrevious;
+    
+    private double[][][] gain;
+    private double[][][] errGain;
+    
+    private double[][][] gain_mV;
+    private double[][][] errGain_mV;
+    
+    private double[][][] meanNPE;
+    private double[][][] errNPE;
+    private double[][][] sigNPE;
+    
+    private double[][][] meanNPE_mV;
+    private double[][][] errNPE_mV;
+    private double[][][] sigNPE_mV;
+    
+    double[][][] time_M3; 
+    double[][][] time_M7; 
+    double[][]   dT_M3;   
+    double[][]   dT_M7;   
+    
+    
+    // not ccdb constants
+    private double[][][] npeEvent;
+    
+    private double[][][] vMax;
+    private double[][][] vMaxEvent;
+    
+    private double[][][] qMax;
+    
+    String geomFileName = "./Tables/fthodo_geometry.txt";
+    String noisFileName = "./Tables/fthodo_noise.txt";
+    String ccdbFileName = "./Tables/fthodo_ccdb.txt";
+    
+    boolean testMode = false;
+    boolean debugging_mode = false;
+    
+    boolean setConstantsToCCDB = false;
+    boolean pedMeanGood = false;
+    
+    //=================================
+    //           CONSTANTS
+    //=================================
+    
      boolean fitTwoPeaksV = false;
      boolean fitTwoPeaksQ = false;
 
@@ -1489,7 +1489,7 @@
 	 if(testMode)
 	     System.out.println(" initFitVNoiseParameters variables" +
 				" initialised ") ;
-
+	 
 	 if (H1.getEntries() > 500){
 
 	     if(testMode)
@@ -1514,13 +1514,13 @@
 				    " fV1 limits ") ;
 
 	     // gaus
-	     fV1.get(s,l,c).setParLimits(0, ampl/2, ampl*2);
+	     fV1.get(s,l,c).setParLimits(0, 0., ampl*10);
 	     fV1.get(s,l,c).setParLimits(1, 
 					 H1.getAxis().min(), 
 					 2*nGain_mV);
-	     // expo 
 	     fV1.get(s,l,c).setParLimits(2, std/2, std*2.0);
-	     fV1.get(s,l,c).setParLimits(3, 0.1*exp0,5.0*exp0);
+	     // expo 
+	     fV1.get(s,l,c).setParLimits(3, 0.1*exp0,10.0*exp0);
 	     fV1.get(s,l,c).setParLimits(4, -0.1, -1.0);
 
 	     if(testMode)
@@ -1701,8 +1701,8 @@
 	 if (H1.integral() > 100 ){
 
 	     fVMIP.add(s,l,c, new F1D("landau",
-				      CosmicQXMin[l],
-				      CosmicQXMax[l]));
+				      CosmicVXMin[l],
+				      CosmicVXMax[l]));
 	     
 	     mean = H1.getMean();
 	     
@@ -1717,8 +1717,8 @@
 	     fVMIP.get(s,l,c).setParameter(1, mean);
 	     fVMIP.get(s,l,c).setParameter(2, 200);
 	     
-	     min = CosmicQXMin[l];
- 	     max = CosmicQXMax[l];
+	     min = CosmicVXMin[l];
+ 	     max = CosmicVXMax[l];
 	     
 	     fVMIP.get(s,l,c).setParLimits(0, ampl*0.5, ampl*2.5);
 	     fVMIP.get(s,l,c).setParLimits(1, min,max);
@@ -1855,10 +1855,10 @@
 
 	     fitPedestals(s,l,c,fitOption);
 	     fitVNoise(s,l,c,fitOption);
-	     fitQNoise(s,l,c,fitOption);
+	     //fitQNoise(s,l,c,fitOption);
 	     
 	     fitVMIP(s,l,c,fitOption);
-	     fitQMIP(s,l,c,fitOption);
+	     //fitQMIP(s,l,c,fitOption);
 	     
 	     fitT(s,l,c,fitOption);
 
@@ -4229,9 +4229,6 @@
         H_NPE_MATCH.get(HP.getS(),HP.getL(),HP.getC()).
 	    setYTitle("Counts");
         
-	// NoiseVXMin[1] = 0.0;
-// 	NoiseVXMin[2] = 0.0;
-
         H_NOISE_V.add(HP.getS(),HP.getL(), HP.getC(),
                    new H1D(DetectorDescriptor.
                            getName("WAVEMAX",
@@ -4256,7 +4253,7 @@
 				    HP.getL(),
 				    HP.getC()),
 			    HP.getTitle(), nBinsVMIP,
-			    CosmicVXMin[0],CosmicVXMin[1]));
+			    CosmicVXMin[HP.getL()],CosmicVXMax[HP.getL()]));
 	
         H_MIP_V.get(HP.getS(),HP.getL(), HP.getC()).
 	    setFillColor(3);

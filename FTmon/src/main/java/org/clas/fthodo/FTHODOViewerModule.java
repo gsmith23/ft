@@ -669,10 +669,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 	 String lString = String.valueOf(l);
 	 String cString = String.valueOf(c);
 
-	 System.out.println( sString + " " +
-			     lString + " " + 
-			     cString);
-
+	 // System.out.println( sString + " " +
+	 // 			lString + " " + 
+	 // 			cString);
+	 
 	 try {
 
 	     br = new BufferedReader(new FileReader(fileName));
@@ -699,10 +699,10 @@ public class FTHODOViewerModule implements IDetectorListener,
 			 ){
 
 
-			 System.out.println( slc_values[0] + " " +
-					     slc_values[1] + " " +
-					     slc_values[2]);
-
+// 			 System.out.println( slc_values[0] + " " +
+// 					     slc_values[1] + " " +
+// 					     slc_values[2]);
+			 
 			 for( int i = 0 ; i < (nColumns-3) ; i++ )
 			     values[i] = slc_values[i+3];
 
@@ -3585,15 +3585,16 @@ public class FTHODOViewerModule implements IDetectorListener,
 				       ccdbFileName,
 				       13);
 	     
-	     System.out.println("pedMean = " +
-				pedMean[s][l][c]);
+// 	     System.out.println("pedMean = " +
+// 				pedMean[s][l][c]);
 	     
-	     System.out.println(" line[1] = " + line[1]);
+// 	     System.out.println(" line[1] = " + line[1]);
 	     
-	     pedMean[s][l][c] = Double.parseDouble(line[1]);
+ 	     pedMean[s][l][c] = Double.parseDouble(line[1]);
 
-	     System.out.println("pedMean = " +
-				pedMean[s][l][c]);
+// 	     System.out.println("pedMean = " +
+// 				pedMean[s][l][c]);
+	 
 	 }
 	 else if(fPed.hasEntry(s, l, c))
 	     pedMean[s][l][c] = fPed.get(s,l,c).getParameter(1);

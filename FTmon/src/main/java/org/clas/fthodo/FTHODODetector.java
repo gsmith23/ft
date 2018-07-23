@@ -13,7 +13,7 @@ import org.jlab.clas12.calib.DetectorShape2D;
 
 /**
  *
- * @author devita
+ * @author smith, devita
  */
 public class FTHODODetector extends FTDetector {
     

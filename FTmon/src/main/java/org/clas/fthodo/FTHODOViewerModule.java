@@ -52,6 +52,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
+/**
+ * Extensive framework for FT Hodo calibration
+ * @author smith
+ */
 public class FTHODOViewerModule implements IDetectorListener,
 					   IHashTableListener,
 					   ActionListener,
